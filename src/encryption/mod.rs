@@ -6,7 +6,6 @@ pub use curve25519::CURVE25519;
 pub use chacha20_poly1305_openssh::ChaCha20Poly1305;
 
 
-use std::ops::{Deref, DerefMut};
 use std::process::exit;
 use crate::packet::Data;
 

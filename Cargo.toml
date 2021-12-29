@@ -1,6 +1,6 @@
 [package]
 name = "zm_ssh"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,4 +8,3 @@ edition = "2021"
 [dependencies]
 ring = "0.16.20"
 rand = "0.7.3"
-x25519-dalek = "1"

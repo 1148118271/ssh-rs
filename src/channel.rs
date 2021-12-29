@@ -1,8 +1,5 @@
 use std::io;
-use std::io::{Read, Write};
-use std::sync::Arc;
-use crate::constants::{message, strings, size};
-use crate::constants::message::SSH_MSG_CHANNEL_DATA;
+use crate::{message, strings, size};
 use crate::encryption;
 use crate::encryption::ChaCha20Poly1305;
 use crate::hash::HASH;
@@ -34,7 +31,6 @@ impl Channel {
                     self.stream.write(packet.as_slice())?;
                 }
 
-
                 message::SSH_MSG_CHANNEL_DATA => {
                     let mut data = Packet::processing_data(result);
                     data.get_u8();
@@ -52,7 +48,7 @@ impl Channel {
                 }
 
                 message::SSH_MSG_KEXINIT => {
-                    let mut data = Packet::processing_data(result);
+                    let data = Packet::processing_data(result);
                     // 重置加密算法
                     if encryption::is_encrypt() {
                         encryption::update_is_encrypt();
@@ -88,7 +84,7 @@ impl Channel {
 
     pub fn write(&mut self, buf: &[u8]) -> io::Result<()> {
         let mut data = Data::new();
-        data.put_u8(SSH_MSG_CHANNEL_DATA)
+        data.put_u8(message::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.server_channel)
             .put_bytes(buf);
         let mut packet = Packet::from(data);

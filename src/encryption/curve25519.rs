@@ -1,26 +1,34 @@
-use rand::rngs::OsRng;
-use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret, StaticSecret};
+use ring::agreement;
+use ring::agreement::{EphemeralPrivateKey, PublicKey};
 
-#[derive(Clone)]
 pub struct CURVE25519 {
-    pub private_key: StaticSecret,
+    pub private_key: EphemeralPrivateKey,
     pub public_key: PublicKey
 }
 
 
 impl CURVE25519 {
     pub fn new() -> Self {
-        let private_key = StaticSecret::new(&mut OsRng);
-        let public_key = PublicKey::from(&private_key);
+        let rng = ring::rand::SystemRandom::new();
+        let private_key = agreement::EphemeralPrivateKey::generate(&agreement::X25519, &rng).unwrap();
+        let public_key = private_key.compute_public_key().unwrap();
         CURVE25519 {
             private_key,
             public_key
         }
     }
 
-    pub fn get_shared_secret(self, puk: [u8; 32]) -> SharedSecret {
-        let server_pub = PublicKey::from(puk);
-        self.private_key.diffie_hellman(&server_pub)
+    pub fn get_shared_secret(self, puk: [u8; 32]) -> Vec<u8> {
+        let server_pub = agreement::UnparsedPublicKey::new(&agreement::X25519, puk);
+        // let server_pub = PublicKey::from(puk);
+        agreement::agree_ephemeral(
+            self.private_key,
+            &server_pub,
+            ring::error::Unspecified,
+            |_key_material| {
+                Ok(_key_material.to_vec())
+            },
+        ).unwrap()
     }
 }
 

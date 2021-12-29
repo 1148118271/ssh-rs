@@ -2,7 +2,7 @@ use std::process::exit;
 use std::io;
 use crate::channel::Channel;
 use crate::tcp::Client;
-use crate::constants::{strings, message, size};
+use crate::{strings, message, size};
 use crate::key_exchange::KeyExchange;
 use crate::packet::{Data, Packet};
 
@@ -66,11 +66,15 @@ impl Session {
                         // 验证成功
                         println!("验证成功！");
                         self.ssh_open_channel(client_channel)?;
-                        let mut channel = Channel {
+                        let channel = Channel {
                             stream: self.stream.clone(),
                             server_channel: 0,
                             client_channel,
-                            key_exchange: self.key_exchange.clone()
+                            key_exchange: KeyExchange {
+                                            session_id: self.key_exchange.session_id.clone(),
+                                            h: self.key_exchange.h.clone(),
+                                            encryption_algorithm: None
+                                        }
                         };
                         return Ok(channel)
                     }

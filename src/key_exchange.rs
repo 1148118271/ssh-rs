@@ -3,14 +3,13 @@ use std::process::exit;
 use rand::Rng;
 use rand::rngs::OsRng;
 use ring::digest;
-use crate::constants::message;
+use crate::message;
 use crate::{algorithms, encryption};
 use crate::encryption::{ChaCha20Poly1305, CURVE25519, H};
 use crate::hash::HASH;
 use crate::packet::{Data, Packet};
 use crate::tcp::Client;
 
-#[derive(Clone)]
 pub(crate) struct KeyExchange {
     pub(crate) session_id: Vec<u8>,
     pub(crate) h: H,
@@ -35,7 +34,7 @@ impl KeyExchange {
                 let message_code = buf[5];
                 match message_code {
                     message::SSH_MSG_KEXINIT => {
-                        let mut data = Packet::processing_data(buf);
+                        let data = Packet::processing_data(buf);
                         // 重置加密算法
                         if encryption::is_encrypt() {
                             encryption::update_is_encrypt();
@@ -109,17 +108,17 @@ impl KeyExchange {
             None => { exit(0) }
             Some(v) => v
         };
-        self.h.set_q_c(curve25519.public_key.as_bytes());
+        self.h.set_q_c(curve25519.public_key.as_ref());
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_KEX_ECDH_INIT);
-        data.put_bytes(curve25519.public_key.as_bytes());
+        data.put_bytes(curve25519.public_key.as_ref());
         let mut packet = Packet::from(data);
         packet.build();
         stream.write(packet.as_slice())?;
         Ok(())
     }
 
-    pub(crate) fn generate_session_id_and_get_signature(&mut self, mut buff: Vec<u8>) -> io::Result<Vec<u8>> {
+    pub(crate) fn generate_session_id_and_get_signature(&mut self, buff: Vec<u8>) -> io::Result<Vec<u8>> {
         let mut data = Data(buff);
         let ke_n_l = data.get_u8s();
         data.refresh();
@@ -134,12 +133,18 @@ impl KeyExchange {
         let mut qs_arr = [0_u8; 32];
         qs_arr.copy_from_slice(qs.as_slice());
         let o = &self.encryption_algorithm;
+        // encryption_algorithm 在此方法后不会再重复用到！
         let curve25519 = match o {
             None => {exit(0)}
-            Some(v) => v.clone()
+            Some(v) => {
+                unsafe {
+                    std::ptr::read(v as *const CURVE25519)
+                }
+            }
         };
-        let secret = curve25519.get_shared_secret(qs_arr);
-        self.h.set_k(secret.as_bytes());
+        self.encryption_algorithm = None;
+        let vec = curve25519.get_shared_secret(qs_arr);
+        self.h.set_k(&vec);
         let hb = self.h.as_bytes();
         self.session_id = digest::digest(&digest::SHA256, &hb).as_ref().to_vec();
         let h = ke.get_u8s();

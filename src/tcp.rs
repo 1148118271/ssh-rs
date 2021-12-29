@@ -2,7 +2,7 @@ use std::io;
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use crate::encryption::{encryption_key, is_encrypt};
-use super::constants::size;
+use crate::size;
 
 
 pub struct Client {
