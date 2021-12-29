@@ -41,7 +41,7 @@ fn main() {
     // 也可以绑定系统终端操作
     let c1 = Arc::new(Mutex::new(channel));
     let c2 = Arc::clone(&c1);
-    let t1 = thread::spawn(move || {
+    let t1 = thread::spawn(move || { 
         loop {
             let mut x = c1.lock().unwrap().read().unwrap();
             if x.is_empty() { continue }
