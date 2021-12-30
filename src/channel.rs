@@ -1,4 +1,5 @@
 use std::io;
+use std::io::Error;
 use crate::{message, strings, size};
 use crate::encryption;
 use crate::encryption::ChaCha20Poly1305;
@@ -92,7 +93,6 @@ impl Channel {
         Ok(self.stream.write(packet.as_slice())?)
     }
 
-
 }
 
 
@@ -150,6 +150,33 @@ impl Channel {
                         return Ok(())
                     }
                     _ => {}
+                }
+            }
+        }
+    }
+
+    pub fn close(mut self) -> io::Result<()> {
+        let mut data = Data::new();
+        data.put_u8(message::SSH_MSG_CHANNEL_CLOSE)
+            .put_u32(self.server_channel);
+        let mut packet = Packet::from(data);
+        packet.build();
+        self.stream.write(packet.as_slice())?;
+        let date_time = chrono::Local::now();
+        let timeout = date_time.timestamp_millis() + 1500;
+        loop {
+            if date_time.timestamp_millis() >= timeout {
+                return Err(Error::from(io::ErrorKind::TimedOut))
+            }
+            let results = self.stream.read()?;
+            for buf in results {
+                let mut data = Packet::processing_data(buf);
+                let message_code = data.get_u8();
+                let channel_num = data.get_u32();
+                if message_code == message::SSH_MSG_CHANNEL_CLOSE
+                    && channel_num == self.client_channel
+                {
+                    return Ok(())
                 }
             }
         }

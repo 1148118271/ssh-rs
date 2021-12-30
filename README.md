@@ -32,16 +32,17 @@ fn main() {
     session.connect().unwrap();
     let mut channel = session.open_channel().unwrap();
     channel.open_shell().unwrap();
-    // shell 连接成功
     
-    // 可以直接 读写
-    // let result = channel.read();
-    // let result = channel.write("ls \n");
-    
-    // 也可以绑定系统终端操作
+    // thread::sleep(time::Duration::from_millis(500));
+    // let result = channel.read().unwrap();
+    // println!("{}", String::from_utf8(result).unwrap());
+    // let result = channel.write(b"ls \n");
+    // channel.close().unwrap();
+    // session.close().unwrap();
+   
     let c1 = Arc::new(Mutex::new(channel));
     let c2 = Arc::clone(&c1);
-    let t1 = thread::spawn(move || { 
+    let t1 = thread::spawn(move || {
         loop {
             let mut x = c1.lock().unwrap().read().unwrap();
             if x.is_empty() { continue }

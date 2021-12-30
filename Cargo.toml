@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 ring = "0.16.20"
 rand = "0.7.3"
+chrono = "0.4.19"

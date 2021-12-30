@@ -32,8 +32,6 @@ pub struct Session {
 
 impl Session {
     pub fn connect(&mut self) -> io::Result<()> {
-
-
         // 版本协商
         self.version_negotiation()?;
 
@@ -100,6 +98,9 @@ impl Session {
         self.config.password = password;
     }
 
+    pub fn close(self) -> std::io::Result<()> {
+        self.stream.close()
+    }
 
     fn ssh_open_channel(&mut self, client_channel: u32) -> io::Result<()> {
         let mut data = Data::new();

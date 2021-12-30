@@ -1,6 +1,6 @@
 use std::io;
 use std::io::{Read, Write};
-use std::net::{TcpStream, ToSocketAddrs};
+use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use crate::encryption::{encryption_key, is_encrypt};
 use crate::size;
 
@@ -69,7 +69,6 @@ impl Client {
                 Err(_) => continue
             };
         }
-
     }
 
     pub fn read(&mut self) -> io::Result<Vec<Vec<u8>>> {
@@ -139,5 +138,9 @@ impl Client {
         self.stream.write(&buf)?;
         self.stream.flush()?;
         Ok(())
+    }
+
+    pub(crate) fn close(self) -> io::Result<()> {
+        Ok(self.stream.shutdown(Shutdown::Both)?)
     }
 }
