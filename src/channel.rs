@@ -1,8 +1,10 @@
 use std::io;
 use std::io::Error;
-use crate::{message, strings, size};
+use std::sync::atomic::Ordering::Relaxed;
+use crate::{message, strings, size, global_variable};
 use crate::encryption;
 use crate::encryption::ChaCha20Poly1305;
+use crate::error::SshError;
 use crate::hash::HASH;
 use crate::key_exchange::KeyExchange;
 use crate::packet::{Data, Packet};
@@ -17,7 +19,7 @@ pub struct Channel {
 
 
 impl Channel {
-    pub fn read(&mut self) -> io::Result<Vec<u8>> {
+    pub fn read(&mut self) -> Result<Vec<u8>, SshError> {
         let mut buf = vec![];
         self.window_adjust();
         let results = self.stream.read()?;
@@ -51,9 +53,9 @@ impl Channel {
                 message::SSH_MSG_KEXINIT => {
                     let data = Packet::processing_data(result);
                     // 重置加密算法
-                    if encryption::is_encrypt() {
-                        encryption::update_is_encrypt();
-                        encryption::update_encryption_key(None);
+                    if global_variable::IS_ENCRYPT.load(Relaxed) {
+                        global_variable::IS_ENCRYPT.store(false, Relaxed);
+                        global_variable::update_encryption_key(None);
                     }
                     // 密钥协商
                     self.key_exchange.algorithm_negotiation(data, &mut self.stream)?;
@@ -72,8 +74,8 @@ impl Channel {
                     // 修改加密算法
                     let hash = HASH::new(&self.key_exchange.h.k, &self.key_exchange.session_id, &self.key_exchange.session_id);
                     let poly1305 = ChaCha20Poly1305::new(hash);
-                    encryption::update_is_encrypt();
-                    encryption::update_encryption_key(Some(poly1305));
+                    global_variable::IS_ENCRYPT.store(true, Relaxed);
+                    global_variable::update_encryption_key(Some(poly1305));
                 }
 
                 _ => {}
@@ -83,7 +85,7 @@ impl Channel {
     }
 
 
-    pub fn write(&mut self, buf: &[u8]) -> io::Result<()> {
+    pub fn write(&mut self, buf: &[u8]) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.server_channel)
@@ -113,7 +115,7 @@ impl Channel {
         Ok(())
     }
 
-    pub fn open_shell(&mut self) -> io::Result<()> {
+    pub fn open_shell(&mut self) -> Result<(), SshError> {
         loop {
             let results = self.stream.read()?;
             for buf in results {
@@ -124,7 +126,7 @@ impl Channel {
                         data.put_u8(message::SSH_MSG_REQUEST_FAILURE);
                         let mut packet = Packet::from(data);
                         packet.build();
-                        self.stream.write(packet.as_slice())?;
+                        self.stream.write(packet.as_slice());
                     }
 
                     message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
@@ -155,7 +157,7 @@ impl Channel {
         }
     }
 
-    pub fn close(mut self) -> io::Result<()> {
+    pub fn close(mut self) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_CHANNEL_CLOSE)
             .put_u32(self.server_channel);
@@ -166,7 +168,7 @@ impl Channel {
         let timeout = date_time.timestamp_millis() + 1500;
         loop {
             if date_time.timestamp_millis() >= timeout {
-                return Err(Error::from(io::ErrorKind::TimedOut))
+                return Err(SshError::from(Error::from(io::ErrorKind::TimedOut)))
             }
             let results = self.stream.read()?;
             for buf in results {
@@ -182,7 +184,7 @@ impl Channel {
         }
     }
 
-    fn get_shell(&mut self) -> io::Result<()> {
+    fn get_shell(&mut self) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.server_channel)
@@ -193,7 +195,7 @@ impl Channel {
         Ok(self.stream.write(packet.as_slice())?)
     }
 
-    fn request_pty(&mut self) -> io::Result<()> {
+    fn request_pty(&mut self) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.server_channel)

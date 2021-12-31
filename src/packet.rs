@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
-use crate::encryption;
+use std::sync::atomic::Ordering::Relaxed;
+use crate::{encryption, global_variable};
 
 #[derive(Debug)]
 pub struct Packet(Data);
@@ -32,7 +33,7 @@ impl Packet {
     pub(crate) fn build(&mut self) {
         let data_len =  self.0.len() as u32;
         let mut padding_len =
-            match encryption::is_encrypt()  {
+            match global_variable::IS_ENCRYPT.load(Relaxed)  {
                 true => 8 - (data_len + 1) % 8,
                 false => 16 - (data_len + 5) % 16
             };

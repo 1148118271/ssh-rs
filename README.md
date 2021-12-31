@@ -28,6 +28,7 @@ use zm_ssh::ZmSsh;
 fn main() {
     let ssh = ZmSsh::new();
     let mut session = ssh.get_session("192.168.3.101:22").unwrap();
+    session.set_nonblocking(true).unwrap();
     session.set_user_and_password("root".to_string(), "123456".to_string());
     session.connect().unwrap();
     let mut channel = session.open_channel().unwrap();

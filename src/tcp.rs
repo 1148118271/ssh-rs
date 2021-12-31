@@ -1,23 +1,30 @@
 use std::io;
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
-use crate::encryption::{encryption_key, is_encrypt};
-use crate::size;
+use std::sync::atomic::Ordering::Relaxed;
+use ring::error::Unspecified;
+use crate::{global_variable, size};
+use crate::error::{SshError, SshErrorKind};
+use crate::global_variable::encryption_key;
 
 
 pub struct Client {
-    stream: TcpStream,
+    pub(crate) stream: TcpStream,
     sequence: Sequence,
     pub(crate) sender_window_size: u32,
 }
 
-impl Clone for Client {
-    fn clone(&self) -> Self {
-        Client {
-            stream: self.stream.try_clone().unwrap(),
+impl Client {
+    pub fn clone(&self) -> Result<Client, SshError>{
+        let client = Client {
+            stream: match self.stream.try_clone() {
+                Ok(v) => v,
+                Err(e) => return Err(SshError::from(e))
+            },
             sequence: self.sequence.clone(),
             sender_window_size: self.sender_window_size
-        }
+        };
+        Ok(client)
     }
 }
 
@@ -46,32 +53,35 @@ impl Sequence {
 
 
 impl Client {
-    pub fn connect<A: ToSocketAddrs>(adder: A) -> io::Result<Client> {
-        let stream = TcpStream::connect(adder)?;
-        stream.set_nonblocking(true)?;
-        Ok(
-            Client{
-                stream,
-                sequence: Sequence {
-                        client_sequence_num: 0,
-                        server_sequence_num: 0
-                    },
-                sender_window_size: 0
-            }
-        )
+    pub fn connect<A: ToSocketAddrs>(adder: A) -> Result<Client, SshError> {
+        match TcpStream::connect(adder) {
+            Ok(stream) =>
+                Ok(
+                    Client{
+                        stream,
+                        sequence: Sequence {
+                            client_sequence_num: 0,
+                            server_sequence_num: 0
+                        },
+                        sender_window_size: 0
+                    }
+                ),
+            Err(e) => Err(SshError::from(e))
+        }
+
     }
 
-    pub fn read_version(&mut self) -> io::Result<Vec<u8>>  {
+    pub fn read_version(&mut self) -> Vec<u8>  {
         let mut v = [0_u8; 128];
         loop {
             match self.stream.read(&mut v) {
-                Ok(i) => { return  Ok((&v[..i]).to_vec()) }
+                Ok(i) => { return (&v[..i]).to_vec() }
                 Err(_) => continue
             };
         }
     }
 
-    pub fn read(&mut self) -> io::Result<Vec<Vec<u8>>> {
+    pub fn read(&mut self) -> Result<Vec<Vec<u8>>, SshError> {
         let mut results = vec![];
         let mut buf = vec![0; size::BUF_SIZE as usize];
         let result = self.stream.read(&mut buf);
@@ -80,7 +90,7 @@ impl Client {
             return Ok(results)
         }
         let len = result.unwrap();
-        if !is_encrypt() {
+        if !global_variable::IS_ENCRYPT.load(Relaxed) {
             self.sequence.server_auto_increment();
             results.push((&buf[..len]).to_vec());
             self.sender_window_size += len as u32;
@@ -96,7 +106,7 @@ impl Client {
         Ok(results)
     }
 
-    fn read_handle(&mut self, mut result: Vec<u8>, results: &mut Vec<Vec<u8>>) -> io::Result<()> {
+    fn read_handle(&mut self, mut result: Vec<u8>, results: &mut Vec<Vec<u8>>) -> Result<(), SshError> {
         self.sequence.server_auto_increment();
         let key = encryption_key();
         let mut packet_len_slice = [0_u8; 4];
@@ -114,7 +124,8 @@ impl Client {
         }
 
         let (this, remaining) = result.split_at_mut(data_len);
-        let decryption_result = key.decryption(self.sequence.server_sequence_num, &mut this.to_vec());
+        let decryption_result =
+            key.decryption(self.sequence.server_sequence_num, &mut this.to_vec())?;
         self.sender_window_size += (decryption_result.len() + 16) as u32;
         results.push(decryption_result);
         if  remaining.len() > 0 {
@@ -123,24 +134,35 @@ impl Client {
         Ok(())
     }
 
-    pub fn write_version(&mut self, buf: &[u8]) -> io::Result<()> {
-        self.stream.write(buf)?;
-        Ok(())
+    pub fn write_version(&mut self, buf: &[u8]) -> Result<(), SshError> {
+        match self.stream.write(&buf) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(SshError::from(e))
+        }
     }
 
-    pub fn write(&mut self, buf: &[u8]) -> io::Result<()> {
+    pub fn write(&mut self, buf: &[u8]) -> Result<(), SshError> {
         let mut buf = buf.to_vec();
-        if is_encrypt() {
+        if global_variable::IS_ENCRYPT.load(Relaxed) {
             let key = encryption_key();
             key.encryption(self.sequence.client_sequence_num, &mut buf);
         }
         self.sequence.client_auto_increment();
-        self.stream.write(&buf)?;
-        self.stream.flush()?;
+        match self.stream.write(&buf) {
+            Ok(_) => {}
+            Err(e) => return Err(SshError::from(e))
+        };
+        match self.stream.flush() {
+            Ok(_) => {}
+            Err(e) => return Err(SshError::from(e))
+        };
         Ok(())
     }
 
-    pub(crate) fn close(self) -> io::Result<()> {
-        Ok(self.stream.shutdown(Shutdown::Both)?)
+    pub(crate) fn close(self) -> Result<(), SshError> {
+        match self.stream.shutdown(Shutdown::Both) {
+            Ok(o) => Ok(o),
+            Err(e) => Err(SshError::from(e))
+        }
     }
 }

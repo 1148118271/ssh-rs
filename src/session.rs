@@ -1,8 +1,11 @@
+use std::error::Error;
 use std::process::exit;
 use std::io;
+use std::string::FromUtf8Error;
 use crate::channel::Channel;
 use crate::tcp::Client;
 use crate::{strings, message, size};
+use crate::error::{SshError, SshErrorKind};
 use crate::key_exchange::KeyExchange;
 use crate::packet::{Data, Packet};
 
@@ -31,7 +34,7 @@ pub struct Session {
 
 
 impl Session {
-    pub fn connect(&mut self) -> io::Result<()> {
+    pub fn connect(&mut self) -> Result<(), SshError> {
         // 版本协商
         self.version_negotiation()?;
 
@@ -39,8 +42,14 @@ impl Session {
         self.key_exchange.key_exchange(&mut self.stream)?;
         Ok(())
     }
+    pub fn set_nonblocking(&mut self, nonblocking: bool) -> Result<(), SshError>{
+        match self.stream.stream.set_nonblocking(nonblocking) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(SshError::from(e))
+        }
+    }
 
-    pub fn open_channel(&mut self) -> io::Result<Channel> {
+    pub fn open_channel(&mut self) -> Result<Channel, SshError> {
         // 开始身份验证  TODO!!!
         self.msg_service_request()?;
         loop {
@@ -65,7 +74,7 @@ impl Session {
                         println!("验证成功！");
                         self.ssh_open_channel(client_channel)?;
                         let channel = Channel {
-                            stream: self.stream.clone(),
+                            stream: self.stream.clone()?,
                             server_channel: 0,
                             client_channel,
                             key_exchange: KeyExchange {
@@ -98,11 +107,11 @@ impl Session {
         self.config.password = password;
     }
 
-    pub fn close(self) -> std::io::Result<()> {
+    pub fn close(self) -> Result<(), SshError> {
         self.stream.close()
     }
 
-    fn ssh_open_channel(&mut self, client_channel: u32) -> io::Result<()> {
+    fn ssh_open_channel(&mut self, client_channel: u32) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_CHANNEL_OPEN)
             .put_str(strings::SESSION)
@@ -114,7 +123,7 @@ impl Session {
         Ok(self.stream.write(packet.as_slice())?)
     }
 
-    fn password_authentication(&mut self) -> io::Result<()> {
+    fn password_authentication(&mut self) -> Result<(), SshError> {
         let username = &mut self.config.username;
         if username.is_empty() {
             eprintln!("请输入用户！");
@@ -139,7 +148,7 @@ impl Session {
     }
 
 
-    fn msg_service_request(&mut self) -> io::Result<()> {
+    fn msg_service_request(&mut self) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_SERVICE_REQUEST)
             .put_str(strings::SSH_USERAUTH);
@@ -149,16 +158,22 @@ impl Session {
     }
 
 
-    fn version_negotiation(&mut self) -> io::Result<()> {
-        let svb = self.stream.read_version()?;
-        let server_version = String::from_utf8(svb).unwrap();
+    fn version_negotiation(&mut self) -> Result<(), SshError> {
+        let svb = self.stream.read_version();
+        let server_version = match String::from_utf8(svb) {
+            Ok(v) => v,
+            Err(_) => return Err(SshError::from(SshErrorKind::FromUtf8Error))
+        };
         if server_version.contains("SSH-2.0") {
             let sv = server_version.trim();
             self.key_exchange.h.set_v_s(sv);
             self.key_exchange.h.set_v_c(strings::CLIENT_VERSION);
             println!(">> server version: {}", sv);
             println!(">> client version: {}", strings::CLIENT_VERSION);
-            self.stream.write_version(format!("{}\r\n", strings::CLIENT_VERSION).as_bytes())?;
+            match self.stream.write_version(format!("{}\r\n", strings::CLIENT_VERSION).as_bytes()) {
+                Ok(_) => {}
+                Err(e) => return Err(SshError::from(e))
+            };
         } else { exit(0) }
         Ok(())
     }

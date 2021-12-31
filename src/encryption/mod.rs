@@ -9,37 +9,6 @@ pub use chacha20_poly1305_openssh::ChaCha20Poly1305;
 use std::process::exit;
 use crate::packet::Data;
 
-
-static mut IS_ENCRYPT: bool = false;
-
-pub fn is_encrypt() -> bool {
-    unsafe { IS_ENCRYPT }
-}
-
-pub fn update_is_encrypt() {
-     unsafe {
-         IS_ENCRYPT = !IS_ENCRYPT
-     }
-}
-
-
-static mut ENCRYPTION_KEY: Option<ChaCha20Poly1305> = None;
-
-pub fn encryption_key() -> &'static mut ChaCha20Poly1305 {
-    unsafe {
-        match &mut ENCRYPTION_KEY {
-            None => { exit(0) }
-            Some(v) => v
-        }
-    }
-}
-
-pub fn update_encryption_key(v: Option<ChaCha20Poly1305>) {
-    unsafe {
-        ENCRYPTION_KEY = v
-    }
-}
-
 #[derive(Clone)]
 pub struct H {
     // 客户端的版本， u32数组长度 + 数组 不包含 /r/n

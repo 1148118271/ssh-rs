@@ -6,15 +6,16 @@ mod session;
 mod hash;
 mod channel;
 mod key_exchange;
+mod global_variable;
+mod error;
 
 
 pub use session::Session;
 
 
-
-
 use std::io;
 use std::net::ToSocketAddrs;
+use crate::error::SshError;
 use crate::key_exchange::KeyExchange;
 use crate::session::Config;
 use crate::tcp::Client;
@@ -27,7 +28,7 @@ impl ZmSsh {
         Self
     }
 
-    pub fn get_session<A: ToSocketAddrs>(self, adder: A) -> io::Result<Session> {
+    pub fn get_session<A: ToSocketAddrs>(self, adder: A) -> Result<Session, SshError> {
         Ok(Session {
             stream: Client::connect(adder)?,
             config: Config::new(),
@@ -108,4 +109,34 @@ pub mod disconnection_message {
     pub const SSH_DISCONNECT_AUTH_CANCELLED_BY_USER: u8 = 13;
     pub const SSH_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE: u8 = 14;
     pub const SSH_DISCONNECT_ILLEGAL_USER_NAME: u8 = 15;
+}
+
+
+
+
+#[cfg(test)]
+mod tests {
+    use std::io;
+    use crate::error::{SshError, SshErrorKind};
+
+    #[test]
+    fn test() -> Result<(), SshError> {
+        Err(SshError::from(io::Error::from(io::ErrorKind::WouldBlock)))
+        // Err(io::Error::from(io::ErrorKind::WouldBlock))
+    }
+
+    #[test]
+    fn test1() {
+        match test() {
+            Ok(_) => {}
+            Err(e) => {
+                let kind = e.kind();
+                // match kind {
+                //     SshErrorKind::IoError(v) => {
+                //         println!("{:?}", v.kind())
+                //     }
+                // }
+            }
+        }
+    }
 }
