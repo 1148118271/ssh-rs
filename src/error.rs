@@ -35,6 +35,8 @@ pub enum SshErrorKind {
     IoError(io::Error),
     EncryptionError,
     FromUtf8Error,
+    ChannelFailureError,
+
 }
 
 
@@ -66,6 +68,7 @@ impl SshErrorKind {
         match self {
             SshErrorKind::EncryptionError => "Key generation or encryption or decryption is abnormal",
             SshErrorKind::FromUtf8Error => "The UTF8 conversion is abnormal",
+            SshErrorKind::ChannelFailureError => "Connection channel failure",
             _ => ""
         }
     }

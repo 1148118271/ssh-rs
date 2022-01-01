@@ -8,6 +8,8 @@ mod channel;
 mod key_exchange;
 mod global_variable;
 mod error;
+mod channel_shell;
+mod channel_exec;
 
 
 pub use session::Session;
@@ -49,6 +51,7 @@ pub mod strings {
     pub const PASSWORD: &'static str = "password";
     pub const SESSION: &'static str = "session";
     pub const SHELL: &'static str = "shell";
+    pub const EXEC: &'static str = "exec";
     pub const PTY_REQ: &'static str = "pty-req";
     pub const XTERM_VAR: &'static str = "xterm-256color";
 }
@@ -109,34 +112,4 @@ pub mod disconnection_message {
     pub const SSH_DISCONNECT_AUTH_CANCELLED_BY_USER: u8 = 13;
     pub const SSH_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE: u8 = 14;
     pub const SSH_DISCONNECT_ILLEGAL_USER_NAME: u8 = 15;
-}
-
-
-
-
-#[cfg(test)]
-mod tests {
-    use std::io;
-    use crate::error::{SshError, SshErrorKind};
-
-    #[test]
-    fn test() -> Result<(), SshError> {
-        Err(SshError::from(io::Error::from(io::ErrorKind::WouldBlock)))
-        // Err(io::Error::from(io::ErrorKind::WouldBlock))
-    }
-
-    #[test]
-    fn test1() {
-        match test() {
-            Ok(_) => {}
-            Err(e) => {
-                let kind = e.kind();
-                // match kind {
-                //     SshErrorKind::IoError(v) => {
-                //         println!("{:?}", v.kind())
-                //     }
-                // }
-            }
-        }
-    }
 }

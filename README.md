@@ -1,30 +1,8 @@
 ### 除加密库外 纯rust实现的ssh-2.0client协议
 
-```
-支持的算法:
-    密钥交换：  
-        curve25519
-    数字签名：
-        ed25519
-    加密：
-        chacha20_poly1305_openssh
-        
-
-支持的验证方式：
-    密码验证
-
-
-支持的命令解释程序:
-    shell
-```
-
-使用方法：
+#### 使用方法：
+shell
 ```rust
-use std::io::{stdin, stdout, Write};
-use std::sync::{Arc, Mutex};
-use std::thread;
-use zm_ssh::ZmSsh;
-
 fn main() {
     let ssh = ZmSsh::new();
     let mut session = ssh.get_session("192.168.3.101:22").unwrap();
@@ -32,16 +10,15 @@ fn main() {
     session.set_user_and_password("root".to_string(), "123456".to_string());
     session.connect().unwrap();
     let mut channel = session.open_channel().unwrap();
-    channel.open_shell().unwrap();
+    let mut shell = channel.open_shell().unwrap();
     
     // thread::sleep(time::Duration::from_millis(500));
-    // let result = channel.read().unwrap();
+    // let result = shell.read().unwrap();
     // println!("{}", String::from_utf8(result).unwrap());
-    // let result = channel.write(b"ls \n");
-    // channel.close().unwrap();
+    // shell.close().unwrap();
     // session.close().unwrap();
-   
-    let c1 = Arc::new(Mutex::new(channel));
+
+    let c1 = Arc::new(Mutex::new(shell));
     let c2 = Arc::clone(&c1);
     let t1 = thread::spawn(move || {
         loop {
@@ -64,8 +41,40 @@ fn main() {
     t2.join().unwrap();
 
 }
+```
+exec
+```rust
+
+fn main() {
+    let ssh = ZmSsh::new();
+    let mut session = ssh.get_session("192.168.3.101:22").unwrap();
+    session.set_user_and_password("root".to_string(), "123456".to_string());
+    session.connect().unwrap();
+    let mut channel = session.open_channel().unwrap();
+    let mut exec = channel.open_exec().unwrap();
+    let vec = exec.set_command("ps -ef |grep ssh").unwrap();
+    println!("{}", String::from_utf8(vec).unwrap());
+    session.close().unwrap();
+}
+```
 
 
+```
+支持的算法:
+    密钥交换：  
+        curve25519
+    数字签名：
+        ed25519
+    加密：
+        chacha20_poly1305_openssh
+        
+
+支持的验证方式：
+    密码验证
+
+
+支持的命令解释程序:
+    shell
 ```
 
 

@@ -2,9 +2,11 @@ use std::io;
 use std::io::Error;
 use std::sync::atomic::Ordering::Relaxed;
 use crate::{message, strings, size, global_variable};
+use crate::channel_exec::ChannelExec;
+use crate::channel_shell::ChannelShell;
 use crate::encryption;
 use crate::encryption::ChaCha20Poly1305;
-use crate::error::SshError;
+use crate::error::{SshError, SshErrorKind};
 use crate::hash::HASH;
 use crate::key_exchange::KeyExchange;
 use crate::packet::{Data, Packet};
@@ -18,90 +20,68 @@ pub struct Channel {
 }
 
 
+
 impl Channel {
-    pub fn read(&mut self) -> Result<Vec<u8>, SshError> {
-        let mut buf = vec![];
-        self.window_adjust();
-        let results = self.stream.read()?;
-        for result in results {
-            let message_code = result[5];
-            match message_code {
-                message::SSH_MSG_GLOBAL_REQUEST => {
-                    let mut data = Data::new();
-                    data.put_u8(message::SSH_MSG_REQUEST_FAILURE);
-                    let mut packet = Packet::from(data);
-                    packet.build();
-                    self.stream.write(packet.as_slice())?;
-                }
 
-                message::SSH_MSG_CHANNEL_DATA => {
-                    let mut data = Packet::processing_data(result);
-                    data.get_u8();
-                    data.get_u32();
-                    let vec = data.get_u8s();
-                    buf.extend(vec);
-                }
-
-                message::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
-                    let mut data = Packet::processing_data(result);
-                    let msg_code = data.get_u8();
-                    let server_channel = data.get_u32();
-                    let windows_size = data.get_u32();
-                    println!("信息编码: {}, 通道编号: {}, 窗口大小: {}", msg_code, server_channel, windows_size);
-                }
-
-                message::SSH_MSG_KEXINIT => {
-                    let data = Packet::processing_data(result);
-                    // 重置加密算法
-                    if global_variable::IS_ENCRYPT.load(Relaxed) {
-                        global_variable::IS_ENCRYPT.store(false, Relaxed);
-                        global_variable::update_encryption_key(None);
-                    }
-                    // 密钥协商
-                    self.key_exchange.algorithm_negotiation(data, &mut self.stream)?;
-                    // 发送公钥
-                    self.key_exchange.send_public_key(&mut self.stream)?;
-                }
-
-                message::SSH_MSG_KEX_ECDH_REPLY => {
-                    // 生成session_id并且获取signature
-                    let sig = self.key_exchange.generate_session_id_and_get_signature(result)?;
-                    // 验签
-                    self.key_exchange.verify_signature(&sig);
-                    // 新的密钥
-                    self.key_exchange.new_keys(&mut self.stream)?;
-
-                    // 修改加密算法
-                    let hash = HASH::new(&self.key_exchange.h.k, &self.key_exchange.session_id, &self.key_exchange.session_id);
-                    let poly1305 = ChaCha20Poly1305::new(hash);
-                    global_variable::IS_ENCRYPT.store(true, Relaxed);
-                    global_variable::update_encryption_key(Some(poly1305));
-                }
-
-                _ => {}
+    pub fn other_info(&mut self, message_code: u8, result: Vec<u8>) -> Result<(), SshError> {
+        match message_code {
+            message::SSH_MSG_GLOBAL_REQUEST => {
+                let mut data = Data::new();
+                data.put_u8(message::SSH_MSG_REQUEST_FAILURE);
+                let mut packet = Packet::from(data);
+                packet.build();
+                self.stream.write(packet.as_slice());
             }
+            message::SSH_MSG_KEXINIT => {
+                let data = Packet::processing_data(result);
+                // 重置加密算法
+                if global_variable::IS_ENCRYPT.load(Relaxed) {
+                    global_variable::IS_ENCRYPT.store(false, Relaxed);
+                    global_variable::update_encryption_key(None);
+                }
+                // 密钥协商
+                self.key_exchange.algorithm_negotiation(data, &mut self.stream)?;
+                // 发送公钥
+                self.key_exchange.send_public_key(&mut self.stream)?;
+            }
+            message::SSH_MSG_KEX_ECDH_REPLY => {
+                // 生成session_id并且获取signature
+                let sig = self.key_exchange.generate_session_id_and_get_signature(result)?;
+                // 验签
+                self.key_exchange.verify_signature(&sig);
+                // 新的密钥
+                self.key_exchange.new_keys(&mut self.stream)?;
+
+                // 修改加密算法
+                let hash = HASH::new(&self.key_exchange.h.k, &self.key_exchange.session_id, &self.key_exchange.session_id);
+                let poly1305 = ChaCha20Poly1305::new(hash);
+                global_variable::IS_ENCRYPT.store(true, Relaxed);
+                global_variable::update_encryption_key(Some(poly1305));
+            }
+            // 通道大小 暂不处理
+            message::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
+            }
+            message::SSH_MSG_CHANNEL_REQUEST => {
+            }
+            message::SSH_MSG_CHANNEL_SUCCESS => {
+            }
+            message::SSH_MSG_CHANNEL_FAILURE => {
+                return Err(SshError::from(SshErrorKind::ChannelFailureError))
+            }
+            message::SSH_MSG_CHANNEL_CLOSE => {
+                let mut data = Data::new();
+                data.put_u8(message::SSH_MSG_CHANNEL_CLOSE)
+                    .put_u32(self.server_channel);
+                let mut packet = Packet::from(data);
+                packet.build();
+                self.stream.write(packet.as_slice())?;
+            }
+            _ => {}
         }
-        Ok(buf)
+        Ok(())
     }
 
-
-    pub fn write(&mut self, buf: &[u8]) -> Result<(), SshError> {
-        let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_CHANNEL_DATA)
-            .put_u32(self.server_channel)
-            .put_bytes(buf);
-        let mut packet = Packet::from(data);
-        packet.build();
-        Ok(self.stream.write(packet.as_slice())?)
-    }
-
-}
-
-
-
-impl Channel {
-
-    pub fn window_adjust(&mut self) -> io::Result<()> {
+    pub fn window_adjust(&mut self) -> Result<(), SshError> {
         if self.stream.sender_window_size >= (size::LOCAL_WINDOW_SIZE / 2) {
             let mut data = Data::new();
             data.put_u8(message::SSH_MSG_CHANNEL_WINDOW_ADJUST)
@@ -109,26 +89,18 @@ impl Channel {
                 .put_u32(size::LOCAL_WINDOW_SIZE - self.stream.sender_window_size);
             let mut packet = Packet::from(data);
             packet.build();
-            self.stream.write(packet.as_slice());
+            self.stream.write(packet.as_slice())?;
             self.stream.sender_window_size = 0;
         }
         Ok(())
     }
 
-    pub fn open_shell(&mut self) -> Result<(), SshError> {
+    pub fn open_shell(mut self) -> Result<ChannelShell, SshError> {
         loop {
             let results = self.stream.read()?;
             for buf in results {
                 let message_code = buf[5];
                 match message_code {
-                    message::SSH_MSG_GLOBAL_REQUEST => {
-                        let mut data = Data::new();
-                        data.put_u8(message::SSH_MSG_REQUEST_FAILURE);
-                        let mut packet = Packet::from(data);
-                        packet.build();
-                        self.stream.write(packet.as_slice());
-                    }
-
                     message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
                         let mut data = Packet::processing_data(buf);
                         data.get_u8();
@@ -139,19 +111,31 @@ impl Channel {
                         // 打开shell通道
                         self.get_shell()?;
                     }
-
-                    message::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
-                        let mut data = Packet::processing_data(buf);
-                        let msg_code = data.get_u8();
-                        let server_channel = data.get_u32();
-                        let windows_size = data.get_u32();
-                        println!("信息编码: {}, 通道编号: {}, 窗口大小: {}", msg_code, server_channel, windows_size);
-                    }
-
                     message::SSH_MSG_CHANNEL_SUCCESS => {
-                        return Ok(())
+                        return Ok(ChannelShell(self))
                     }
-                    _ => {}
+                    _ => self.other_info(message_code, buf)?
+                }
+            }
+        }
+    }
+
+    pub fn open_exec(mut self) -> Result<ChannelExec, SshError> {
+        loop {
+            let results = self.stream.read()?;
+            for buf in results {
+                let message_code = buf[5];
+                match message_code {
+                    message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
+                        let mut data = Packet::processing_data(buf);
+                        data.get_u8();
+                        data.get_u32();
+                        self.server_channel = data.get_u32();
+                        // 请求伪终端
+                        self.request_pty()?;
+                        return Ok(ChannelExec(self))
+                    }
+                    _ => self.other_info(message_code, buf)?
                 }
             }
         }
