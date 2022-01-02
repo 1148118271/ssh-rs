@@ -1,5 +1,4 @@
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter, Pointer, write};
+use std::fmt::{Debug, Display, Formatter};
 use std::{fmt, io};
 
 pub struct SshError {
@@ -36,7 +35,11 @@ pub enum SshErrorKind {
     EncryptionError,
     FromUtf8Error,
     ChannelFailureError,
-
+    PasswordError,
+    UserNullError,
+    PasswordNullError,
+    SignatureError,
+    VersionError,
 }
 
 
@@ -69,6 +72,11 @@ impl SshErrorKind {
             SshErrorKind::EncryptionError => "Key generation or encryption or decryption is abnormal",
             SshErrorKind::FromUtf8Error => "The UTF8 conversion is abnormal",
             SshErrorKind::ChannelFailureError => "Connection channel failure",
+            SshErrorKind::PasswordError => "Password authentication failed",
+            SshErrorKind::UserNullError => "The user cannot be empty",
+            SshErrorKind::PasswordNullError => "The password cannot be empty",
+            SshErrorKind::SignatureError => "Signature verification failure",
+            SshErrorKind::VersionError => "Version not supported",
             _ => ""
         }
     }

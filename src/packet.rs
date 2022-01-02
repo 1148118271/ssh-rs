@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::Ordering::Relaxed;
-use crate::{encryption, global_variable};
+use crate::global_variable;
 
 #[derive(Debug)]
 pub struct Packet(Data);

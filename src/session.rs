@@ -1,7 +1,3 @@
-use std::error::Error;
-use std::process::exit;
-use std::io;
-use std::string::FromUtf8Error;
 use crate::channel::Channel;
 use crate::tcp::Client;
 use crate::{strings, message, size};
@@ -62,16 +58,13 @@ impl Session {
                         self.password_authentication()?;
                     }
                     message::SSH_MSG_USERAUTH_FAILURE => {
-                        println!("密码验证失败！");
-                        exit(0)
+                        return Err(SshError::from(SshErrorKind::PasswordError))
                     }
 
                     message::SSH_MSG_USERAUTH_SUCCESS => {
                         let client_channel = unsafe {
                             CLIENT_CHANNEL + 1
                         };
-                        // 验证成功
-                        println!("验证成功！");
                         self.ssh_open_channel(client_channel)?;
                         let channel = Channel {
                             stream: self.stream.clone()?,
@@ -126,13 +119,11 @@ impl Session {
     fn password_authentication(&mut self) -> Result<(), SshError> {
         let username = &mut self.config.username;
         if username.is_empty() {
-            eprintln!("请输入用户！");
-            exit(0)
+            return Err(SshError::from(SshErrorKind::UserNullError))
         }
         let password = &mut self.config.password;
         if password.is_empty() {
-            eprintln!("请输入密码！");
-            exit(0)
+            return Err(SshError::from(SshErrorKind::PasswordNullError))
         }
 
         let mut data = Data::new();
@@ -164,17 +155,15 @@ impl Session {
             Ok(v) => v,
             Err(_) => return Err(SshError::from(SshErrorKind::FromUtf8Error))
         };
-        if server_version.contains("SSH-2.0") {
-            let sv = server_version.trim();
-            self.key_exchange.h.set_v_s(sv);
-            self.key_exchange.h.set_v_c(strings::CLIENT_VERSION);
-            println!(">> server version: {}", sv);
-            println!(">> client version: {}", strings::CLIENT_VERSION);
-            match self.stream.write_version(format!("{}\r\n", strings::CLIENT_VERSION).as_bytes()) {
-                Ok(_) => {}
-                Err(e) => return Err(SshError::from(e))
-            };
-        } else { exit(0) }
+        if !server_version.contains("SSH-2.0") {
+            return Err(SshError::from(SshErrorKind::VersionError))
+        }
+        let sv = server_version.trim();
+        self.key_exchange.h.set_v_s(sv);
+        self.key_exchange.h.set_v_c(strings::CLIENT_VERSION);
+        println!(">> server version: {}", sv);
+        println!(">> client version: {}", strings::CLIENT_VERSION);
+        self.stream.write_version(format!("{}\r\n", strings::CLIENT_VERSION).as_bytes())?;
         Ok(())
     }
 

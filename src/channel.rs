@@ -4,7 +4,6 @@ use std::sync::atomic::Ordering::Relaxed;
 use crate::{message, strings, size, global_variable};
 use crate::channel_exec::ChannelExec;
 use crate::channel_shell::ChannelShell;
-use crate::encryption;
 use crate::encryption::ChaCha20Poly1305;
 use crate::error::{SshError, SshErrorKind};
 use crate::hash::HASH;
@@ -30,7 +29,7 @@ impl Channel {
                 data.put_u8(message::SSH_MSG_REQUEST_FAILURE);
                 let mut packet = Packet::from(data);
                 packet.build();
-                self.stream.write(packet.as_slice());
+                self.stream.write(packet.as_slice())?;
             }
             message::SSH_MSG_KEXINIT => {
                 let data = Packet::processing_data(result);
@@ -48,7 +47,7 @@ impl Channel {
                 // 生成session_id并且获取signature
                 let sig = self.key_exchange.generate_session_id_and_get_signature(result)?;
                 // 验签
-                self.key_exchange.verify_signature(&sig);
+                self.key_exchange.verify_signature(&sig)?;
                 // 新的密钥
                 self.key_exchange.new_keys(&mut self.stream)?;
 

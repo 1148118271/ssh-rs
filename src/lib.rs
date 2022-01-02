@@ -15,7 +15,6 @@ mod channel_exec;
 pub use session::Session;
 
 
-use std::io;
 use std::net::ToSocketAddrs;
 use crate::error::SshError;
 use crate::key_exchange::KeyExchange;

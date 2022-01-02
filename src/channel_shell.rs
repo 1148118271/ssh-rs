@@ -1,8 +1,5 @@
-use std::sync::atomic::Ordering::Relaxed;
 use crate::channel::Channel;
-use crate::{global_variable, message, SshError};
-use crate::encryption::ChaCha20Poly1305;
-use crate::hash::HASH;
+use crate::{message, SshError};
 use crate::packet::{Data, Packet};
 
 pub struct ChannelShell(pub(crate) Channel);
@@ -10,7 +7,7 @@ pub struct ChannelShell(pub(crate) Channel);
 impl ChannelShell {
     pub fn read(&mut self) -> Result<Vec<u8>, SshError> {
         let mut buf = vec![];
-        self.0.window_adjust();
+        self.0.window_adjust()?;
         let results = self.0.stream.read()?;
         for result in results {
             let message_code = result[5];

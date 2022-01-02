@@ -1,10 +1,8 @@
-use std::io;
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::sync::atomic::Ordering::Relaxed;
-use ring::error::Unspecified;
 use crate::{global_variable, size};
-use crate::error::{SshError, SshErrorKind};
+use crate::error::SshError;
 use crate::global_variable::encryption_key;
 
 
@@ -108,7 +106,7 @@ impl Client {
 
     fn read_handle(&mut self, mut result: Vec<u8>, results: &mut Vec<Vec<u8>>) -> Result<(), SshError> {
         self.sequence.server_auto_increment();
-        let key = encryption_key();
+        let key = encryption_key()?;
         let mut packet_len_slice = [0_u8; 4];
         let len = &result[..4];
         packet_len_slice.copy_from_slice(len);
@@ -144,7 +142,7 @@ impl Client {
     pub fn write(&mut self, buf: &[u8]) -> Result<(), SshError> {
         let mut buf = buf.to_vec();
         if global_variable::IS_ENCRYPT.load(Relaxed) {
-            let key = encryption_key();
+            let key = encryption_key()?;
             key.encryption(self.sequence.client_sequence_num, &mut buf);
         }
         self.sequence.client_auto_increment();

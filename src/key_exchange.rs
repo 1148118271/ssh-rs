@@ -1,12 +1,7 @@
-use std::error::Error;
-use std::io;
-use std::process::exit;
-use std::string::FromUtf8Error;
 use std::sync::atomic::Ordering;
 use rand::Rng;
 use rand::rngs::OsRng;
 use ring::digest;
-use ring::error::Unspecified;
 use crate::{algorithms, encryption, message, global_variable};
 use crate::encryption::{ChaCha20Poly1305, CURVE25519, H};
 use crate::error::{SshError, SshErrorKind};
@@ -60,12 +55,9 @@ impl KeyExchange {
                             Err(_) => return Err(SshError::from(SshErrorKind::EncryptionError))
                         };
                         // 验签
-                        self.verify_signature(&sig);
+                        self.verify_signature(&sig)?;
                         // 新的密钥
-                        match self.new_keys(stream) {
-                            Ok(_) => {}
-                            Err(e) => return Err(SshError::from(e))
-                        }
+                        self.new_keys(stream)?;
 
                         // 修改加密算法
                         let hash = HASH::new(&self.h.k, &self.session_id, &self.session_id);
@@ -129,7 +121,7 @@ impl KeyExchange {
     pub(crate) fn send_public_key(&mut self, stream: &mut Client) -> Result<(), SshError> {
         let o = &self.encryption_algorithm;
         let curve25519 = match o {
-            None => { exit(0) }
+            None => return Err(SshError::from(SshErrorKind::EncryptionError)),
             Some(v) => v
         };
         self.h.set_q_c(curve25519.public_key.as_ref());
@@ -159,7 +151,7 @@ impl KeyExchange {
         let o = &self.encryption_algorithm;
         // encryption_algorithm 在此方法后不会再重复用到！
         let curve25519 = match o {
-            None => {exit(0)}
+            None => return Err(SshError::from(SshErrorKind::EncryptionError)),
             Some(v) => {
                 unsafe {
                     std::ptr::read(v as *const CURVE25519)
@@ -186,13 +178,16 @@ impl KeyExchange {
         Ok(stream.write(packet.as_slice())?)
     }
 
-    pub(crate) fn verify_signature(&mut self, sig: &[u8]) {
+    pub(crate) fn verify_signature(&mut self, sig: &[u8]) -> Result<(), SshError>{
         let mut data = Data((&self.h.k_s[4..]).to_vec());
         data.get_u8s();
         let host_key = data.get_u8s();
         let signature = encryption::ed25519::verify_signature(&host_key, &self.session_id, &sig);
         println!(">> verify signature result: {}", signature);
-        if !signature { exit(0) }
+        if !signature {
+            return Err(SshError::from(SshErrorKind::SignatureError))
+        }
+        Ok(())
     }
 }
 
