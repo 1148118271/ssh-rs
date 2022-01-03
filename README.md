@@ -74,7 +74,7 @@ fn main() {
 
 
 支持的命令解释程序:
-    shell
+    shell, exec
 ```
 
 
