@@ -7,7 +7,7 @@ use crate::channel_shell::ChannelShell;
 use crate::encryption::ChaCha20Poly1305;
 use crate::error::{SshError, SshErrorKind};
 use crate::hash::HASH;
-use crate::key_exchange::KeyExchange;
+use crate::key_agreement::KeyAgreement;
 use crate::packet::{Data, Packet};
 use crate::tcp::Client;
 
@@ -15,7 +15,7 @@ pub struct Channel {
     pub(crate) stream: Client,
     pub(crate) server_channel: u32,
     pub(crate) client_channel: u32,
-    pub(crate) key_exchange: KeyExchange
+    pub(crate) key_agreement: KeyAgreement
 }
 
 
@@ -39,20 +39,22 @@ impl Channel {
                     global_variable::update_encryption_key(None);
                 }
                 // 密钥协商
-                self.key_exchange.algorithm_negotiation(data, &mut self.stream)?;
+                self.key_agreement.algorithm_negotiation(data, &mut self.stream)?;
                 // 发送公钥
-                self.key_exchange.send_public_key(&mut self.stream)?;
+                self.key_agreement.send_public_key(&mut self.stream)?;
             }
             message::SSH_MSG_KEX_ECDH_REPLY => {
                 // 生成session_id并且获取signature
-                let sig = self.key_exchange.generate_session_id_and_get_signature(result)?;
+                let sig = self.key_agreement.generate_session_id_and_get_signature(result)?;
                 // 验签
-                self.key_exchange.verify_signature(&sig)?;
+                self.key_agreement.verify_signature(&sig)?;
                 // 新的密钥
-                self.key_exchange.new_keys(&mut self.stream)?;
+                self.key_agreement.new_keys(&mut self.stream)?;
 
                 // 修改加密算法
-                let hash = HASH::new(&self.key_exchange.h.k, &self.key_exchange.session_id, &self.key_exchange.session_id);
+                let hash =
+                    HASH::new(&self.key_agreement.h.k,
+                              &self.key_agreement.session_id, &self.key_agreement.session_id);
                 let poly1305 = ChaCha20Poly1305::new(hash);
                 global_variable::IS_ENCRYPT.store(true, Relaxed);
                 global_variable::update_encryption_key(Some(poly1305));

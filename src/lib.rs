@@ -5,7 +5,7 @@ mod encryption;
 mod session;
 mod hash;
 mod channel;
-mod key_exchange;
+mod key_agreement;
 mod global_variable;
 mod error;
 mod channel_shell;
@@ -17,7 +17,7 @@ pub use session::Session;
 
 use std::net::ToSocketAddrs;
 use crate::error::SshError;
-use crate::key_exchange::KeyExchange;
+use crate::key_agreement::KeyAgreement;
 use crate::session::Config;
 use crate::tcp::Client;
 
@@ -33,7 +33,7 @@ impl ZmSsh {
         Ok(Session {
             stream: Client::connect(adder)?,
             config: Config::new(),
-            key_exchange: KeyExchange::new()
+            key_agreement: KeyAgreement::new()
         })
     }
 

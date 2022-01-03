@@ -1,24 +1,25 @@
 use std::sync::atomic::Ordering;
 use rand::Rng;
 use rand::rngs::OsRng;
+use ring::agreement::ECDH_P256;
 use ring::digest;
 use crate::{algorithms, encryption, message, global_variable};
-use crate::encryption::{ChaCha20Poly1305, CURVE25519, H};
+use crate::encryption::{ChaCha20Poly1305, CURVE25519, DH, EcdhP256, H, KeyExchange};
 use crate::error::{SshError, SshErrorKind};
 use crate::hash::HASH;
 use crate::packet::{Data, Packet};
 use crate::tcp::Client;
 
-pub(crate) struct KeyExchange {
+pub(crate) struct KeyAgreement {
     pub(crate) session_id: Vec<u8>,
     pub(crate) h: H,
-    pub(crate) encryption_algorithm: Option<CURVE25519>,
+    pub(crate) encryption_algorithm: Option<Box<DH>>,
 
 }
 
-impl KeyExchange {
+impl KeyAgreement {
     pub(crate) fn new() -> Self {
-        KeyExchange {
+        KeyAgreement {
             session_id: vec![],
             h: H::new(),
             encryption_algorithm: None,
@@ -26,7 +27,7 @@ impl KeyExchange {
     }
 
 
-    pub(crate) fn key_exchange(&mut self, stream: &mut Client) -> Result<(), SshError> {
+    pub(crate) fn key_agreement(&mut self, stream: &mut Client) -> Result<(), SshError> {
         loop {
             let results = stream.read()?;
             for buf in results {
@@ -90,15 +91,9 @@ impl KeyExchange {
         println!(">> server algorithm: {:?}", server_algorithm);
         let alv = algorithms::init();
         println!(">> client algorithm: {:?}", algorithms::ALGORITHMS);
-
-        // TODO 选出合适的算法未做，当前默认使用 CURVE25519
-
+        let dh: Box<DH> = dn_matching_algorithm(server_algorithm[0].clone(), algorithms::ALGORITHMS[0].to_string())?;
         // 生成DH
-        let kex = match encryption::CURVE25519::new() {
-            Ok(kex) => kex,
-            Err(_) => return Err(SshError::from(SshErrorKind::EncryptionError))
-        };
-        self.encryption_algorithm = Some(kex);
+        self.encryption_algorithm = Some(dh);
 
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_KEXINIT);
@@ -120,14 +115,14 @@ impl KeyExchange {
 
     pub(crate) fn send_public_key(&mut self, stream: &mut Client) -> Result<(), SshError> {
         let o = &self.encryption_algorithm;
-        let curve25519 = match o {
+        let dh = match o {
             None => return Err(SshError::from(SshErrorKind::EncryptionError)),
             Some(v) => v
         };
-        self.h.set_q_c(curve25519.public_key.as_ref());
+        self.h.set_q_c(dh.get_public_key());
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_KEX_ECDH_INIT);
-        data.put_bytes(curve25519.public_key.as_ref());
+        data.put_bytes(dh.get_public_key());
         let mut packet = Packet::from(data);
         packet.build();
         stream.write(packet.as_slice())?;
@@ -146,20 +141,12 @@ impl KeyExchange {
         // TODO 未进行密钥指纹验证！！
         let qs = ke.get_u8s();
         self.h.set_q_s(&qs);
-        let mut qs_arr = [0_u8; 32];
-        qs_arr.copy_from_slice(qs.as_slice());
         let o = &self.encryption_algorithm;
-        // encryption_algorithm 在此方法后不会再重复用到！
-        let curve25519 = match o {
+        let dh = match o {
             None => return Err(SshError::from(SshErrorKind::EncryptionError)),
-            Some(v) => {
-                unsafe {
-                    std::ptr::read(v as *const CURVE25519)
-                }
-            }
+            Some(v) => v
         };
-        self.encryption_algorithm = None;
-        let vec = curve25519.get_shared_secret(qs_arr)?;
+        let vec = dh.get_shared_secret(qs)?;
         self.h.set_k(&vec);
         let hb = self.h.as_bytes();
         self.session_id = digest::digest(&digest::SHA256, &hb).as_ref().to_vec();
@@ -191,6 +178,21 @@ impl KeyExchange {
     }
 }
 
+fn dn_matching_algorithm(sdh: String, cdh: String) -> Result<Box<DH>, SshError> {
+    let sda: Vec<&str> = sdh.split(",").collect();
+    let cda: Vec<&str> = cdh.split(",").collect();
+    for algorithm in cda {
+        if sda.contains(&algorithm) {
+            if algorithm.eq(algorithms::KEY_EXCHANGE_CURVE25519_SHA256) {
+                return Ok(Box::new(CURVE25519::new()?))
+            }
+            if algorithm.eq(algorithms::KEY_EXCHANGE_ECDH_SHA2_NISTP256) {
+                return Ok(Box::new(EcdhP256::new()?))
+            }
+        }
+    }
+    Err(SshError::from(SshErrorKind::KeyExchangeError))
+}
 
 // 十六位随机数
 fn cookie() -> Vec<u8> {

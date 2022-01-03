@@ -2,7 +2,7 @@ use crate::channel::Channel;
 use crate::tcp::Client;
 use crate::{strings, message, size};
 use crate::error::{SshError, SshErrorKind};
-use crate::key_exchange::KeyExchange;
+use crate::key_agreement::KeyAgreement;
 use crate::packet::{Data, Packet};
 
 static mut CLIENT_CHANNEL: u32 = 0;
@@ -25,7 +25,7 @@ impl Config {
 pub struct Session {
     pub(crate) stream: Client,
     pub(crate) config: Config,
-    pub(crate) key_exchange: KeyExchange
+    pub(crate) key_agreement: KeyAgreement
 }
 
 
@@ -35,7 +35,7 @@ impl Session {
         self.version_negotiation()?;
 
         // 密钥协商交换
-        self.key_exchange.key_exchange(&mut self.stream)?;
+        self.key_agreement.key_agreement(&mut self.stream)?;
         Ok(())
     }
     pub fn set_nonblocking(&mut self, nonblocking: bool) -> Result<(), SshError>{
@@ -70,9 +70,9 @@ impl Session {
                             stream: self.stream.clone()?,
                             server_channel: 0,
                             client_channel,
-                            key_exchange: KeyExchange {
-                                            session_id: self.key_exchange.session_id.clone(),
-                                            h: self.key_exchange.h.clone(),
+                            key_agreement: KeyAgreement {
+                                            session_id: self.key_agreement.session_id.clone(),
+                                            h: self.key_agreement.h.clone(),
                                             encryption_algorithm: None
                                         }
                         };
@@ -159,8 +159,8 @@ impl Session {
             return Err(SshError::from(SshErrorKind::VersionError))
         }
         let sv = server_version.trim();
-        self.key_exchange.h.set_v_s(sv);
-        self.key_exchange.h.set_v_c(strings::CLIENT_VERSION);
+        self.key_agreement.h.set_v_s(sv);
+        self.key_agreement.h.set_v_c(strings::CLIENT_VERSION);
         println!(">> server version: {}", sv);
         println!(">> client version: {}", strings::CLIENT_VERSION);
         self.stream.write_version(format!("{}\r\n", strings::CLIENT_VERSION).as_bytes())?;

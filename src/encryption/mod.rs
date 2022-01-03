@@ -1,13 +1,25 @@
 mod curve25519;
 pub mod ed25519;
 mod chacha20_poly1305_openssh;
+mod ecdh_sha2_nistp256;
 
 pub use curve25519::CURVE25519;
+pub use ecdh_sha2_nistp256::EcdhP256;
 pub use chacha20_poly1305_openssh::ChaCha20Poly1305;
 
 
 use std::process::exit;
 use crate::packet::Data;
+use crate::SshError;
+
+pub type DH = dyn KeyExchange;
+
+pub trait KeyExchange {
+    fn new() -> Result<Self, SshError> where Self: Sized;
+    fn get_public_key(&self) -> &[u8];
+    fn get_shared_secret(&self, puk: Vec<u8>) -> Result<Vec<u8>, SshError>;
+}
+
 
 #[derive(Clone)]
 pub struct H {

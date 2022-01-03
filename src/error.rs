@@ -40,6 +40,7 @@ pub enum SshErrorKind {
     PasswordNullError,
     SignatureError,
     VersionError,
+    KeyExchangeError
 }
 
 
@@ -77,6 +78,7 @@ impl SshErrorKind {
             SshErrorKind::PasswordNullError => "The password cannot be empty",
             SshErrorKind::SignatureError => "Signature verification failure",
             SshErrorKind::VersionError => "Version not supported",
+            SshErrorKind::KeyExchangeError => "The key exchange algorithm does not match",
             _ => ""
         }
     }

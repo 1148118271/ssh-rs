@@ -62,11 +62,11 @@ fn main() {
 ```
 支持的算法:
     密钥交换：  
-        curve25519
+        curve25519-sha256,ecdh-sha2-nistp256
     数字签名：
-        ed25519
+        ssh-ed25519
     加密：
-        chacha20_poly1305_openssh
+        chacha20-poly1305@openssh.com
         
 
 支持的验证方式：
