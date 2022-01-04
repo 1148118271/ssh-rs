@@ -4,25 +4,92 @@ use rand::rngs::OsRng;
 use ring::agreement::ECDH_P256;
 use ring::digest;
 use crate::{algorithms, encryption, message, global_variable};
-use crate::encryption::{ChaCha20Poly1305, CURVE25519, DH, EcdhP256, H, KeyExchange};
+use crate::encryption::{ChaCha20Poly1305, CURVE25519, DH, EcdhP256, H, KeyExchange, PublicKey, rsa, SIGN};
+use crate::encryption::ed25519::Ed25519;
+use crate::encryption::rsa::RSA;
 use crate::error::{SshError, SshErrorKind};
 use crate::hash::HASH;
 use crate::packet::{Data, Packet};
 use crate::tcp::Client;
 
+
+pub(crate) struct Algorithm {
+    pub(crate) dh: Box<DH>,
+    pub(crate) signature: Box<SIGN>
+}
+
+impl Algorithm {
+    fn matching_algorithm(sdh: Vec<String>, cdh: [&str; 8]) -> Result<Self, SshError> {
+        let mut dh: String = String::new();
+        let mut sign: String = String::new();
+        let mut crypt: String = String::new();
+        'FOR: for (index, algorithm) in cdh.iter().enumerate() {
+            let sda: Vec<&str> = (&sdh[index]).split(",").collect();
+            let cda: Vec<&str> = (*algorithm).split(",").collect();
+            match index {
+                0 => {
+                    for a in cda {
+                        if sda.contains(&a) {
+                            dh = String::from(a);
+                            continue 'FOR
+                        }
+                    }
+                }
+                1 => {
+                    for a in cda {
+                        if sda.contains(&a) {
+                            sign = String::from(a);
+                            continue 'FOR
+                        }
+                    }
+                }
+                2 => {
+                    for a in cda {
+                        if sda.contains(&a) {
+                            crypt = String::from(a);
+                            continue 'FOR
+                        }
+                    }
+                }
+                _ => break
+            }
+        }
+        let dh: Box<DH> = match dh.as_str() {
+            algorithms::KEY_EXCHANGE_CURVE25519_SHA256 => Box::new(CURVE25519::new()?),
+            algorithms::KEY_EXCHANGE_ECDH_SHA2_NISTP256 => Box::new(EcdhP256::new()?),
+            _ => return Err(SshError::from(SshErrorKind::KeyExchangeError))
+        };
+
+        let signature: Box<SIGN> = match sign.as_str() {
+            algorithms::PUBLIC_KEY_ED25519 => Box::new(Ed25519::new()),
+            algorithms::PUBLIC_KEY_RSA => Box::new(RSA::new()),
+            _ => return Err(SshError::from(SshErrorKind::KeyExchangeError))
+        };
+
+        Ok(
+            Algorithm {
+                dh,
+                signature
+            }
+        )
+    }
+}
+
+
 pub(crate) struct KeyAgreement {
     pub(crate) session_id: Vec<u8>,
     pub(crate) h: H,
-    pub(crate) encryption_algorithm: Option<Box<DH>>,
+    pub(crate) algorithm: Option<Algorithm>
 
 }
+
 
 impl KeyAgreement {
     pub(crate) fn new() -> Self {
         KeyAgreement {
             session_id: vec![],
             h: H::new(),
-            encryption_algorithm: None,
+            algorithm: None
         }
     }
 
@@ -43,18 +110,12 @@ impl KeyAgreement {
                         // 密钥协商
                         self.algorithm_negotiation(data, stream)?;
                         // 发送公钥
-                        match self.send_public_key(stream) {
-                            Ok(_) => {}
-                            Err(e) => return Err(SshError::from(e))
-                        };
+                        self.send_public_key(stream)?;
                     }
 
                     message::SSH_MSG_KEX_ECDH_REPLY => {
                         // 生成session_id并且获取signature
-                        let sig = match self.generate_session_id_and_get_signature(buf) {
-                            Ok(sig) => sig,
-                            Err(_) => return Err(SshError::from(SshErrorKind::EncryptionError))
-                        };
+                        let sig = self.generate_session_id_and_get_signature(buf)?;
                         // 验签
                         self.verify_signature(&sig)?;
                         // 新的密钥
@@ -91,10 +152,8 @@ impl KeyAgreement {
         println!(">> server algorithm: {:?}", server_algorithm);
         let alv = algorithms::init();
         println!(">> client algorithm: {:?}", algorithms::ALGORITHMS);
-        let dh: Box<DH> = dn_matching_algorithm(server_algorithm[0].clone(), algorithms::ALGORITHMS[0].to_string())?;
-        // 生成DH
-        self.encryption_algorithm = Some(dh);
-
+        self.algorithm =
+            Some(Algorithm::matching_algorithm(server_algorithm, algorithms::ALGORITHMS)?);
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_KEXINIT);
         data.extend(&cookie());
@@ -114,15 +173,14 @@ impl KeyAgreement {
     }
 
     pub(crate) fn send_public_key(&mut self, stream: &mut Client) -> Result<(), SshError> {
-        let o = &self.encryption_algorithm;
-        let dh = match o {
-            None => return Err(SshError::from(SshErrorKind::EncryptionError)),
+        let algorithm = match &self.algorithm {
+            None => return Err(SshError::from(SshErrorKind::SignatureError)),
             Some(v) => v
         };
-        self.h.set_q_c(dh.get_public_key());
+        self.h.set_q_c(algorithm.dh.get_public_key());
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_KEX_ECDH_INIT);
-        data.put_bytes(dh.get_public_key());
+        data.put_bytes(algorithm.dh.get_public_key());
         let mut packet = Packet::from(data);
         packet.build();
         stream.write(packet.as_slice())?;
@@ -141,12 +199,11 @@ impl KeyAgreement {
         // TODO 未进行密钥指纹验证！！
         let qs = ke.get_u8s();
         self.h.set_q_s(&qs);
-        let o = &self.encryption_algorithm;
-        let dh = match o {
-            None => return Err(SshError::from(SshErrorKind::EncryptionError)),
+        let algorithm = match &self.algorithm {
+            None => return Err(SshError::from(SshErrorKind::SignatureError)),
             Some(v) => v
         };
-        let vec = dh.get_shared_secret(qs)?;
+        let vec = algorithm.dh.get_shared_secret(qs)?;
         self.h.set_k(&vec);
         let hb = self.h.as_bytes();
         self.session_id = digest::digest(&digest::SHA256, &hb).as_ref().to_vec();
@@ -165,34 +222,20 @@ impl KeyAgreement {
         Ok(stream.write(packet.as_slice())?)
     }
 
-    pub(crate) fn verify_signature(&mut self, sig: &[u8]) -> Result<(), SshError>{
-        let mut data = Data((&self.h.k_s[4..]).to_vec());
-        data.get_u8s();
-        let host_key = data.get_u8s();
-        let signature = encryption::ed25519::verify_signature(&host_key, &self.session_id, &sig);
-        println!(">> verify signature result: {}", signature);
-        if !signature {
+    pub(crate) fn verify_signature(&mut self, sig: &[u8]) -> Result<(), SshError> {
+        let algorithm = match &self.algorithm {
+            None => return Err(SshError::from(SshErrorKind::SignatureError)),
+            Some(v) => v
+        };
+        if !(algorithm.signature.verify_signature(
+            &self.h.k_s, &self.session_id, &sig)?)
+        {
             return Err(SshError::from(SshErrorKind::SignatureError))
         }
         Ok(())
     }
 }
 
-fn dn_matching_algorithm(sdh: String, cdh: String) -> Result<Box<DH>, SshError> {
-    let sda: Vec<&str> = sdh.split(",").collect();
-    let cda: Vec<&str> = cdh.split(",").collect();
-    for algorithm in cda {
-        if sda.contains(&algorithm) {
-            if algorithm.eq(algorithms::KEY_EXCHANGE_CURVE25519_SHA256) {
-                return Ok(Box::new(CURVE25519::new()?))
-            }
-            if algorithm.eq(algorithms::KEY_EXCHANGE_ECDH_SHA2_NISTP256) {
-                return Ok(Box::new(EcdhP256::new()?))
-            }
-        }
-    }
-    Err(SshError::from(SshErrorKind::KeyExchangeError))
-}
 
 // 十六位随机数
 fn cookie() -> Vec<u8> {

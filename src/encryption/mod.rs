@@ -2,6 +2,7 @@ mod curve25519;
 pub mod ed25519;
 mod chacha20_poly1305_openssh;
 mod ecdh_sha2_nistp256;
+pub mod rsa;
 
 pub use curve25519::CURVE25519;
 pub use ecdh_sha2_nistp256::EcdhP256;
@@ -19,6 +20,14 @@ pub trait KeyExchange {
     fn get_public_key(&self) -> &[u8];
     fn get_shared_secret(&self, puk: Vec<u8>) -> Result<Vec<u8>, SshError>;
 }
+
+pub type SIGN = dyn PublicKey;
+
+pub trait PublicKey {
+    fn new() -> Self where Self: Sized;
+    fn verify_signature(&self, ks: &[u8], message: &[u8], sig: &[u8]) -> Result<bool, SshError>;
+}
+
 
 
 #[derive(Clone)]

@@ -22,9 +22,9 @@ use crate::session::Config;
 use crate::tcp::Client;
 
 
-pub struct ZmSsh;
+pub struct SSH;
 
-impl ZmSsh {
+impl SSH {
     pub fn new() -> Self {
         Self
     }
@@ -44,7 +44,7 @@ impl ZmSsh {
 
 #[allow(dead_code)]
 pub mod strings {
-    pub const CLIENT_VERSION: &'static str = "SSH-2.0-ZmSsh-0.0.1";
+    pub const CLIENT_VERSION: &'static str = "SSH-2.0-SSH_RS-0.1.0";
     pub const SSH_USERAUTH: &'static str = "ssh-userauth";
     pub const SSH_CONNECTION: &'static str = "ssh-connection";
     pub const PASSWORD: &'static str = "password";

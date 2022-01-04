@@ -33,7 +33,9 @@ pub const KEY_EXCHANGE_ALGORITHMS: &str = "curve25519-sha256,ecdh-sha2-nistp256"
 #[allow(dead_code)]
 pub const PUBLIC_KEY_ED25519: &str = "ssh-ed25519";
 #[allow(dead_code)]
-pub const PUBLIC_KEY_ALGORITHMS: &str = "ssh-ed25519";
+pub const PUBLIC_KEY_RSA: &str = "ssh-rsa";
+#[allow(dead_code)]
+pub const PUBLIC_KEY_ALGORITHMS: &str = "ssh-rsa,ssh-ed25519";
 
 // 对称加密算法
 #[allow(dead_code)]

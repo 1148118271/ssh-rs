@@ -70,11 +70,12 @@ impl Session {
                             stream: self.stream.clone()?,
                             server_channel: 0,
                             client_channel,
-                            key_agreement: KeyAgreement {
-                                            session_id: self.key_agreement.session_id.clone(),
-                                            h: self.key_agreement.h.clone(),
-                                            encryption_algorithm: None
-                                        }
+                            key_agreement:
+                                KeyAgreement {
+                                    session_id: self.key_agreement.session_id.clone(),
+                                    h: self.key_agreement.h.clone(),
+                                    algorithm: None
+                                }
                         };
                         return Ok(channel)
                     }
