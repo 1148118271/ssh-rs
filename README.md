@@ -1,7 +1,9 @@
-### 除加密库外 纯rust实现的ssh-2.0client协议
+## In addition to encryption library, pure RUST implementation of SSH-2.0 client protocol
 
-#### 使用方法：
-shell
+
+
+### Quick example (简单例子):
+#### shell
 ```rust
 fn main() {
     let ssh = ZmSsh::new();
@@ -42,7 +44,7 @@ fn main() {
 
 }
 ```
-exec
+#### exec
 ```rust
 
 fn main() {
@@ -59,24 +61,35 @@ fn main() {
 ```
 
 
-```
-支持的算法:
-    密钥交换：  
-        curve25519-sha256,ecdh-sha2-nistp256
-    数字签名：
-        ssh-ed25519
-    加密：
-        chacha20-poly1305@openssh.com
-        
-
-支持的验证方式：
-    密码验证
+### Supported algorithms (支持的算法):
+| algorithms                    | is supported  |
+|-------------------------------|---------------|
+| curve25519-sha256             | √             |   
+| ecdh-sha2-nistp256            | √             |  
+| ssh-ed25519                   | √             |  
+| rsa                           | √             |  
+| chacha20-poly1305@openssh.com | √             |
 
 
-支持的命令解释程序:
-    shell, exec
-```
+
+### Supported authentication modes (支持的身份验证方式):
+
+| user auth        | is supported |
+|------------------|--------------|
+| publickey        | ×            |   
+| password         | √            |  
+| hostbased        | ×            |  
 
 
-### 目前暂不支持 scp，sftp
+
+### Supported channels (支持的连接通道)
+| channel   | is supported  |
+|-----------|---------------|
+| shell     | √             |   
+| exec      | √             |  
+| subsystem | ×             |  
+
+
+
+### Not currently supported *scp*, *sftp* (目前不支持 scp sftp)
 
