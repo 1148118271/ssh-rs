@@ -27,27 +27,15 @@
 //!     // shell.close().unwrap();
 //!     // session.close().unwrap();
 //!
-//!     let c1 = Arc::new(Mutex::new(shell));
-//!     let c2 = Arc::clone(&c1);
-//!     let t1 = thread::spawn(move || {
-//!         loop {
-//!             let mut x = c1.lock().unwrap().read().unwrap();
-//!             if x.is_empty() { continue }
-//!             stdout().write(x.as_slice()).unwrap();
-//!             stdout().flush();
-//!         }
-//!     });
-//!
-//!     let t2 = thread::spawn(move || {
-//!         loop {
-//!             let mut cm = String::new();
-//!             stdin().read_line(&mut cm).unwrap();
-//!             c2.lock().unwrap().write(cm.as_bytes()).unwrap();
-//!         }
-//!     });
-//!
-//!     t1.join().unwrap();
-//!     t2.join().unwrap();
+//!     loop {
+//!         thread::sleep(time::Duration::from_millis(200));
+//!         let result = shell.read().unwrap();
+//!         stdout().write(result.as_slice()).unwrap();
+//!         stdout().flush();
+//!         let mut cm = String::new();
+//!         stdin().read_line(&mut cm).unwrap();
+//!         shell.write(cm.as_bytes()).unwrap();
+//!     }
 //!
 //! }
 //! ```
