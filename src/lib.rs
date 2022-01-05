@@ -8,8 +8,7 @@
 //! shell
 //! ```
 //! use std::io::{stdin, stdout, Write};
-//! use std::sync::{Arc, Mutex};
-//! use std::{thread, time};
+//! use std::time;
 //! use ssh_rs::SSH;
 //!
 //! fn main() {
