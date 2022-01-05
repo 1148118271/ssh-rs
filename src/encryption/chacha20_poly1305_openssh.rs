@@ -1,6 +1,5 @@
 use ring::aead::chacha20_poly1305_openssh;
 use ring::aead::chacha20_poly1305_openssh::{OpeningKey, SealingKey};
-use ring::error::Unspecified;
 use crate::error::{SshError, SshErrorKind};
 use crate::hash::HASH;
 

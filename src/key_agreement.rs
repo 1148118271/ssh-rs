@@ -1,10 +1,9 @@
 use std::sync::atomic::Ordering;
 use rand::Rng;
 use rand::rngs::OsRng;
-use ring::agreement::ECDH_P256;
 use ring::digest;
-use crate::{algorithms, encryption, message, global_variable};
-use crate::encryption::{ChaCha20Poly1305, CURVE25519, DH, EcdhP256, H, KeyExchange, PublicKey, rsa, SIGN};
+use crate::{algorithms, message, global_variable};
+use crate::encryption::{ChaCha20Poly1305, CURVE25519, DH, EcdhP256, H, KeyExchange, PublicKey, SIGN};
 use crate::encryption::ed25519::Ed25519;
 use crate::encryption::rsa::RSA;
 use crate::error::{SshError, SshErrorKind};
@@ -149,9 +148,9 @@ impl KeyAgreement {
             );
         }
 
-        println!(">> server algorithm: {:?}", server_algorithm);
+        // println!(">> server algorithm: {:?}", server_algorithm);
         let alv = algorithms::init();
-        println!(">> client algorithm: {:?}", algorithms::ALGORITHMS);
+        // println!(">> client algorithm: {:?}", algorithms::ALGORITHMS);
         self.algorithm =
             Some(Algorithm::matching_algorithm(server_algorithm, algorithms::ALGORITHMS)?);
         let mut data = Data::new();

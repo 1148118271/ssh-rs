@@ -1,6 +1,5 @@
 use ring::agreement;
 use ring::agreement::{EphemeralPrivateKey, PublicKey};
-use ring::error::Unspecified;
 use crate::encryption::KeyExchange;
 use crate::error::{SshError, SshErrorKind};
 

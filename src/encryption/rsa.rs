@@ -1,12 +1,8 @@
 use openssl::bn::BigNum;
-use openssl::error::ErrorStack;
 use openssl::hash::MessageDigest;
-use openssl::pkey::{PKey, Public};
+use openssl::pkey::PKey;
 use openssl::rsa;
-use openssl::rsa::Rsa;
-use openssl::sign;
 use openssl::sign::Verifier;
-use ring::signature::RsaPublicKeyComponents;
 use crate::encryption::PublicKey;
 use crate::error::SshErrorKind;
 use crate::packet::Data;

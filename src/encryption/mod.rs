@@ -9,7 +9,6 @@ pub use ecdh_sha2_nistp256::EcdhP256;
 pub use chacha20_poly1305_openssh::ChaCha20Poly1305;
 
 
-use std::process::exit;
 use crate::packet::Data;
 use crate::SshError;
 

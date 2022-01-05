@@ -12,7 +12,9 @@ impl SshError {
             SshErrorKind::IoError(ie) => {
                 SshErrorKind::IoError(io::Error::from(ie.kind()))
             }
-            _ => { unsafe {std::ptr::read(&self.inner as *const SshErrorKind)} }
+            _ => {
+                unsafe {std::ptr::read(&self.inner as *const SshErrorKind)}
+            }
         }
     }
 }
@@ -54,6 +56,26 @@ pub enum SshErrorKind {
     SignatureError,
     VersionError,
     KeyExchangeError
+}
+
+
+
+impl PartialEq<Self> for SshErrorKind {
+    fn eq(&self, other: &Self) -> bool {
+       match (&self, &other) {
+           (&SshErrorKind::IoError(io1), &SshErrorKind::IoError(io2)) => io1.kind() == io2.kind(),
+           (&SshErrorKind::EncryptionError, &SshErrorKind::EncryptionError) => true,
+           (&SshErrorKind::FromUtf8Error, &SshErrorKind::FromUtf8Error) => true,
+           (&SshErrorKind::ChannelFailureError, &SshErrorKind::ChannelFailureError) => true,
+           (&SshErrorKind::PasswordError, &SshErrorKind::PasswordError) => true,
+           (&SshErrorKind::UserNullError, &SshErrorKind::UserNullError) => true,
+           (&SshErrorKind::PasswordNullError, &SshErrorKind::PasswordNullError) => true,
+           (&SshErrorKind::SignatureError, &SshErrorKind::SignatureError) => true,
+           (&SshErrorKind::VersionError, &SshErrorKind::VersionError) => true,
+           (&SshErrorKind::KeyExchangeError, &SshErrorKind::KeyExchangeError) => true,
+           _ => false
+       }
+    }
 }
 
 
@@ -103,7 +125,13 @@ impl From<io::Error> for SshError {
 
 #[test]
 fn test() {
-    get_error().unwrap()
+    match get_error() {
+        Ok(_) => {}
+        Err(e) => {
+            if e.kind() == SshErrorKind::SignatureError { }
+        }
+    }
+    //get_error().unwrap();
 }
 
 fn get_error() -> Result<(), SshError> {

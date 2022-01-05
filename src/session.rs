@@ -162,8 +162,8 @@ impl Session {
         let sv = server_version.trim();
         self.key_agreement.h.set_v_s(sv);
         self.key_agreement.h.set_v_c(strings::CLIENT_VERSION);
-        println!(">> server version: {}", sv);
-        println!(">> client version: {}", strings::CLIENT_VERSION);
+        // println!(">> server version: {}", sv);
+        // println!(">> client version: {}", strings::CLIENT_VERSION);
         self.stream.write_version(format!("{}\r\n", strings::CLIENT_VERSION).as_bytes())?;
         Ok(())
     }
