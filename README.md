@@ -13,7 +13,12 @@ fn main() {
     session.connect().unwrap();
     let mut channel = session.open_channel().unwrap();
     let mut shell = channel.open_shell().unwrap();
-    
+
+    // thread::sleep(time::Duration::from_millis(500));
+    // let result = shell.read().unwrap();
+    // println!("{}", String::from_utf8(result).unwrap());
+    // shell.write(b"ll \n").unwrap();
+    // shell.write(b"ll \r").unwrap();
     // thread::sleep(time::Duration::from_millis(500));
     // let result = shell.read().unwrap();
     // println!("{}", String::from_utf8(result).unwrap());

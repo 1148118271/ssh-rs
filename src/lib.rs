@@ -24,6 +24,11 @@
 //!     // thread::sleep(time::Duration::from_millis(500));
 //!     // let result = shell.read().unwrap();
 //!     // println!("{}", String::from_utf8(result).unwrap());
+//!     // shell.write(b"ll \n").unwrap();
+//!     // shell.write(b"ll \r").unwrap();
+//!     // thread::sleep(time::Duration::from_millis(500));
+//!     // let result = shell.read().unwrap();
+//!     // println!("{}", String::from_utf8(result).unwrap());
 //!     // shell.close().unwrap();
 //!     // session.close().unwrap();
 //!
