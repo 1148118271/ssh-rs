@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Gao Xiang Kang <1148118271@qq.com>"]
 description = "In addition to encryption library, pure RUST implementation of SSH-2.0 client protocol"
-keywords = ["ssh", "ssh agreement", "ssh client"]
+keywords = ["ssh", "sshAgreement", "sshClient"]
 repository = "https://github.com/1148118271/ssh-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
