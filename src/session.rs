@@ -74,7 +74,7 @@ impl Session {
                                 KeyAgreement {
                                     session_id: self.key_agreement.session_id.clone(),
                                     h: self.key_agreement.h.clone(),
-                                    algorithm: None
+                                    algorithm: self.key_agreement.algorithm.clone()
                                 }
                         };
                         return Ok(channel)

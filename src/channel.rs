@@ -38,6 +38,7 @@ impl Channel {
                     global_variable::IS_ENCRYPT.store(false, Relaxed);
                     global_variable::update_encryption_key(None);
                 }
+
                 // 密钥协商
                 self.key_agreement.algorithm_negotiation(data, &mut self.stream)?;
                 // 发送公钥

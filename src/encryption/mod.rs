@@ -14,7 +14,7 @@ use crate::SshError;
 
 pub type DH = dyn KeyExchange;
 
-pub trait KeyExchange {
+pub trait KeyExchange: Send {
     fn new() -> Result<Self, SshError> where Self: Sized;
     fn get_public_key(&self) -> &[u8];
     fn get_shared_secret(&self, puk: Vec<u8>) -> Result<Vec<u8>, SshError>;
@@ -22,7 +22,7 @@ pub trait KeyExchange {
 
 pub type SIGN = dyn PublicKey;
 
-pub trait PublicKey {
+pub trait PublicKey: Send {
     fn new() -> Self where Self: Sized;
     fn verify_signature(&self, ks: &[u8], message: &[u8], sig: &[u8]) -> Result<bool, SshError>;
 }

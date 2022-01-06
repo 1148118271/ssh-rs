@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
 use rand::Rng;
 use rand::rngs::OsRng;
@@ -78,18 +79,22 @@ impl Algorithm {
 pub(crate) struct KeyAgreement {
     pub(crate) session_id: Vec<u8>,
     pub(crate) h: H,
-    pub(crate) algorithm: Option<Algorithm>
+    pub(crate) algorithm: Arc<Mutex<Algorithm>>
 
 }
 
 
 impl KeyAgreement {
-    pub(crate) fn new() -> Self {
-        KeyAgreement {
+    pub(crate) fn new() -> Result<Self, SshError> {
+        let algorithm = Algorithm {
+            dh: Box::new(CURVE25519::new()?),
+            signature: Box::new(RSA::new())
+        };
+        Ok(KeyAgreement {
             session_id: vec![],
             h: H::new(),
-            algorithm: None
-        }
+            algorithm: Arc::new(Mutex::new(algorithm))
+        })
     }
 
 
@@ -151,8 +156,9 @@ impl KeyAgreement {
         // println!(">> server algorithm: {:?}", server_algorithm);
         let alv = algorithms::init();
         // println!(">> client algorithm: {:?}", algorithms::ALGORITHMS);
-        self.algorithm =
-            Some(Algorithm::matching_algorithm(server_algorithm, algorithms::ALGORITHMS)?);
+        self.algorithm = Arc::new(Mutex::new(
+            Algorithm::matching_algorithm(server_algorithm, algorithms::ALGORITHMS)?
+        ));
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_KEXINIT);
         data.extend(&cookie());
@@ -172,10 +178,14 @@ impl KeyAgreement {
     }
 
     pub(crate) fn send_public_key(&mut self, stream: &mut Client) -> Result<(), SshError> {
-        let algorithm = match &self.algorithm {
-            None => return Err(SshError::from(SshErrorKind::SignatureError)),
-            Some(v) => v
+        let algorithm = match self.algorithm.lock() {
+            Ok(v) => v,
+            Err(_) => return Err(SshError::from(SshErrorKind::SignatureError)),
         };
+        // let algorithm = match &self.algorithm {
+        //     None => return Err(SshError::from(SshErrorKind::SignatureError)),
+        //     Some(v) => v
+        // };
         self.h.set_q_c(algorithm.dh.get_public_key());
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_KEX_ECDH_INIT);
@@ -198,10 +208,14 @@ impl KeyAgreement {
         // TODO 未进行密钥指纹验证！！
         let qs = ke.get_u8s();
         self.h.set_q_s(&qs);
-        let algorithm = match &self.algorithm {
-            None => return Err(SshError::from(SshErrorKind::SignatureError)),
-            Some(v) => v
+        let algorithm = match self.algorithm.lock() {
+            Ok(v) => v,
+            Err(_) => return Err(SshError::from(SshErrorKind::SignatureError)),
         };
+        // let algorithm = match &self.algorithm {
+        //     None => return Err(SshError::from(SshErrorKind::SignatureError)),
+        //     Some(v) => v
+        // };
         let vec = algorithm.dh.get_shared_secret(qs)?;
         self.h.set_k(&vec);
         let hb = self.h.as_bytes();
@@ -222,10 +236,14 @@ impl KeyAgreement {
     }
 
     pub(crate) fn verify_signature(&mut self, sig: &[u8]) -> Result<(), SshError> {
-        let algorithm = match &self.algorithm {
-            None => return Err(SshError::from(SshErrorKind::SignatureError)),
-            Some(v) => v
+        let algorithm = match self.algorithm.lock() {
+            Ok(v) => v,
+            Err(_) => return Err(SshError::from(SshErrorKind::SignatureError)),
         };
+        // let algorithm = match &self.algorithm {
+        //     None => return Err(SshError::from(SshErrorKind::SignatureError)),
+        //     Some(v) => v
+        // };
         if !(algorithm.signature.verify_signature(
             &self.h.k_s, &self.session_id, &sig)?)
         {

@@ -82,6 +82,7 @@ pub use channel_shell::ChannelShell;
 pub use channel_exec::ChannelExec;
 
 use std::net::ToSocketAddrs;
+use std::sync::{Arc, Mutex};
 use crate::error::SshError;
 use crate::key_agreement::KeyAgreement;
 use crate::session::Config;
@@ -99,7 +100,7 @@ impl SSH {
         Ok(Session {
             stream: Client::connect(adder)?,
             config: Config::new(),
-            key_agreement: KeyAgreement::new()
+            key_agreement: KeyAgreement::new()?
         })
     }
 
