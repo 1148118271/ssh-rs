@@ -12,20 +12,6 @@ pub struct Client {
     pub(crate) sender_window_size: u32,
 }
 
-impl Client {
-    pub fn clone(&self) -> Result<Client, SshError>{
-        let client = Client {
-            stream: match self.stream.try_clone() {
-                Ok(v) => v,
-                Err(e) => return Err(SshError::from(e))
-            },
-            sequence: self.sequence.clone(),
-            sender_window_size: self.sender_window_size
-        };
-        Ok(client)
-    }
-}
-
 #[derive(Clone)]
 struct Sequence {
     client_sequence_num: u32,
@@ -157,7 +143,7 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn close(self) -> Result<(), SshError> {
+    pub(crate) fn close(&mut self) -> Result<(), SshError> {
         match self.stream.shutdown(Shutdown::Both) {
             Ok(o) => Ok(o),
             Err(e) => Err(SshError::from(e))

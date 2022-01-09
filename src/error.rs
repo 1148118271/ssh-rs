@@ -2,6 +2,9 @@ use std::fmt::{Debug, Display, Formatter};
 use std::{fmt, io};
 use std::error::Error;
 
+
+pub type SshResult<I> = std::result::Result<I, SshError>;
+
 pub struct SshError {
     inner: SshErrorKind
 }
@@ -55,7 +58,8 @@ pub enum SshErrorKind {
     PasswordNullError,
     SignatureError,
     VersionError,
-    KeyExchangeError
+    KeyExchangeError,
+    MutexError
 }
 
 
@@ -73,6 +77,7 @@ impl PartialEq<Self> for SshErrorKind {
            (&SshErrorKind::SignatureError, &SshErrorKind::SignatureError) => true,
            (&SshErrorKind::VersionError, &SshErrorKind::VersionError) => true,
            (&SshErrorKind::KeyExchangeError, &SshErrorKind::KeyExchangeError) => true,
+           (&SshErrorKind::MutexError, &SshErrorKind::MutexError) => true,
            _ => false
        }
     }
@@ -93,6 +98,7 @@ impl SshErrorKind {
             SshErrorKind::SignatureError => "Signature verification failure",
             SshErrorKind::VersionError => "Version not supported",
             SshErrorKind::KeyExchangeError => "The key exchange algorithm does not match",
+            SshErrorKind::MutexError => "Call Mutex exception",
             _ => ""
         }
     }

@@ -3,7 +3,6 @@
 
 
 ### Quick example (简单例子):
-#### shell
 ```rust
 fn main() {
     let ssh = SSH::new();
@@ -11,20 +10,36 @@ fn main() {
     session.set_nonblocking(true).unwrap();
     session.set_user_and_password("root".to_string(), "123456".to_string());
     session.connect().unwrap();
-    let mut channel = session.open_channel().unwrap();
+    let channel: Channel = session.open_channel().unwrap();
+    exec(channel);
+    let channel: Channel = session.open_channel().unwrap();
+    shell(channel);
+    // l_shell(channel);
+    // t_shell(channel);
+}
+
+fn exec(channel: Channel) {
+    let exec: ChannelExec = channel.open_exec().unwrap();
+    let vec = exec.set_command("ls -all").unwrap();
+    println!("{}", String::from_utf8(vec).unwrap());
+}
+
+fn shell(channel: Channel) {
     let mut shell = channel.open_shell().unwrap();
+    thread::sleep(time::Duration::from_millis(200));
+    let vec = shell.read().unwrap();
+    let result = String::from_utf8(vec).unwrap();
+    println!("{}", result);
+    shell.write(b"ls -a\r").unwrap();
+    thread::sleep(time::Duration::from_millis(200));
+    let vec = shell.read().unwrap();
+    let result = String::from_utf8(vec).unwrap();
+    println!("{}", result);
+    shell.close().unwrap();
+}
 
-    // thread::sleep(time::Duration::from_millis(500));
-    // let result = shell.read().unwrap();
-    // println!("{}", String::from_utf8(result).unwrap());
-    // shell.write(b"ll \n").unwrap();
-    // shell.write(b"ll \r").unwrap();
-    // thread::sleep(time::Duration::from_millis(500));
-    // let result = shell.read().unwrap();
-    // println!("{}", String::from_utf8(result).unwrap());
-    // shell.close().unwrap();
-    // session.close().unwrap();
-
+fn l_shell(channel: Channel) {
+    let mut shell = channel.open_shell().unwrap();
     loop {
         thread::sleep(time::Duration::from_millis(200));
         let result = shell.read().unwrap();
@@ -34,23 +49,33 @@ fn main() {
         stdin().read_line(&mut cm).unwrap();
         shell.write(cm.as_bytes()).unwrap();
     }
-
 }
-```
-#### exec
-```rust
 
-fn main() {
-    let ssh = SSH::new();
-    let mut session = ssh.get_session("192.168.3.101:22").unwrap();
-    session.set_user_and_password("root".to_string(), "123456".to_string());
-    session.connect().unwrap();
-    let mut channel = session.open_channel().unwrap();
-    let mut exec = channel.open_exec().unwrap();
-    let vec = exec.set_command("ps -ef |grep ssh").unwrap();
-    println!("{}", String::from_utf8(vec).unwrap());
-    session.close().unwrap();
+fn t_shell(channel: Channel) {
+    let shell = channel.open_shell().unwrap();
+    let c1 = Arc::new(Mutex::new(shell));
+    let c2 = Arc::clone(&c1);
+    let t1 = thread::spawn( move || {
+        loop {
+            let x = c1.lock().unwrap().read().unwrap();
+            if x.is_empty() { continue }
+            stdout().write(x.as_slice()).unwrap();
+            stdout().flush().unwrap();
+        }
+    });
+
+    let t2 = thread::spawn( move || {
+        loop {
+            let mut cm = String::new();
+            stdin().read_line(&mut cm).unwrap();
+            c2.lock().unwrap().write(cm.as_bytes()).unwrap();
+        }
+    });
+
+    t1.join().unwrap();
+    t2.join().unwrap();
 }
+
 ```
 
 

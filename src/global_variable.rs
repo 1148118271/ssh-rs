@@ -1,7 +1,12 @@
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU32};
 use crate::encryption::ChaCha20Poly1305;
 use crate::error::SshErrorKind;
 use crate::SshError;
+
+// 客户端通道编号初始值
+pub(crate) static CLIENT_CHANNEL: AtomicU32 = AtomicU32::new(0);
+// 服务端通道编号初始值
+// pub(crate) static SERVER_CHANNEL: AtomicU32 = AtomicU32::new(0);
 
 // 密钥是否交换完成 true 是  false 否
 pub(crate) static IS_ENCRYPT: AtomicBool = AtomicBool::new(false);

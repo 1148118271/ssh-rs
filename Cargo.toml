@@ -15,9 +15,6 @@ repository = "https://github.com/1148118271/ssh-rs"
 ring = "0.16.20"
 rand = "0.7.3"
 
-[dependencies.chrono]
-version = "0.4"
-
 [dependencies.openssl]
 version = "0.10"
 features = ["vendored"]

@@ -1,18 +1,17 @@
-use std::io;
-use std::io::Error;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering::Relaxed;
 use crate::{message, strings, size, global_variable};
 use crate::channel_exec::ChannelExec;
 use crate::channel_shell::ChannelShell;
 use crate::encryption::ChaCha20Poly1305;
-use crate::error::{SshError, SshErrorKind};
+use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::hash::HASH;
 use crate::key_agreement::KeyAgreement;
 use crate::packet::{Data, Packet};
 use crate::tcp::Client;
 
 pub struct Channel {
-    pub(crate) stream: Client,
+    pub(crate) stream: Arc<Mutex<Client>>,
     pub(crate) server_channel: u32,
     pub(crate) client_channel: u32,
     pub(crate) key_agreement: KeyAgreement
@@ -22,14 +21,23 @@ pub struct Channel {
 
 impl Channel {
 
-    pub fn other_info(&mut self, message_code: u8, result: Vec<u8>) -> Result<(), SshError> {
+    pub fn other_info(&mut self, message_code: u8, result: Vec<u8>) -> SshResult<()> {
+
+        let mut stream =  match self.stream.lock() {
+            Ok(v) => v,
+            Err(_) =>
+                return Err(
+                    SshError::from(SshErrorKind::MutexError)
+                )
+        };
+
         match message_code {
             message::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
                 data.put_u8(message::SSH_MSG_REQUEST_FAILURE);
                 let mut packet = Packet::from(data);
                 packet.build();
-                self.stream.write(packet.as_slice())?;
+                stream.write(packet.as_slice())?;
             }
             message::SSH_MSG_KEXINIT => {
                 let data = Packet::processing_data(result);
@@ -38,11 +46,10 @@ impl Channel {
                     global_variable::IS_ENCRYPT.store(false, Relaxed);
                     global_variable::update_encryption_key(None);
                 }
-
                 // 密钥协商
-                self.key_agreement.algorithm_negotiation(data, &mut self.stream)?;
+                self.key_agreement.algorithm_negotiation(data, &mut stream)?;
                 // 发送公钥
-                self.key_agreement.send_public_key(&mut self.stream)?;
+                self.key_agreement.send_public_key(&mut stream)?;
             }
             message::SSH_MSG_KEX_ECDH_REPLY => {
                 // 生成session_id并且获取signature
@@ -50,7 +57,7 @@ impl Channel {
                 // 验签
                 self.key_agreement.verify_signature(&sig)?;
                 // 新的密钥
-                self.key_agreement.new_keys(&mut self.stream)?;
+                self.key_agreement.new_keys(&mut stream)?;
 
                 // 修改加密算法
                 let hash =
@@ -61,45 +68,51 @@ impl Channel {
                 global_variable::update_encryption_key(Some(poly1305));
             }
             // 通道大小 暂不处理
-            message::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
-            }
-            message::SSH_MSG_CHANNEL_REQUEST => {
-            }
-            message::SSH_MSG_CHANNEL_SUCCESS => {
-            }
-            message::SSH_MSG_CHANNEL_FAILURE => {
-                return Err(SshError::from(SshErrorKind::ChannelFailureError))
-            }
+            message::SSH_MSG_CHANNEL_WINDOW_ADJUST => {}
+            message::SSH_MSG_CHANNEL_REQUEST => {}
+            message::SSH_MSG_CHANNEL_SUCCESS => {}
+            message::SSH_MSG_CHANNEL_FAILURE =>
+                return Err(SshError::from(SshErrorKind::ChannelFailureError)),
+
             message::SSH_MSG_CHANNEL_CLOSE => {
-                let mut data = Data::new();
-                data.put_u8(message::SSH_MSG_CHANNEL_CLOSE)
-                    .put_u32(self.server_channel);
-                let mut packet = Packet::from(data);
-                packet.build();
-                self.stream.write(packet.as_slice())?;
+                let mut data = Packet::processing_data(result);
+                data.get_u8();
+                let cc = data.get_u32();
+                if cc == self.client_channel {
+                    self.close()?;
+                }
             }
             _ => {}
         }
         Ok(())
     }
 
-    pub fn window_adjust(&mut self) -> Result<(), SshError> {
-        if self.stream.sender_window_size >= (size::LOCAL_WINDOW_SIZE / 2) {
+    pub fn window_adjust(&mut self) -> SshResult<()> {
+        let mut stream =  match self.stream.lock() {
+            Ok(v) => v,
+            Err(_) =>
+                return Err(SshError::from(SshErrorKind::MutexError))
+        };
+        if stream.sender_window_size >= (size::LOCAL_WINDOW_SIZE / 2) {
             let mut data = Data::new();
             data.put_u8(message::SSH_MSG_CHANNEL_WINDOW_ADJUST)
                 .put_u32(self.server_channel)
-                .put_u32(size::LOCAL_WINDOW_SIZE - self.stream.sender_window_size);
+                .put_u32(size::LOCAL_WINDOW_SIZE - stream.sender_window_size);
             let mut packet = Packet::from(data);
             packet.build();
-            self.stream.write(packet.as_slice())?;
-            self.stream.sender_window_size = 0;
+            stream.write(packet.as_slice())?;
+            stream.sender_window_size = 0;
         }
         Ok(())
     }
 
-    pub fn open_shell(mut self) -> Result<ChannelShell, SshError> {
+    pub fn open_shell(mut self) -> SshResult<ChannelShell> {
         loop {
-            let results = self.stream.read()?;
+            let results = match self.stream.lock() {
+                Ok(ref mut v) => v.read()?,
+                Err(_) =>
+                    return Err(SshError::from(SshErrorKind::MutexError))
+            };
             for buf in results {
                 let message_code = buf[5];
                 match message_code {
@@ -122,9 +135,13 @@ impl Channel {
         }
     }
 
-    pub fn open_exec(mut self) -> Result<ChannelExec, SshError> {
+    pub fn open_exec(mut self) -> SshResult<ChannelExec> {
         loop {
-            let results = self.stream.read()?;
+            let results = match self.stream.lock() {
+                Ok(ref mut v) => v.read()?,
+                Err(_) =>
+                    return Err(SshError::from(SshErrorKind::MutexError))
+            };
             for buf in results {
                 let message_code = buf[5];
                 match message_code {
@@ -133,8 +150,6 @@ impl Channel {
                         data.get_u8();
                         data.get_u32();
                         self.server_channel = data.get_u32();
-                        // 请求伪终端
-                        self.request_pty()?;
                         return Ok(ChannelExec(self))
                     }
                     _ => self.other_info(message_code, buf)?
@@ -143,34 +158,21 @@ impl Channel {
         }
     }
 
-    pub fn close(mut self) -> Result<(), SshError> {
+    pub fn close(&self) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_CHANNEL_CLOSE)
             .put_u32(self.server_channel);
         let mut packet = Packet::from(data);
         packet.build();
-        self.stream.write(packet.as_slice())?;
-        let date_time = chrono::Local::now();
-        let timeout = date_time.timestamp_millis() + 1500;
-        loop {
-            if date_time.timestamp_millis() >= timeout {
-                return Err(SshError::from(Error::from(io::ErrorKind::TimedOut)))
-            }
-            let results = self.stream.read()?;
-            for buf in results {
-                let mut data = Packet::processing_data(buf);
-                let message_code = data.get_u8();
-                let channel_num = data.get_u32();
-                if message_code == message::SSH_MSG_CHANNEL_CLOSE
-                    && channel_num == self.client_channel
-                {
-                    return Ok(())
-                }
-            }
+        match self.stream.lock() {
+            Ok(mut v) =>
+                Ok(v.write(packet.as_slice())?),
+            Err(_) =>
+                Err(SshError::from(SshErrorKind::MutexError))
         }
     }
 
-    fn get_shell(&mut self) -> Result<(), SshError> {
+    fn get_shell(&mut self) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.server_channel)
@@ -178,13 +180,18 @@ impl Channel {
             .put_u8(true as u8);
         let mut packet = Packet::from(data);
         packet.build();
-        Ok(self.stream.write(packet.as_slice())?)
+        return match self.stream.lock() {
+            Ok(ref mut v) =>
+                Ok(v.write(packet.as_slice())?),
+            Err(_) =>
+                Err(SshError::from(SshErrorKind::MutexError))
+        }
     }
 
-    fn request_pty(&mut self) -> Result<(), SshError> {
+    fn request_pty(&mut self) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_CHANNEL_REQUEST)
-            .put_u32(self.server_channel)
+            .put_u32(0)
             .put_str(strings::PTY_REQ)
             .put_u8(false as u8)
             .put_str(strings::XTERM_VAR)
@@ -202,6 +209,11 @@ impl Channel {
         data.put_bytes(&model);
         let mut packet = Packet::from(data);
         packet.build();
-        Ok(self.stream.write(packet.as_slice())?)
+        return match self.stream.lock() {
+            Ok(ref mut v) =>
+                Ok(v.write(packet.as_slice())?),
+            Err(_) =>
+                Err(SshError::from(SshErrorKind::MutexError))
+        }
     }
 }
