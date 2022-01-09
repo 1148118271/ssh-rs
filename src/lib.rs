@@ -140,7 +140,7 @@ impl SSH {
 
 #[allow(dead_code)]
 pub mod strings {
-    pub const CLIENT_VERSION: &'static str = "SSH-2.0-SSH_RS-0.1.1";
+    pub const CLIENT_VERSION: &'static str = "SSH-2.0-SSH_RS-0.1.2";
     pub const SSH_USERAUTH: &'static str = "ssh-userauth";
     pub const SSH_CONNECTION: &'static str = "ssh-connection";
     pub const PASSWORD: &'static str = "password";
