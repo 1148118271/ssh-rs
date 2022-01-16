@@ -1,6 +1,6 @@
 use crate::channel::Channel;
-use crate::{message, SshError, util};
-use crate::error::{SshErrorKind, SshResult};
+use crate::{message, util};
+use crate::error::SshResult;
 use crate::packet::{Data, Packet};
 
 pub struct ChannelShell(pub(crate) Channel);

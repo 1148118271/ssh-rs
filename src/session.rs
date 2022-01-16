@@ -1,11 +1,9 @@
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::MutexGuard;
 use std::sync::atomic::Ordering::Relaxed;
 use crate::channel::Channel;
 use crate::tcp::Client;
-use crate::{strings, message, size, global, Config, ChannelExec, ChannelShell};
-use crate::encryption::{DH, H, SIGN};
+use crate::{strings, message, size, global, ChannelExec, ChannelShell};
 use crate::error::{SshError, SshErrorKind, SshResult};
-use crate::global::CONFIG;
 use crate::kex::Kex;
 use crate::packet::{Data, Packet};
 use crate::util;

@@ -1,14 +1,9 @@
-use std::sync::{Arc, Mutex, MutexGuard};
-use std::sync::atomic::Ordering::Relaxed;
-use crate::{message, strings, size, global, util};
+use crate::{message, strings, size, util};
 use crate::channel_exec::ChannelExec;
 use crate::channel_shell::ChannelShell;
-use crate::encryption::ChaCha20Poly1305;
 use crate::error::{SshError, SshErrorKind, SshResult};
-use crate::hash::HASH;
 use crate::kex::{Kex, processing_server_algorithm};
 use crate::packet::{Data, Packet};
-use crate::tcp::Client;
 
 pub struct Channel {
     pub(crate) kex: Kex,
@@ -34,7 +29,7 @@ impl Channel {
                 util::unlock(client)
             }
             message::SSH_MSG_KEXINIT => {
-                let mut data = Packet::processing_data(result);
+                let data = Packet::processing_data(result);
                 self.kex.h.set_i_s(data.as_slice());
                 processing_server_algorithm(data)?;
                 self.kex.send_algorithm()?;

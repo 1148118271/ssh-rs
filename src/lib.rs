@@ -114,9 +114,9 @@ pub use channel_shell::ChannelShell;
 pub use channel_exec::ChannelExec;
 
 use std::net::ToSocketAddrs;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use crate::config::Config;
-use crate::encryption::{CURVE25519, H, KeyExchange, PublicKey};
+use crate::encryption::{CURVE25519, KeyExchange, PublicKey};
 use crate::encryption::rsa::RSA;
 use crate::error::{SshError, SshResult};
 use crate::slog::Slog;

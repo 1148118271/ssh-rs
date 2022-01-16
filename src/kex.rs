@@ -1,17 +1,12 @@
-use std::sync::{Arc, LockResult, Mutex};
 use std::sync::atomic::Ordering;
-use rand::Rng;
-use rand::rngs::OsRng;
 use ring::digest;
-use crate::{algorithms, message, global, SshResult, util};
+use crate::{message, global, SshResult, util};
 use crate::config::{CompressionAlgorithm, EncryptionAlgorithm, KeyExchangeAlgorithm, MacAlgorithm, PublicKeyAlgorithm};
-use crate::encryption::{ChaCha20Poly1305, CURVE25519, DH, EcdhP256, H, KeyExchange, PublicKey, SIGN};
-use crate::encryption::ed25519::Ed25519;
+use crate::encryption::{ChaCha20Poly1305, CURVE25519, DH, H, KeyExchange, PublicKey, SIGN};
 use crate::encryption::rsa::RSA;
 use crate::error::{SshError, SshErrorKind};
 use crate::hash::HASH;
 use crate::packet::{Data, Packet};
-use crate::tcp::Client;
 
 
 
@@ -68,7 +63,7 @@ impl Kex {
                 let message_code = result[5];
                 match message_code {
                     message::SSH_MSG_KEXINIT => {
-                        let mut data = Packet::processing_data(result);
+                        let data = Packet::processing_data(result);
                         self.h.set_i_s(data.as_slice());
                         return processing_server_algorithm(data)
                     }

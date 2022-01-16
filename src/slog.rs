@@ -1,4 +1,4 @@
-use log::{Level, LevelFilter, Log, Metadata, Record};
+use log::{LevelFilter, Log, Metadata, Record};
 use crate::error::{SshErrorKind, SshResult};
 use crate::global::SLOG;
 use crate::SshError;
@@ -9,6 +9,7 @@ pub(crate) struct Slog;
 impl Slog {
     pub fn init(level: LevelFilter)-> SshResult<()> {
         if let Err(e) = log::set_logger(&SLOG) {
+            log::error!("Initialization log error, the error information is: {:?}", e);
             return Err(SshError::from(SshErrorKind::LogError))
         }
         log::set_max_level(level);

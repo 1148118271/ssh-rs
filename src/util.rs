@@ -1,4 +1,4 @@
-use std::sync::{Arc, LockResult, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 use rand::Rng;
 use rand::rngs::OsRng;
 use crate::error::{SshErrorKind, SshResult};

@@ -1,4 +1,3 @@
-use std::process::id;
 use crate::{algorithms, CURVE25519, KeyExchange, PublicKey, RSA, SshError, SshResult, strings};
 use crate::encryption::{DH, EcdhP256, SIGN};
 use crate::encryption::ed25519::Ed25519;
