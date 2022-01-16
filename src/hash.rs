@@ -43,7 +43,6 @@ impl HASH {
         hash.extend(k);
         hash.extend(h);
         hash.extend(key);
-
         digest::digest(&digest::SHA256, hash.as_slice()).as_ref().to_vec()
     }
 

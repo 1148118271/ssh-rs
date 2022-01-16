@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::Ordering::Relaxed;
-use crate::global_variable;
+use crate::global;
 
 #[derive(Debug)]
 pub struct Packet(Data);
@@ -33,7 +33,7 @@ impl Packet {
     pub(crate) fn build(&mut self) {
         let data_len =  self.0.len() as u32;
         let mut padding_len =
-            match global_variable::IS_ENCRYPT.load(Relaxed)  {
+            match global::IS_ENCRYPT.load(Relaxed)  {
                 true => 8 - (data_len + 1) % 8,
                 false => 16 - (data_len + 5) % 16
             };

@@ -10,6 +10,10 @@ pub struct ChaCha20Poly1305 {
 }
 
 impl ChaCha20Poly1305 {
+    pub fn size() -> u32 {
+        64
+    }
+
     pub fn new(hash: HASH) -> ChaCha20Poly1305 {
         let sealing_key_data = hash.ek_c_s;
         let opening_key_data = hash.ek_s_c;
