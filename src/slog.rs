@@ -9,7 +9,7 @@ pub(crate) struct Slog;
 impl Slog {
     pub fn init(level: LevelFilter)-> SshResult<()> {
         if let Err(e) = log::set_logger(&SLOG) {
-            log::error!("Initialization log error, the error information is: {:?}", e);
+            log::error!("initialization log error, the error information is: {:?}", e);
             return Err(SshError::from(SshErrorKind::LogError))
         }
         log::set_max_level(level);

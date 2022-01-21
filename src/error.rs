@@ -71,7 +71,8 @@ pub enum SshErrorKind {
     LogError,
     ConfigNullError,
     ClientNullError,
-    EncryptionError
+    EncryptionError,
+    UnknownError(String),
 }
 
 
@@ -96,6 +97,7 @@ impl PartialEq<Self> for SshErrorKind {
            (&SshErrorKind::ConfigNullError, &SshErrorKind::ConfigNullError) => true,
            (&SshErrorKind::ClientNullError, &SshErrorKind::ClientNullError) => true,
            (&SshErrorKind::EncryptionError, &SshErrorKind::EncryptionError) => true,
+           (&SshErrorKind::UnknownError(v1), &SshErrorKind::UnknownError(v2)) => v1.eq(v2),
            _ => false
        }
     }
@@ -105,7 +107,7 @@ impl PartialEq<Self> for SshErrorKind {
 
 
 impl SshErrorKind {
-    fn as_str(&self) -> &'static str {
+    fn as_str(&self) -> &str {
         match self {
             SshErrorKind::FromUtf8Error => "The UTF8 conversion is abnormal",
             SshErrorKind::ChannelFailureError => "Connection channel failure",
@@ -122,6 +124,7 @@ impl SshErrorKind {
             SshErrorKind::ConfigNullError => "Config null pointer",
             SshErrorKind::ClientNullError => "Client null pointer",
             SshErrorKind::EncryptionError => "Encrypted error",
+            SshErrorKind::UnknownError(v) => v.as_str(),
             _ => ""
         }
     }

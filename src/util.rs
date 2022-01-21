@@ -1,3 +1,5 @@
+use std::num::ParseIntError;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex, MutexGuard};
 use rand::Rng;
 use rand::rngs::OsRng;
@@ -129,4 +131,18 @@ pub(crate) fn vec_u8_to_string(v: Vec<u8>, pat: &str) -> SshResult<Vec<String>> 
         vec.push(x.to_string())
     }
     Ok(vec)
+}
+
+pub(crate) fn str_to_u32(v: &str) -> SshResult<u32> {
+    match u32::from_str(v) {
+        Ok(v) => Ok(v),
+        Err(e) => Err(SshError::from(SshErrorKind::UnknownError("str to u32 error".to_string())))
+    }
+}
+
+pub(crate) fn str_to_i64(v: &str) -> SshResult<i64> {
+    match i64::from_str(v) {
+        Ok(v) => Ok(v),
+        Err(e) => Err(SshError::from(SshErrorKind::UnknownError("str to i64 error".to_string())))
+    }
 }

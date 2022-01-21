@@ -1,3 +1,4 @@
+use log::log;
 use crate::{algorithms, CURVE25519, KeyExchange, PublicKey, RSA, SshError, SshResult, strings};
 use crate::encryption::{DH, EcdhP256, SIGN};
 use crate::encryption::ed25519::Ed25519;
@@ -49,6 +50,7 @@ impl VersionConfig {
     }
     pub(crate) fn validation(&self) -> SshResult<()> {
         if !self.server_version.contains("SSH-2.0") {
+            log::error!("error in version negotiation, version mismatch.");
             return Err(SshError::from(SshErrorKind::VersionError))
         }
        Ok(())
@@ -79,9 +81,9 @@ impl AlgorithmConfig {
             algorithms::DH_CURVE25519_SHA256 => Box::new(CURVE25519::new()?),
             algorithms::DH_ECDH_SHA2_NISTP256 => Box::new(EcdhP256::new()?),
             _ => {
-                log::error!("Description The DH algorithm fails to match, \
-                Algorithms supported by the server: {},\
-                Algorithms supported by the client: {}",
+                log::error!("description The DH algorithm fails to match, \
+                algorithms supported by the server: {},\
+                algorithms supported by the client: {}",
                     self.server_algorithm.key_exchange_algorithm.to_string(),
                     self.client_algorithm.key_exchange_algorithm.to_string()
                 );
@@ -98,9 +100,9 @@ impl AlgorithmConfig {
             algorithms::PUBLIC_KEY_ED25519 => Box::new(Ed25519::new()),
             algorithms::PUBLIC_KEY_RSA => Box::new(RSA::new()),
             _ => {
-                log::error!("Description The signature algorithm fails to match, \
-                Algorithms supported by the server: {},\
-                Algorithms supported by the client: {}",
+                log::error!("description the signature algorithm fails to match, \
+                algorithms supported by the server: {},\
+                algorithms supported by the client: {}",
                     self.server_algorithm.public_key_algorithm.to_string(),
                     self.client_algorithm.public_key_algorithm.to_string()
                 );
@@ -112,9 +114,9 @@ impl AlgorithmConfig {
             .0
             .contains(&(algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH.to_string()))
         {
-            log::error!("Description The encryption algorithm fails to match, \
-                Algorithms supported by the server: {},\
-                Algorithms supported by the client: {}",
+            log::error!("description the encryption algorithm fails to match, \
+                algorithms supported by the server: {},\
+                algorithms supported by the client: {}",
                     self.server_algorithm.c_encryption_algorithm.to_string(),
                     self.client_algorithm.c_encryption_algorithm.to_string()
                 );

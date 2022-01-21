@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering::Relaxed;
 use crate::channel::Channel;
 use crate::tcp::Client;
 use crate::{strings, message, size, global, ChannelExec, ChannelShell};
+use crate::channel_scp::ChannelScp;
 use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::kex::Kex;
 use crate::packet::{Data, Packet};
@@ -14,15 +15,25 @@ pub struct Session;
 
 impl Session {
     pub fn connect(&mut self) -> Result<(), SshError> {
+
+        log::info!("session opened.");
+
+        log::info!("prepare for version negotiation.");
+
         // 版本协商
         // 获取服务端版本
         self.receive_version()?;
+
         // 版本验证
         let config = util::config()?;
         config.version.validation()?;
         util::unlock(config);
         // 发送客户端版本
         self.send_version()?;
+
+        log::info!("version negotiation was successful.");
+
+        log::info!("prepare for key negotiation.");
 
         // 密钥协商
         let mut kex = Kex::new()?;
@@ -43,11 +54,14 @@ impl Session {
         kex.verify_signature()?;
         kex.new_keys()?;
 
+        log::info!("key negotiation successful.");
+
         self.initiate_authentication()?;
         self.authentication()
     }
 
     pub fn set_nonblocking(&mut self, nonblocking: bool) -> SshResult<()> {
+        log::info!("set nonblocking: [{}]", nonblocking);
         let client = util::client()?;
         if let Err(e) = client.stream.set_nonblocking(nonblocking) {
             return Err(SshError::from(e))
@@ -63,11 +77,15 @@ impl Session {
     }
 
     pub fn close(self) -> SshResult<()> {
+        log::info!("session close.");
         let mut client = util::client()?;
         client.close()
     }
 
     pub fn open_channel(&mut self) -> SshResult<Channel> {
+
+        log::info!("channel opened.");
+
         let client_channel = global::CLIENT_CHANNEL.load(Relaxed);
         self.ssh_open_channel(client_channel)?;
         global::CLIENT_CHANNEL.fetch_add(1, Relaxed);
@@ -88,6 +106,11 @@ impl Session {
     pub fn open_shell(&mut self) -> SshResult<ChannelShell> {
         let channel = self.open_channel()?;
         channel.open_shell()
+    }
+
+    pub fn open_scp(&mut self) -> SshResult<ChannelScp> {
+        let channel = self.open_channel()?;
+        channel.open_scp()
     }
 
     fn ssh_open_channel(&mut self, client_channel: u32) -> SshResult<()> {
@@ -130,7 +153,7 @@ impl Session {
                         return Err(SshError::from(SshErrorKind::PasswordError))
                     },
                     message::SSH_MSG_USERAUTH_SUCCESS => {
-                        log::info!("user auth success");
+                        log::info!("user auth successful");
                         return Ok(())
                     },
                     message::SSH_MSG_GLOBAL_REQUEST => {
@@ -150,7 +173,7 @@ impl Session {
         let mut client = util::client()?;
         let config = util::config()?;
         client.write_version(format!("{}\r\n", config.version.client_version).as_bytes())?;
-        log::info!("client version => {}", config.version.client_version);
+        log::info!("client version: [{}]", config.version.client_version);
         Ok(())
     }
 
@@ -159,7 +182,7 @@ impl Session {
         let vec = client.read_version();
         let from_utf8 = util::from_utf8(vec)?;
         let sv = from_utf8.trim();
-        log::info!("server version => {}", sv);
+        log::info!("server version: [{}]", sv);
         let mut config = util::config()?;
         config.version.server_version = sv.to_string();
         Ok(())

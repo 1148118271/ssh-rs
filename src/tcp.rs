@@ -2,9 +2,10 @@ use std::io;
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::sync::atomic::Ordering::Relaxed;
-use crate::{global, size};
+use crate::{global, message, size};
 use crate::encryption::ChaCha20Poly1305;
 use crate::error::{SshError, SshResult};
+use crate::packet::{Data, Packet};
 use crate::util::encryption_key;
 
 
@@ -150,6 +151,22 @@ impl Client {
         let decryption_result =
             key.decryption(self.sequence.server_sequence_num, &mut this.to_vec())?;
         self.sender_window_size += (decryption_result.len() + 16) as u32;
+
+
+        if self.sender_window_size >= (size::LOCAL_WINDOW_SIZE / 2) {
+            let mut data = Data::new();
+            data.put_u8(message::SSH_MSG_CHANNEL_WINDOW_ADJUST)
+                .put_u32(0)
+                .put_u32(size::LOCAL_WINDOW_SIZE - self.sender_window_size);
+            let mut packet = Packet::from(data);
+            packet.build();
+            self.write(packet.as_slice())?;
+            self.sender_window_size = 0;
+        }
+
+
+        println!("len => {}", decryption_result.len());
+        println!("sender_window_size => {}", self.sender_window_size);
         results.push(decryption_result);
         if  remaining.len() > 0 {
             self.process_data_encrypt(remaining.to_vec(), results)?;

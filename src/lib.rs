@@ -118,10 +118,13 @@ impl SSH {
         util::update_client(
             Some(Mutex::new(Client::connect(adder)?))
         );
+
         util::update_config(
             Some(
                 Mutex::new(Config::new()))
         );
+
+        log::info!("connection to the server is successful.");
 
         Session.set_nonblocking(true)?;
         Ok(Session)
@@ -164,13 +167,14 @@ pub mod scp_arg {
 
 #[allow(dead_code)]
 pub mod scp_flag {
-    pub const C                         :&'static str = "C";
-    pub const D                         :&'static str = "D";
-    pub const E                         :&'static str = "E";
+    pub const T                         :u8   = 'T' as u8;
+    pub const D                         :u8   = 'D' as u8;
+    pub const C                         :u8   = 'C' as u8;
+    pub const E                         :u8   = 'E' as u8;
     // '\0'
-    pub const END                       :u8           = 0;
-    pub const ERR                       :u8           = 1;
-    pub const FATAL_ERR                 :u8           = 2;
+    pub const END                       :u8   = 0;
+    pub const ERR                       :u8   = 1;
+    pub const FATAL_ERR                 :u8   = 2;
 }
 
 

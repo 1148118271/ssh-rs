@@ -31,7 +31,7 @@ impl Kex {
 
     pub(crate) fn send_algorithm(&mut self) -> SshResult<()> {
         let config = util::config()?;
-        log::info!("client algorithms => {}", config.algorithm.client_algorithm.to_string());
+        log::info!("client algorithms: [{}]", config.algorithm.client_algorithm.to_string());
         if global::IS_ENCRYPT.load(Ordering::Relaxed) {
             global::IS_ENCRYPT.store(false, Ordering::Relaxed);
             util::update_encryption_key(None);
@@ -100,7 +100,7 @@ impl Kex {
                         let r = self
                             .signature
                             .verify_signature(&self.h.k_s, &self.session_id, &sig)?;
-                        log::info!("Signature Verification Result => {}", r);
+                        log::info!("signature verification result: [{}]", r);
                         if !r {
                             return Err(SshError::from(SshErrorKind::SignatureError))
                         }
@@ -166,6 +166,6 @@ pub(crate) fn processing_server_algorithm(mut data: Data) -> SshResult<()> {
     server_algorithm.s_mac_algorithm            =   MacAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
     server_algorithm.c_compression_algorithm    =   CompressionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
     server_algorithm.s_compression_algorithm    =   CompressionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    log::info!("server algorithms => {}", server_algorithm.to_string());
+    log::info!("server algorithms: [{}]", server_algorithm.to_string());
     return Ok(())
 }

@@ -1,5 +1,6 @@
 use crate::{message, strings, size, util};
 use crate::channel_exec::ChannelExec;
+use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
 use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::kex::{Kex, processing_server_algorithm};
@@ -56,7 +57,7 @@ impl Channel {
                     .kex
                     .signature
                     .verify_signature(&self.kex.h.k_s, &self.kex.session_id, &sig)?;
-                log::info!("Signature Verification Result => {}", r);
+                log::info!("signature Verification Result => {}", r);
                 if !r {
                     return Err(SshError::from(SshErrorKind::SignatureError))
                 }
@@ -98,6 +99,7 @@ impl Channel {
     }
 
     pub fn open_shell(mut self) -> SshResult<ChannelShell> {
+        log::info!("shell opened.");
         loop {
             let mut client = util::client()?;
             let results = client.read()?;
@@ -126,6 +128,7 @@ impl Channel {
     }
 
     pub fn open_exec(mut self) -> SshResult<ChannelExec> {
+        log::info!("exec opened.");
         loop {
             let mut client = util::client()?;
             let results = client.read()?;
@@ -146,8 +149,36 @@ impl Channel {
             }
         }
     }
+    
+    pub fn open_scp(mut self) -> SshResult<ChannelScp> {
+        log::info!("scp opened.");
+        loop {
+            let mut client = util::client()?;
+            let results = client.read()?;
+            util::unlock(client);
+            for result in results {
+                if result.is_empty() { continue }
+                let message_code = result[5];
+                match message_code {
+                    message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
+                        let mut data = Packet::processing_data(result);
+                        data.get_u8();
+                        data.get_u32();
+                        self.server_channel = data.get_u32();
+                        return Ok(ChannelScp {
+                            channel: self,
+                            local_path: Default::default(),
+                            is_sync_permissions: false
+                        })
+                    }
+                    _ => self.other(message_code, result)?
+                }
+            }
+        }
+    }
 
     pub fn close(&mut self) -> SshResult<()> {
+        log::info!("channel close.");
         self.send_close()?;
         self.receive_close()
     }
@@ -226,6 +257,5 @@ impl Channel {
         let mut client = util::client()?;
         client.write(packet.as_slice())
     }
-
 
 }
