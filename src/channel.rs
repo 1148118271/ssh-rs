@@ -18,7 +18,7 @@ pub struct Channel {
 
 impl Channel {
 
-    pub fn other(&mut self, message_code: u8, result: Vec<u8>) -> SshResult<()> {
+    pub(crate) fn other(&mut self, message_code: u8, mut result: Data) -> SshResult<()> {
         match message_code {
             message::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
@@ -30,7 +30,10 @@ impl Channel {
                 util::unlock(client)
             }
             message::SSH_MSG_KEXINIT => {
-                let data = Packet::processing_data(result);
+                //let data = Packet::processing_data(result);
+                let vec = result.to_vec();
+                let mut data = Data(vec![message_code]);
+                data.extend(vec);
                 self.kex.h.set_i_s(data.as_slice());
                 processing_server_algorithm(data)?;
                 self.kex.send_algorithm()?;
@@ -61,8 +64,8 @@ impl Channel {
                 if !r {
                     return Err(SshError::from(SshErrorKind::SignatureError))
                 }
-                self.kex.new_keys()?;
             }
+            message::SSH_MSG_NEWKEYS => self.kex.new_keys()?,
             // 通道大小 暂不处理
             message::SSH_MSG_CHANNEL_WINDOW_ADJUST => {}
             message::SSH_MSG_CHANNEL_EOF => {}
@@ -70,9 +73,7 @@ impl Channel {
             message::SSH_MSG_CHANNEL_SUCCESS => {}
             message::SSH_MSG_CHANNEL_FAILURE => return Err(SshError::from(SshErrorKind::ChannelFailureError)),
             message::SSH_MSG_CHANNEL_CLOSE => {
-                let mut data = Packet::processing_data(result);
-                data.get_u8();
-                let cc = data.get_u32();
+                let cc = result.get_u32();
                 if cc == self.client_channel {
                     self.remote_close = true;
                     self.close()?;
@@ -104,15 +105,13 @@ impl Channel {
             let mut client = util::client()?;
             let results = client.read()?;
             util::unlock(client);
-            for result in results {
+            for mut result in results {
                 if result.is_empty() { continue }
-                let message_code = result[5];
+                let message_code = result.get_u8();
                 match message_code {
                     message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
-                        let mut data = Packet::processing_data(result);
-                        data.get_u8();
-                        data.get_u32();
-                        self.server_channel = data.get_u32();
+                        result.get_u32();
+                        self.server_channel = result.get_u32();
                         // 请求伪终端
                         self.request_pty()?;
                         // 打开shell通道
@@ -133,15 +132,13 @@ impl Channel {
             let mut client = util::client()?;
             let results = client.read()?;
             util::unlock(client);
-            for result in results {
+            for mut result in results {
                 if result.is_empty() { continue }
-                let message_code = result[5];
+                let message_code = result.get_u8();
                 match message_code {
                     message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
-                        let mut data = Packet::processing_data(result);
-                        data.get_u8();
-                        data.get_u32();
-                        self.server_channel = data.get_u32();
+                        result.get_u32();
+                        self.server_channel = result.get_u32();
                         return Ok(ChannelExec(self))
                     }
                     _ => self.other(message_code, result)?
@@ -156,15 +153,13 @@ impl Channel {
             let mut client = util::client()?;
             let results = client.read()?;
             util::unlock(client);
-            for result in results {
+            for mut result in results {
                 if result.is_empty() { continue }
-                let message_code = result[5];
+                let message_code = result.get_u8();
                 match message_code {
                     message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
-                        let mut data = Packet::processing_data(result);
-                        data.get_u8();
-                        data.get_u32();
-                        self.server_channel = data.get_u32();
+                        result.get_u32();
+                        self.server_channel = result.get_u32();
                         return Ok(ChannelScp {
                             channel: self,
                             local_path: Default::default(),
@@ -202,14 +197,12 @@ impl Channel {
             let mut client = util::client()?;
             let results = client.read()?;
             util::unlock(client);
-            for result in results {
+            for mut result in results {
                 if result.is_empty() { continue }
-                let message_code = result[5];
+                let message_code = result.get_u8();
                 match message_code {
                     message::SSH_MSG_CHANNEL_CLOSE => {
-                        let mut data = Packet::processing_data(result);
-                        data.get_u8();
-                        let cc = data.get_u32();
+                        let cc = result.get_u32();
                         if cc == self.client_channel {
                             self.remote_close = true;
                             return Ok(())

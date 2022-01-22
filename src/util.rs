@@ -1,6 +1,5 @@
-use std::num::ParseIntError;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Mutex, MutexGuard};
 use rand::Rng;
 use rand::rngs::OsRng;
 use crate::error::{SshErrorKind, SshResult};
@@ -8,26 +7,6 @@ use crate::{Client, Config, SshError};
 use crate::encryption::ChaCha20Poly1305;
 use crate::global::{CLIENT, CONFIG, ENCRYPTION_KEY};
 
-
-pub(crate) fn write(client: Arc<Mutex<Client>>, v: &[u8]) -> SshResult<()> {
-    match client.lock() {
-        Ok(mut s) => Ok(s.write(v)?),
-        Err(e) => {
-            log::error!("Get client mutex error, error info: {:?}", e);
-            Err(SshError::from(SshErrorKind::MutexError))
-        }
-    }
-}
-
-pub(crate) fn read(client: Arc<Mutex<Client>>) -> SshResult<Vec<Vec<u8>>> {
-    match client.lock() {
-        Ok(mut v) => Ok(v.read()?),
-        Err(e) => {
-            log::error!("Get client mutex error, error info: {:?}", e);
-            Err(SshError::from(SshErrorKind::MutexError))
-        }
-    }
-}
 
 pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
     match String::from_utf8(v) {
@@ -136,13 +115,13 @@ pub(crate) fn vec_u8_to_string(v: Vec<u8>, pat: &str) -> SshResult<Vec<String>> 
 pub(crate) fn str_to_u32(v: &str) -> SshResult<u32> {
     match u32::from_str(v) {
         Ok(v) => Ok(v),
-        Err(e) => Err(SshError::from(SshErrorKind::UnknownError("str to u32 error".to_string())))
+        Err(_) => Err(SshError::from(SshErrorKind::UnknownError("str to u32 error".to_string())))
     }
 }
 
 pub(crate) fn str_to_i64(v: &str) -> SshResult<i64> {
     match i64::from_str(v) {
         Ok(v) => Ok(v),
-        Err(e) => Err(SshError::from(SshErrorKind::UnknownError("str to i64 error".to_string())))
+        Err(_) => Err(SshError::from(SshErrorKind::UnknownError("str to i64 error".to_string())))
     }
 }

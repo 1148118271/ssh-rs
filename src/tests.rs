@@ -421,14 +421,12 @@ mod tests {
             let mut client = util::client().unwrap();
             let results = client.read().unwrap();
             util::unlock(client);
-            for buf in results {
-                let message_code = buf[5];
+            for mut buf in results {
+                let message_code = buf.get_u8();
                 match message_code {
                     message::SSH_MSG_CHANNEL_DATA => {
-                        let mut data = Packet::processing_data(buf);
-                        data.get_u8();
-                        data.get_u32();
-                        v.extend(data.get_u8s())
+                        buf.get_u32();
+                        v.extend(buf.get_u8s())
                     }
                     message::SSH_MSG_CHANNEL_CLOSE => {
                         channel.remote_close = true;

@@ -68,7 +68,7 @@ impl Client {
         }
     }
 
-    pub fn read(&mut self) -> Result<Vec<Vec<u8>>, SshError> {
+    pub(crate) fn read(&mut self) -> Result<Vec<Data>, SshError> {
         let mut results = vec![];
         let mut result = vec![0; size::BUF_SIZE as usize];
         let len = match self.stream.read(&mut result) {
@@ -122,12 +122,24 @@ impl Client {
         }
     }
 
-    fn process_data(&mut self, result: Vec<u8>, results: &mut Vec<Vec<u8>>) -> SshResult<()> {
+    fn process_data(&mut self, mut result: Vec<u8>, results: &mut Vec<Data>) -> SshResult<()> {
         // 未加密
         if !global::IS_ENCRYPT.load(Relaxed) {
             self.sequence.server_auto_increment();
-            self.sender_window_size += result.len() as u32;
-            results.push(result);
+            // self.sender_window_size += result.len() as u32;
+            let packet_len = &result[..4];
+            let mut packet_len_slice = [0_u8; 4];
+            packet_len_slice.copy_from_slice(packet_len);
+            let packet_len = (u32::from_be_bytes(packet_len_slice) as usize) + 4;
+            // 唯一处理 server Key Exchange Reply 和 New Keys 会一块发
+            if result.len() > packet_len {
+                let (v1, v2) = result.split_at_mut(packet_len);
+                let data = Packet::processing_data(v1.to_vec());
+                results.push(data);
+                result = v2.to_vec();
+            }
+            let data = Packet::processing_data(result);
+            results.push(data);
             return Ok(())
         }
 
@@ -136,13 +148,15 @@ impl Client {
 
     }
 
-    fn process_data_encrypt(&mut self, mut result: Vec<u8>, results: &mut Vec<Vec<u8>>) -> SshResult<()> {
+
+
+    fn process_data_encrypt(&mut self, mut result: Vec<u8>, results: &mut Vec<Data>) -> SshResult<()> {
         self.sequence.server_auto_increment();
         if result.len() < 4 {
             self.check_result_len(&mut result)?;
         }
         let key = encryption_key()?;
-        let packet_len = self.get_packet_length(&result[..4], key);
+        let packet_len = self.get_encrypt_packet_length(&result[..4], key);
         let data_len = (packet_len + 4 + 16) as usize;
         if result.len() < data_len {
             self.get_encrypt_data(&mut result, data_len)?;
@@ -151,7 +165,6 @@ impl Client {
         let decryption_result =
             key.decryption(self.sequence.server_sequence_num, &mut this.to_vec())?;
         self.sender_window_size += (decryption_result.len() + 16) as u32;
-
 
         if self.sender_window_size >= (size::LOCAL_WINDOW_SIZE / 2) {
             let mut data = Data::new();
@@ -163,11 +176,8 @@ impl Client {
             self.write(packet.as_slice())?;
             self.sender_window_size = 0;
         }
-
-
-        println!("len => {}", decryption_result.len());
-        println!("sender_window_size => {}", self.sender_window_size);
-        results.push(decryption_result);
+        let data = Packet::processing_data(decryption_result);
+        results.push(data);
         if  remaining.len() > 0 {
             self.process_data_encrypt(remaining.to_vec(), results)?;
         }
@@ -197,7 +207,7 @@ impl Client {
         }
     }
 
-    fn get_packet_length(&self, len: &[u8], key: &mut ChaCha20Poly1305) -> u32 {
+    fn get_encrypt_packet_length(&self, len: &[u8], key: &mut ChaCha20Poly1305) -> u32 {
         let mut packet_len_slice = [0_u8; 4];
         packet_len_slice.copy_from_slice(len);
         let packet_len_slice = key.server_key

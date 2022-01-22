@@ -51,8 +51,7 @@ impl Session {
         util::unlock(config);
 
         kex.send_qc()?;
-        kex.verify_signature()?;
-        kex.new_keys()?;
+        kex.verify_signature_and_new_keys()?;
 
         log::info!("key negotiation successful.");
 
@@ -140,20 +139,20 @@ impl Session {
         let mut client = util::client()?;
         loop {
             let results = client.read()?;
-            for result in results {
+            for mut result in results {
                 if result.is_empty() { continue }
-                let message_code = result[5];
+                let message_code = result.get_u8();
                 match message_code {
                     message::SSH_MSG_SERVICE_ACCEPT => {
                         // 开始密码验证 TODO 目前只支持密码验证
                         password_authentication(&mut client)?;
                     }
                     message::SSH_MSG_USERAUTH_FAILURE => {
-                        log::error!("user auth failure");
+                        log::error!("user auth failure.");
                         return Err(SshError::from(SshErrorKind::PasswordError))
                     },
                     message::SSH_MSG_USERAUTH_SUCCESS => {
-                        log::info!("user auth successful");
+                        log::info!("user auth successful.");
                         return Ok(())
                     },
                     message::SSH_MSG_GLOBAL_REQUEST => {

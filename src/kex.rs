@@ -60,12 +60,11 @@ impl Kex {
             let results = client.read()?;
             for result in results {
                 if result.is_empty() { continue }
-                let message_code = result[5];
+                let message_code = result[0];
                 match message_code {
                     message::SSH_MSG_KEXINIT => {
-                        let data = Packet::processing_data(result);
-                        self.h.set_i_s(data.as_slice());
-                        return processing_server_algorithm(data)
+                        self.h.set_i_s(result.as_slice());
+                        return processing_server_algorithm(result)
                     }
                     _ => { }
                 }
@@ -85,13 +84,14 @@ impl Kex {
     }
 
 
-    pub(crate) fn verify_signature(&mut self) -> SshResult<()> {
-        let mut client = util::client()?;
+    pub(crate) fn verify_signature_and_new_keys(&mut self) -> SshResult<()> {
         loop {
+            let mut client = util::client()?;
             let results = client.read()?;
-            for result in results {
+            util::unlock(client);
+            for mut result in results {
                 if result.is_empty() { continue }
-                let message_code = result[5];
+                let message_code = result.get_u8();
                 match message_code {
                     message::SSH_MSG_KEX_ECDH_REPLY => {
                         // 生成session_id并且获取signature
@@ -104,6 +104,9 @@ impl Kex {
                         if !r {
                             return Err(SshError::from(SshErrorKind::SignatureError))
                         }
+                    }
+                    message::SSH_MSG_NEWKEYS => {
+                        self.new_keys()?;
                         return Ok(())
                     }
                     _ => {}
@@ -127,24 +130,18 @@ impl Kex {
         Ok(())
     }
 
-    pub(crate) fn generate_session_id_and_get_signature(&mut self, buff: Vec<u8>) -> Result<Vec<u8>, SshError> {
-        let mut data = Data(buff);
-        let ke_n_l = data.get_u8s();
-        data.refresh();
-        let ke_y_l = data.put_bytes(&ke_n_l);
-        let mut ke = Packet::processing_data(ke_y_l.to_vec());
-        ke.get_u8();
-        let ks = ke.get_u8s();
+    pub(crate) fn generate_session_id_and_get_signature(&mut self, mut data: Data) -> Result<Vec<u8>, SshError> {
+        let ks = data.get_u8s();
         self.h.set_k_s(&ks);
         // TODO 未进行密钥指纹验证！！
-        let qs = ke.get_u8s();
+        let qs = data.get_u8s();
         self.h.set_q_c(self.dh.get_public_key());
         self.h.set_q_s(&qs);
         let vec = self.dh.get_shared_secret(qs)?;
         self.h.set_k(&vec);
         let hb = self.h.as_bytes();
         self.session_id = digest::digest(&digest::SHA256, &hb).as_ref().to_vec();
-        let h = ke.get_u8s();
+        let h = data.get_u8s();
         let mut hd = Data(h);
         hd.get_u8s();
         let signature = hd.get_u8s();

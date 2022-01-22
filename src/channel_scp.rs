@@ -1,10 +1,7 @@
-use std::ffi::OsStr;
 use std::fs;
 use std::fs::{File, OpenOptions, Permissions};
 use std::io::Write;
-use std::ops::Add;
 use std::path::{Path, PathBuf};
-use std::sync::LockResult;
 use crate::{Channel, message, scp_arg, scp_flag, SshError, strings, util};
 use crate::error::{SshErrorKind, SshResult};
 use crate::packet::{Data, Packet};
@@ -31,7 +28,7 @@ impl ChannelScp {
         log::info!("start to synchronize files, \
         remote [{}] files will be synchronized to the local [{}] folder.", remote_path_str, local_path_str);
 
-        self.exec_scp(self.download_command_init(remote_path_str).as_str());
+        self.exec_scp(self.download_command_init(remote_path_str).as_str())?;
         self.send_end()?;
         let mut scp_file = ScpFile::new();
         scp_file.local_path = self.local_path.clone();
@@ -73,7 +70,7 @@ impl ChannelScp {
             _ => return Err(SshError::from(SshErrorKind::ScpError("unknown error.".to_string())))
         }
 
-        self.send_end();
+        self.send_end()?;
         let data = self.read_data()?;
         if !data.is_empty() {
             return self.process(data, scp_file);
@@ -97,7 +94,7 @@ impl ChannelScp {
         let buf = scp_file.local_path.join(&scp_file.name);
         log::info!("folder sync, name: [{}]", scp_file.name);
         if !buf.exists() {
-            fs::create_dir(buf.as_path());
+            fs::create_dir(buf.as_path())?;
         }
 
         scp_file.local_path = buf;
@@ -137,7 +134,7 @@ impl ChannelScp {
         log::info!("file sync, name: [{}] size: [{}]", scp_file.name, scp_file.size);
         let path = scp_file.local_path.join(scp_file.name.as_str());
         if path.exists() {
-            fs::remove_file(path.as_path());
+            fs::remove_file(path.as_path())?;
         }
 
         let mut file = match OpenOptions::new()
@@ -194,7 +191,7 @@ impl ChannelScp {
             use std::os::unix::fs::PermissionsExt;
             // error default mode 0755
             let mode = u32::from_str_radix(&scp_file.mode, 8).unwrap_or(509);
-            if let Err(e) = file.set_permissions(Permissions::from_mode(mode)) {
+            if let Err(_) = file.set_permissions(Permissions::from_mode(mode)) {
                 log::error!("the operating system does not allow modification of file permissions, \
                 which does not affect subsequent operations.");
             }
@@ -219,24 +216,20 @@ impl ChannelScp {
             let mut client = util::client()?;
             let results = client.read()?;
             util::unlock(client);
-            for result in results {
-                let message_code = result[5];
+            for mut result in results {
+                let message_code = result.get_u8();
                 match message_code {
                     message::SSH_MSG_CHANNEL_DATA => {
-                        let mut data = Packet::processing_data(result);
-                        data.get_u8();
-                        let cc = data.get_u32();
+                        let cc = result.get_u32();
                         if cc == self.channel.client_channel {
-                            vec.extend(data.get_u8s())
+                            vec.extend(result.get_u8s())
                         }
                     }
                     message::SSH_MSG_CHANNEL_CLOSE => {
-                        let mut data = Packet::processing_data(result);
-                        data.get_u8();
-                        let cc = data.get_u32();
+                        let cc = result.get_u32();
                         if cc == self.channel.client_channel {
                             self.channel.remote_close = true;
-                            self.channel.close();
+                            self.channel.close()?;
                             return Ok(vec)
                         }
                     }
