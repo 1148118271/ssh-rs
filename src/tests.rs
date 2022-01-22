@@ -11,6 +11,7 @@ mod tests {
     use filetime::{FileTime, set_file_times};
     use crate::packet::{Data, Packet};
     use crate::{Channel, global, message, SSH, SshError, strings, util};
+    use crate::channel::ChannelWindowSize;
     use crate::error::{SshErrorKind, SshResult};
 
 
@@ -29,11 +30,23 @@ mod tests {
         // let i = u32::from_str_radix("0775", 8).unwrap();
         // println!("{}", i)
 
-        let path = Path::new("User");
+        // let path = Path::new("User");
+        //
+        // let option = path.file_name().unwrap();
+        // println!("{:?}", option);
 
-        let option = path.file_name().unwrap();
-        println!("{:?}", option);
-
+        let mut cws = ChannelWindowSize {
+            client_channel: 0,
+            server_channel: 0,
+            window_size: 0
+        };
+        // println!("{:?}", cws.window_size);
+        // cws.add(2);
+        println!("{:?}", cws.window_size);
+        cws += 2;
+        println!("{:?}", cws.window_size);
+        cws += 2;
+        println!("{:?}", cws.window_size);
         // println!("{:}", 7 % 10);
         //u32::f
         // let mut count = 0;

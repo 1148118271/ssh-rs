@@ -1,11 +1,13 @@
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Mutex, MutexGuard};
 use rand::Rng;
 use rand::rngs::OsRng;
 use crate::error::{SshErrorKind, SshResult};
 use crate::{Client, Config, SshError};
+use crate::channel::ChannelWindowSize;
 use crate::encryption::ChaCha20Poly1305;
-use crate::global::{CLIENT, CONFIG, ENCRYPTION_KEY};
+use crate::global::{CHANNEL_WINDOW, CLIENT, CONFIG, ENCRYPTION_KEY};
 
 
 pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
@@ -61,14 +63,14 @@ pub(crate) fn config() -> SshResult<MutexGuard<'static, Config>> {
     unsafe {
          match &mut CONFIG {
             None => {
-                log::error!("Config null pointer");
+                log::error!("config null pointer");
                 Err(SshError::from(SshErrorKind::ConfigNullError))
             }
             Some(v) => {
                 match v.lock() {
                     Ok(c) => Ok(c),
                     Err(e) => {
-                        log::error!("Get config mutex error, error info: {:?}", e);
+                        log::error!("get config mutex error, error info: {:?}", e);
                         Err(SshError::from(SshErrorKind::MutexError))
                     }
                 }
@@ -95,6 +97,43 @@ pub(crate) fn update_encryption_key(v: Option<ChaCha20Poly1305>) {
     }
 }
 
+pub(crate) fn get_channel_window(k: u32) -> SshResult<Option<MutexGuard<'static, ChannelWindowSize>>> {
+    unsafe {
+        if let None = CHANNEL_WINDOW {
+            CHANNEL_WINDOW = Some(HashMap::new())
+        }
+
+        if let Some(map) = &mut CHANNEL_WINDOW {
+            return match map.get(&k) {
+                None => Ok(None),
+                Some(v) => {
+                    match v.lock() {
+                        Ok(v) => {
+                            Ok(Some(v))
+                        }
+                        Err(e) => {
+                            log::error!("get channel_window mutex error, error info: {:?}", e);
+                            Err(SshError::from(SshErrorKind::MutexError))
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
+}
+
+pub(crate) fn set_channel_window(k: u32, v: ChannelWindowSize) {
+    unsafe {
+        if let None = CHANNEL_WINDOW {
+            CHANNEL_WINDOW = Some(HashMap::new())
+        }
+
+        if let Some(map) = &mut CHANNEL_WINDOW {
+            map.insert(k, Mutex::new(v));
+        }
+    }
+}
 
 // 十六位随机数
 pub(crate) fn cookie() -> Vec<u8> {

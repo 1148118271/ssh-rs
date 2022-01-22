@@ -37,6 +37,9 @@ impl ChannelScp {
         Ok(())
     }
 
+    /// whether to synchronize the remote file permissions, the last modification time, the last access time
+    /// the windows operating system does not support file permissions synchronization,
+    /// only the last modification time and last access time synchronization
     pub fn set_is_sync_permissions(&mut self, b: bool) {
         self.is_sync_permissions = b;
     }
@@ -155,16 +158,18 @@ impl ChannelScp {
             let data = self.read_data()?;
             if data.is_empty() { continue }
             count += data.len() as u64;
-            println!("stream len: {} ", data.len());
+
             if count == scp_file.size + 1 {
                 if let Err(e) = file.write_all(&data[..(data.len() - 1)]) {
                     return Err(SshError::from(e))
                 }
+                log::info!("{}/{}", scp_file.size, scp_file.size);
                 break;
             }
             if let Err(e) = file.write_all(&data) {
                 return Err(SshError::from(e))
             }
+            log::info!("{}/{}", scp_file.size, count);
         }
 
         self.sync_permissions(scp_file, file);

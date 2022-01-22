@@ -8,7 +8,6 @@ pub struct ChannelShell(pub(crate) Channel);
 impl ChannelShell {
     pub fn read(&mut self) -> SshResult<Vec<u8>> {
         let mut buf = vec![];
-        // self.0.window_adjust()?;
         let mut client = util::client()?;
         let results = client.read()?;
         util::unlock(client);

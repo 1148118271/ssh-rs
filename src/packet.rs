@@ -67,7 +67,7 @@ impl Packet {
 
 // 数据
 // 不包含数据包其他必须字段的数据
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Data(pub(crate) Vec<u8>);
 
 impl Data {

@@ -1,4 +1,4 @@
-use crate::{message, strings, size, util};
+use crate::{message, strings, size, util, Client};
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
@@ -84,21 +84,6 @@ impl Channel {
         Ok(())
     }
 
-    pub fn window_adjust(&mut self) -> SshResult<()> {
-        let mut client = util::client()?;
-        if client.sender_window_size >= (size::LOCAL_WINDOW_SIZE / 2) {
-            let mut data = Data::new();
-            data.put_u8(message::SSH_MSG_CHANNEL_WINDOW_ADJUST)
-                .put_u32(self.server_channel)
-                .put_u32(size::LOCAL_WINDOW_SIZE - client.sender_window_size);
-            let mut packet = Packet::from(data);
-            packet.build();
-            client.write(packet.as_slice())?;
-            client.sender_window_size = 0;
-        }
-        Ok(())
-    }
-
     pub fn open_shell(mut self) -> SshResult<ChannelShell> {
         log::info!("shell opened.");
         loop {
@@ -118,6 +103,10 @@ impl Channel {
                         self.get_shell()?;
                     }
                     message::SSH_MSG_CHANNEL_SUCCESS => {
+                        util::set_channel_window(
+                            self.client_channel,
+                            ChannelWindowSize::new(self.client_channel, self.server_channel));
+
                         return Ok(ChannelShell(self))
                     }
                     _ => self.other(message_code, result)?
@@ -139,6 +128,9 @@ impl Channel {
                     message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
                         result.get_u32();
                         self.server_channel = result.get_u32();
+                        util::set_channel_window(
+                            self.client_channel,
+                            ChannelWindowSize::new(self.client_channel, self.server_channel));
                         return Ok(ChannelExec(self))
                     }
                     _ => self.other(message_code, result)?
@@ -160,6 +152,9 @@ impl Channel {
                     message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
                         result.get_u32();
                         self.server_channel = result.get_u32();
+                        util::set_channel_window(
+                            self.client_channel,
+                            ChannelWindowSize::new(self.client_channel, self.server_channel));
                         return Ok(ChannelScp {
                             channel: self,
                             local_path: Default::default(),
@@ -251,4 +246,71 @@ impl Channel {
         client.write(packet.as_slice())
     }
 
+}
+
+
+pub(crate) struct ChannelWindowSize {
+    pub(crate) client_channel: u32,
+    pub(crate) server_channel: u32,
+    pub(crate) window_size   : u32,
+}
+
+impl ChannelWindowSize {
+    pub(crate) fn new(client_channel: u32, server_channel: u32) -> ChannelWindowSize {
+        ChannelWindowSize{
+            client_channel,
+            server_channel,
+            window_size: 0
+        }
+    }
+    pub(crate) fn process_window_size(mut data: Data, client: &mut Client) -> SshResult<()> {
+
+        if data.is_empty() { return Ok(()) }
+
+        let msg_code = data.get_u8();
+
+        let (client_channel_no, size) = match msg_code {
+            message::SSH_MSG_CHANNEL_DATA => {
+                let client_channel_no = data.get_u32(); // channel serial no    4 len
+                let vec = data.get_u8s(); // string data len
+                let size = vec.len() as u32;
+                (client_channel_no, size)
+            }
+            message::SSH_MSG_CHANNEL_EXTENDED_DATA => {
+                let client_channel_no = data.get_u32(); // channel serial no    4 len
+                data.get_u32(); // data type code        4 len
+                let vec = data.get_u8s();  // string data len
+                let size = vec.len() as u32;
+                (client_channel_no, size)
+            }
+            _ => return Ok(())
+        };
+
+        if size <= 0 { return Ok(()) }
+
+        if let Some(mut map) = util::get_channel_window(client_channel_no)?
+        {
+
+            *map += size;
+
+            if map.window_size >= (size::LOCAL_WINDOW_SIZE / 2) {
+                let mut data = Data::new();
+                data.put_u8(message::SSH_MSG_CHANNEL_WINDOW_ADJUST)
+                    .put_u32(map.server_channel)
+                    .put_u32(size::LOCAL_WINDOW_SIZE - map.window_size);
+                let mut packet = Packet::from(data);
+                packet.build();
+                client.write(packet.as_slice())?;
+                map.window_size = 0;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl std::ops::AddAssign<u32> for ChannelWindowSize {
+    fn add_assign(&mut self, rhs: u32) {
+        self.window_size += rhs;
+    }
 }

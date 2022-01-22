@@ -21,7 +21,6 @@ impl ChannelExec {
     }
 
     fn get_data(&mut self, v: &mut Vec<u8>) -> SshResult<()> {
-        self.0.window_adjust()?;
         let mut client = util::client()?;
         let results = client.read()?;
         util::unlock(client);

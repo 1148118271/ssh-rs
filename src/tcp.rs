@@ -2,7 +2,8 @@ use std::io;
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::sync::atomic::Ordering::Relaxed;
-use crate::{global, message, size};
+use crate::{global, size};
+use crate::channel::ChannelWindowSize;
 use crate::encryption::ChaCha20Poly1305;
 use crate::error::{SshError, SshResult};
 use crate::packet::{Data, Packet};
@@ -12,7 +13,6 @@ use crate::util::encryption_key;
 pub struct Client {
     pub(crate) stream: TcpStream,
     sequence: Sequence,
-    pub(crate) sender_window_size: u32,
 }
 
 #[derive(Clone)]
@@ -50,7 +50,6 @@ impl Client {
                             client_sequence_num: 0,
                             server_sequence_num: 0
                         },
-                        sender_window_size: 0
                     }
                 ),
             Err(e) => Err(SshError::from(e))
@@ -126,7 +125,6 @@ impl Client {
         // 未加密
         if !global::IS_ENCRYPT.load(Relaxed) {
             self.sequence.server_auto_increment();
-            // self.sender_window_size += result.len() as u32;
             let packet_len = &result[..4];
             let mut packet_len_slice = [0_u8; 4];
             packet_len_slice.copy_from_slice(packet_len);
@@ -149,7 +147,6 @@ impl Client {
     }
 
 
-
     fn process_data_encrypt(&mut self, mut result: Vec<u8>, results: &mut Vec<Data>) -> SshResult<()> {
         self.sequence.server_auto_increment();
         if result.len() < 4 {
@@ -164,19 +161,11 @@ impl Client {
         let (this, remaining) = result.split_at_mut(data_len);
         let decryption_result =
             key.decryption(self.sequence.server_sequence_num, &mut this.to_vec())?;
-        self.sender_window_size += (decryption_result.len() + 16) as u32;
-
-        if self.sender_window_size >= (size::LOCAL_WINDOW_SIZE / 2) {
-            let mut data = Data::new();
-            data.put_u8(message::SSH_MSG_CHANNEL_WINDOW_ADJUST)
-                .put_u32(0)
-                .put_u32(size::LOCAL_WINDOW_SIZE - self.sender_window_size);
-            let mut packet = Packet::from(data);
-            packet.build();
-            self.write(packet.as_slice())?;
-            self.sender_window_size = 0;
-        }
         let data = Packet::processing_data(decryption_result);
+
+        // change the channel window size
+        ChannelWindowSize::process_window_size(data.clone(), self)?;
+
         results.push(data);
         if  remaining.len() > 0 {
             self.process_data_encrypt(remaining.to_vec(), results)?;
