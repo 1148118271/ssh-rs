@@ -13,10 +13,7 @@ repository = "https://github.com/1148118271/ssh-rs"
 
 [dependencies]
 ring = "0.16.20"
-rand = "0.7.3"
+rand = "0.8"
 log = "0.4"
 filetime = "0.2"
-
-[dependencies.openssl]
-version = "0.10"
-features = ["vendored"]
+rsa = "0.5"
