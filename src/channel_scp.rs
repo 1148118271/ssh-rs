@@ -29,11 +29,11 @@ impl ChannelScp {
         remote [{}] files will be synchronized to the local [{}] folder.", remote_path_str, local_path_str);
 
         self.exec_scp(self.download_command_init(remote_path_str).as_str())?;
-        self.send_end()?;
+        //self.send_end()?;
         let mut scp_file = ScpFile::new();
         scp_file.local_path = self.local_path.clone();
-        let vec = self.read_data()?;
-        self.process(vec, &mut scp_file)?;
+        //let vec = self.read_data()?;
+        self.process(&mut scp_file)?;
         Ok(())
     }
 
@@ -44,39 +44,39 @@ impl ChannelScp {
         self.is_sync_permissions = b;
     }
 
-    fn process(&mut self, data: Vec<u8>, scp_file: &mut ScpFile) -> SshResult<()> {
-        if data.is_empty() { return Ok(()); }
-        let code = &data[0];
-        match *code {
-            scp_flag::T => {
-                // 处理时间
-                let (modify_time, access_time) = file_time(data)?;
-                scp_file.modify_time = modify_time;
-                scp_file.access_time = access_time;
+    fn process(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
+        loop {
+            self.send_end()?;
+            let data = self.read_data()?;
+            if data.is_empty() {
+                break;
             }
-            scp_flag::C => self.process_file(data, scp_file)?,
-            scp_flag::D => self.process_dir(data, scp_file)?,
-            scp_flag::E => {
-                match scp_file.local_path.parent() {
-                    None => {}
-                    Some(v) => {
-                        let buf = v.to_path_buf();
-                        if !buf.eq(&self.local_path) {
-                            scp_file.local_path = buf;
+            let code = &data[0];
+            match *code {
+                scp_flag::T => {
+                    // 处理时间
+                    let (modify_time, access_time) = file_time(data)?;
+                    scp_file.modify_time = modify_time;
+                    scp_file.access_time = access_time;
+                }
+                scp_flag::C => self.process_file(data, scp_file)?,
+                scp_flag::D => self.process_dir(data, scp_file)?,
+                scp_flag::E => {
+                    match scp_file.local_path.parent() {
+                        None => {}
+                        Some(v) => {
+                            let buf = v.to_path_buf();
+                            if !buf.eq(&self.local_path) {
+                                scp_file.local_path = buf;
+                            }
                         }
                     }
                 }
+                // error
+                scp_flag::ERR | scp_flag::FATAL_ERR =>
+                    return Err(SshError::from(SshErrorKind::ScpError(util::from_utf8(data)?))),
+                _ => return Err(SshError::from(SshErrorKind::ScpError("unknown error.".to_string())))
             }
-            // error
-            scp_flag::ERR | scp_flag::FATAL_ERR =>
-                return Err(SshError::from(SshErrorKind::ScpError(util::from_utf8(data)?))),
-            _ => return Err(SshError::from(SshErrorKind::ScpError("unknown error.".to_string())))
-        }
-
-        self.send_end()?;
-        let data = self.read_data()?;
-        if !data.is_empty() {
-            return self.process(data, scp_file);
         }
         log::info!("file sync successful.");
         Ok(())
@@ -178,6 +178,17 @@ impl ChannelScp {
 
 
 
+
+    #[cfg(any(
+        target_os = "android",
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "ios",
+        target_os = "macos",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
     fn sync_permissions(&self, scp_file: &mut ScpFile, file: File) {
         if !self.is_sync_permissions {
             return;
@@ -192,16 +203,33 @@ impl ChannelScp {
                error info: {:?}", e)
         }
 
-        if cfg!(unix) {
-            use std::os::unix::fs::PermissionsExt;
-            // error default mode 0755
-            let mode = u32::from_str_radix(&scp_file.mode, 8).unwrap_or(509);
-            if let Err(_) = file.set_permissions(Permissions::from_mode(mode)) {
-                log::error!("the operating system does not allow modification of file permissions, \
+        use std::os::unix::fs::PermissionsExt;
+        // error default mode 0755
+        let mode = u32::from_str_radix(&scp_file.mode, 8).unwrap_or(509);
+        if let Err(_) = file.set_permissions(Permissions::from_mode(mode)) {
+            log::error!("the operating system does not allow modification of file permissions, \
                 which does not affect subsequent operations.");
-            }
         }
     }
+
+
+    #[cfg(target_os = "windows")]
+    fn sync_permissions(&self, scp_file: &mut ScpFile, file: File) {
+        if !self.is_sync_permissions {
+            return;
+        }
+
+        let modify_time = filetime::FileTime::from_unix_time(scp_file.modify_time, 0);
+        let access_time = filetime::FileTime::from_unix_time(scp_file.access_time, 0);
+        if let Err(e) = filetime::set_file_times(scp_file.local_path.as_path(), access_time, modify_time) {
+            log::error!("the file time synchronization is abnormal,\
+             which may be caused by the operating system,\
+              which does not affect subsequent operations.\
+               error info: {:?}", e)
+        }
+    }
+
+
 
     fn send_end(&self) -> SshResult<()> {
         let mut data = Data::new();
@@ -325,4 +353,5 @@ impl ScpFile {
         }
     }
 }
+
 

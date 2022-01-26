@@ -148,27 +148,32 @@ impl Client {
 
 
     fn process_data_encrypt(&mut self, mut result: Vec<u8>, results: &mut Vec<Data>) -> SshResult<()> {
-        self.sequence.server_auto_increment();
-        if result.len() < 4 {
-            self.check_result_len(&mut result)?;
-        }
-        let key = encryption_key()?;
-        let packet_len = self.get_encrypt_packet_length(&result[..4], key);
-        let data_len = (packet_len + 4 + 16) as usize;
-        if result.len() < data_len {
-            self.get_encrypt_data(&mut result, data_len)?;
-        }
-        let (this, remaining) = result.split_at_mut(data_len);
-        let decryption_result =
-            key.decryption(self.sequence.server_sequence_num, &mut this.to_vec())?;
-        let data = Packet::processing_data(decryption_result);
+        loop {
+            self.sequence.server_auto_increment();
+            if result.len() < 4 {
+                self.check_result_len(&mut result)?;
+            }
+            let key = encryption_key()?;
+            let packet_len = self.get_encrypt_packet_length(&result[..4], key);
+            let data_len = (packet_len + 4 + 16) as usize;
+            if result.len() < data_len {
+                self.get_encrypt_data(&mut result, data_len)?;
+            }
+            let (this, remaining) = result.split_at_mut(data_len);
+            let decryption_result =
+                key.decryption(self.sequence.server_sequence_num, &mut this.to_vec())?;
+            let data = Packet::processing_data(decryption_result);
 
-        // change the channel window size
-        ChannelWindowSize::process_window_size(data.clone(), self)?;
+            // change the channel window size
+            ChannelWindowSize::process_window_size(data.clone(), self)?;
 
-        results.push(data);
-        if  remaining.len() > 0 {
-            self.process_data_encrypt(remaining.to_vec(), results)?;
+            results.push(data);
+
+            if remaining.len() <= 0 {
+                break;
+            }
+
+            result = remaining.to_vec();
         }
         Ok(())
     }
