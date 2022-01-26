@@ -111,7 +111,7 @@ impl ChannelScp {
             it is possible that the path does not exist, \
             which does not affect subsequent operations. \
             error info: {:?}", e);
-                return Ok(())
+                return Err(SshError::from(SshErrorKind::ScpError(format!("file open error: {}", e.to_string()))))
             }
         };
         Ok(())
