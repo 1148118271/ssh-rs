@@ -68,10 +68,10 @@ impl Session {
         Ok(())
     }
 
-    pub fn set_user_and_password(&mut self, user: String, password: String) -> SshResult<()> {
+    pub fn set_user_and_password<S: Into<String>>(&mut self, user: S, password: S) -> SshResult<()> {
         let mut config = util::config()?;
-        config.user.username = user;
-        config.user.password = password;
+        config.user.username = user.into();
+        config.user.password = password.into();
         Ok(())
     }
 
