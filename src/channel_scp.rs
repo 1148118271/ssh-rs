@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fs;
 use std::fs::{File, OpenOptions, Permissions};
 use std::io::Write;
@@ -15,7 +16,9 @@ pub struct ChannelScp {
 
 impl ChannelScp {
 
-    pub fn download(&mut self, local_path: &Path, remote_path: &Path) -> SshResult<()> {
+    pub fn download<S: AsRef<OsStr> + ?Sized>(&mut self, local_path: &S, remote_path: &S) -> SshResult<()> {
+        let local_path = Path::new(local_path);
+        let remote_path = Path::new(remote_path);
 
         check_path(local_path)?;
         check_path(remote_path)?;
@@ -29,10 +32,8 @@ impl ChannelScp {
         remote [{}] files will be synchronized to the local [{}] folder.", remote_path_str, local_path_str);
 
         self.exec_scp(self.download_command_init(remote_path_str).as_str())?;
-        //self.send_end()?;
         let mut scp_file = ScpFile::new();
         scp_file.local_path = self.local_path.clone();
-        //let vec = self.read_data()?;
         self.process(&mut scp_file)?;
         Ok(())
     }
@@ -180,14 +181,8 @@ impl ChannelScp {
 
 
     #[cfg(any(
-        target_os = "android",
         target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "ios",
         target_os = "macos",
-        target_os = "netbsd",
-        target_os = "openbsd"
     ))]
     fn sync_permissions(&self, scp_file: &mut ScpFile, file: File) {
         if !self.is_sync_permissions {

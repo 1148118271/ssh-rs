@@ -1,6 +1,5 @@
 use rsa::PublicKey;
 use crate::encryption::PublicKey as PubK;
-use crate::error::SshErrorKind;
 use crate::packet::Data;
 use crate::SshError;
 
