@@ -86,7 +86,6 @@ mod channel_shell;
 mod channel_exec;
 
 pub mod error;
-mod tests;
 mod channel_scp;
 mod config;
 mod util;
