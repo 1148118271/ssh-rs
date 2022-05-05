@@ -1,6 +1,6 @@
 ## In addition to encryption library, pure RUST implementation of SSH-2.0 client protocol
 
-
+### Because there is a lot of unfinished work, there may be problems if you compile the code directly from the main branch
 
 ### Quick example (简单例子):
 ```rust
