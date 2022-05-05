@@ -1,8 +1,10 @@
 use std::ffi::OsStr;
 use std::fs;
-use std::fs::{File, OpenOptions, Permissions};
+use std::fs::{File, metadata, OpenOptions, Permissions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::ptr::read;
+use std::time::{Duration, SystemTime, SystemTimeError, UNIX_EPOCH};
 use crate::{Channel, message, scp_arg, scp_flag, SshError, strings, util};
 use crate::error::{SshErrorKind, SshResult};
 use crate::packet::{Data, Packet};
@@ -14,7 +16,117 @@ pub struct ChannelScp {
 
 }
 
+#[test] fn t() {
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(v) => {
+            println!("{:?}", v.as_secs())
+        }
+        Err(v) => {}
+    }
+
+}
+
 impl ChannelScp {
+
+    pub fn upload<S: AsRef<OsStr> + ?Sized>(&mut self, local_path: &S, remote_path: &S) -> SshResult<()> {
+        let local_path = Path::new(local_path);
+        let remote_path = Path::new(remote_path);
+
+        check_path(local_path)?;
+        check_path(remote_path)?;
+
+        let local_path_str = local_path.to_str().unwrap();
+        let remote_path_str = remote_path.to_str().unwrap();
+
+        self.local_path = local_path.to_path_buf();
+
+        self.exec_scp(self.upload_command_init(remote_path_str).as_str())?;
+
+        let mut scp_file = ScpFile::new();
+
+        scp_file.local_path = local_path.to_path_buf();
+
+
+
+        Ok(())
+    }
+
+
+    fn process_u(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
+        loop {
+            let data = self.read_data()?;
+            match *&data[0] {
+                scp_flag::END => {
+                    match scp_file.local_path.is_dir() {
+                        true => {}
+                        false => {}
+                    }
+                },
+                // error
+                scp_flag::ERR | scp_flag::FATAL_ERR =>
+                    return Err(SshError::from(SshErrorKind::ScpError(util::from_utf8(data)?))),
+                _ => return Err(SshError::from(SshErrorKind::ScpError("unknown error.".to_string())))
+            }
+        }
+    }
+
+    fn process_dir_u(&mut self, scp_file: &mut ScpFile) {
+        if self.is_sync_permissions && !cfg!(windows) {
+
+        }
+    }
+
+    fn get_time(scp_file: &mut ScpFile) -> SshResult<()> {
+        let metadata = metadata(scp_file.local_path.as_path())?;
+        // 最后修改时间
+        let modified_time = match metadata.modified() {
+            Ok(t) => t,
+            Err(_) => SystemTime::now(),
+        };
+        let modified_time = match modified_time.duration_since(UNIX_EPOCH) {
+            Ok(t) => t.as_secs(),
+            Err(e) => {
+                return Err(SshError::from(
+                    SshErrorKind::UnknownError(
+                        format!("SystemTimeError difference: {:?}", e.duration()))))
+            }
+        };
+
+        // 最后访问时间
+        let accessed_time = match metadata.accessed() {
+            Ok(t) => t,
+            Err(_) => SystemTime::now(),
+        };
+        let accessed_time = match accessed_time.duration_since(UNIX_EPOCH) {
+            Ok(d) => d.as_secs(),
+            Err(e) => {
+                return Err(SshError::from(
+                            SshErrorKind::UnknownError(
+                                format!("SystemTimeError difference: {:?}", e.duration()))))
+            }
+        };
+        scp_file.modify_time = modified_time as i64;
+        scp_file.access_time = accessed_time as i64;
+        Ok(())
+    }
+
+
+    fn upload_command_init(&self, remote_path: &str) -> String {
+        let mut cmd = format!(
+            "{} {} {} {}",
+            strings::SCP,
+            scp_arg::SOURCE,
+            scp_arg::QUIET,
+            scp_arg::RECURSIVE
+        );
+        if self.is_sync_permissions && !cfg!(windows) {
+            cmd.push_str(" ");
+            cmd.push_str(scp_arg::PRESERVE_TIMES)
+        }
+        cmd.push_str(" ");
+        cmd.push_str(remote_path);
+        cmd
+    }
 
     pub fn download<S: AsRef<OsStr> + ?Sized>(&mut self, local_path: &S, remote_path: &S) -> SshResult<()> {
         let local_path = Path::new(local_path);
@@ -34,7 +146,7 @@ impl ChannelScp {
         self.exec_scp(self.download_command_init(remote_path_str).as_str())?;
         let mut scp_file = ScpFile::new();
         scp_file.local_path = self.local_path.clone();
-        self.process(&mut scp_file)?;
+        self.process_d(&mut scp_file)?;
         Ok(())
     }
 
@@ -45,7 +157,7 @@ impl ChannelScp {
         self.is_sync_permissions = b;
     }
 
-    fn process(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
+    fn process_d(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
         loop {
             self.send_end()?;
             let data = self.read_data()?;
@@ -60,8 +172,8 @@ impl ChannelScp {
                     scp_file.modify_time = modify_time;
                     scp_file.access_time = access_time;
                 }
-                scp_flag::C => self.process_file(data, scp_file)?,
-                scp_flag::D => self.process_dir(data, scp_file)?,
+                scp_flag::C => self.process_file_d(data, scp_file)?,
+                scp_flag::D => self.process_dir_d(data, scp_file)?,
                 scp_flag::E => {
                     match scp_file.local_path.parent() {
                         None => {}
@@ -83,7 +195,7 @@ impl ChannelScp {
         Ok(())
     }
 
-    fn process_dir(&mut self, data: Vec<u8>, scp_file: &mut ScpFile) -> SshResult<()> {
+    fn process_dir_d(&mut self, data: Vec<u8>, scp_file: &mut ScpFile) -> SshResult<()> {
         let string = util::from_utf8(data)?;
         let dir_info = string.trim();
         let split = dir_info.split(" ").collect::<Vec<&str>>();
@@ -118,7 +230,7 @@ impl ChannelScp {
         Ok(())
     }
 
-    fn process_file(&mut self, data: Vec<u8>, scp_file: &mut ScpFile) -> SshResult<()> {
+    fn process_file_d(&mut self, data: Vec<u8>, scp_file: &mut ScpFile) -> SshResult<()> {
         let string = util::from_utf8(data)?;
         let file_info = string.trim();
         let split = file_info.split(" ").collect::<Vec<&str>>();
