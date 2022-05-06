@@ -2,10 +2,11 @@ use std::ffi::OsStr;
 use std::fs;
 use std::fs::{File, metadata, OpenOptions, Permissions};
 use std::io::Write;
+use std::num::ParseIntError;
 use std::path::{Path, PathBuf};
 use std::ptr::read;
 use std::time::{Duration, SystemTime, SystemTimeError, UNIX_EPOCH};
-use crate::{Channel, message, scp_arg, scp_flag, SshError, strings, util};
+use crate::{Channel, message, permission, scp_arg, scp_flag, SshError, strings, util};
 use crate::error::{SshErrorKind, SshResult};
 use crate::packet::{Data, Packet};
 
@@ -17,12 +18,7 @@ pub struct ChannelScp {
 }
 
 #[test] fn t() {
-    match SystemTime::now().duration_since(UNIX_EPOCH) {
-        Ok(v) => {
-            println!("{:?}", v.as_secs())
-        }
-        Err(v) => {}
-    }
+    println!("{}", u32::from_str_radix("775", 8).unwrap());
 
 }
 
@@ -70,13 +66,25 @@ impl ChannelScp {
         }
     }
 
-    fn process_dir_u(&mut self, scp_file: &mut ScpFile) {
+    fn process_dir_u(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
         if self.is_sync_permissions && !cfg!(windows) {
-
+            self.send_time(scp_file)?
         }
+
+
+        Ok(())
     }
 
-    fn get_time(scp_file: &mut ScpFile) -> SshResult<()> {
+
+    fn send_time(&self, scp_file: &mut ScpFile) -> SshResult<()> {
+        self.get_time(scp_file)?;
+        // "T1647767946 0 1647767946 0\n";
+        let cmd = format!("T{} 0 {}\n", scp_file.modify_time, scp_file.access_time);
+        self.send(&cmd);
+        Ok(())
+    }
+
+    fn get_time(&self, scp_file: &mut ScpFile) -> SshResult<()> {
         let metadata = metadata(scp_file.local_path.as_path())?;
         // 最后修改时间
         let modified_time = match metadata.modified() {
@@ -199,13 +207,10 @@ impl ChannelScp {
         let string = util::from_utf8(data)?;
         let dir_info = string.trim();
         let split = dir_info.split(" ").collect::<Vec<&str>>();
-        let mode_str = split.get(0).unwrap_or(&"D0775");
-        let mode_str = mode_str.replace("D", "");
-        scp_file.mode = mode_str;
-        let size_str = *split.get(1).unwrap_or(&"0");
-        let size = util::str_to_i64(size_str)?;
-        scp_file.size = size as u64;
-        scp_file.name = split.get(2).unwrap_or(&"").to_string();
+        match split.get(2) {
+            None => return Ok(()),
+            Some(v) => scp_file.name = v.to_string()
+        }
         scp_file.is_dir = true;
         let buf = scp_file.local_path.join(&scp_file.name);
         log::info!("folder sync, name: [{}]", scp_file.name);
@@ -234,13 +239,13 @@ impl ChannelScp {
         let string = util::from_utf8(data)?;
         let file_info = string.trim();
         let split = file_info.split(" ").collect::<Vec<&str>>();
-        let mode_str = split.get(0).unwrap_or(&"C0644");
-        let mode_str = mode_str.replace("C", "");
-        scp_file.mode = mode_str;
         let size_str = *split.get(1).unwrap_or(&"0");
         let size = util::str_to_i64(size_str)?;
         scp_file.size = size as u64;
-        scp_file.name = split.get(2).unwrap_or(&"").to_string();
+        match split.get(2) {
+            None => return Ok(()),
+            Some(v) => scp_file.name = v.to_string()
+        }
         scp_file.is_dir = false;
         self.save_file(scp_file)?;
         Ok(())
@@ -292,10 +297,7 @@ impl ChannelScp {
 
 
 
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "macos",
-    ))]
+
     fn sync_permissions(&self, scp_file: &mut ScpFile, file: File) {
         if !self.is_sync_permissions {
             return;
@@ -310,33 +312,38 @@ impl ChannelScp {
                error info: {:?}", e)
         }
 
-        use std::os::unix::fs::PermissionsExt;
-        // error default mode 0755
-        let mode = u32::from_str_radix(&scp_file.mode, 8).unwrap_or(509);
-        if let Err(_) = file.set_permissions(Permissions::from_mode(mode)) {
-            log::error!("the operating system does not allow modification of file permissions, \
-                which does not affect subsequent operations.");
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            // error default mode 0755
+            match u32::from_str_radix(match scp_file.is_dir {
+                true => permission::DIR,
+                false => permission::FILE
+            }, 8) {
+                Ok(mode) => {
+                    if let Err(_) = file.set_permissions(Permissions::from_mode(mode)) {
+                        log::error!("the operating system does not allow modification of file permissions, \
+                        which does not affect subsequent operations.");
+                    }
+                }
+                Err(v) => {
+                    log::error!("Unknown error {}", v)
+                }
+            }
         }
     }
 
 
-    #[cfg(target_os = "windows")]
-    fn sync_permissions(&self, scp_file: &mut ScpFile, file: File) {
-        if !self.is_sync_permissions {
-            return;
-        }
-
-        let modify_time = filetime::FileTime::from_unix_time(scp_file.modify_time, 0);
-        let access_time = filetime::FileTime::from_unix_time(scp_file.access_time, 0);
-        if let Err(e) = filetime::set_file_times(scp_file.local_path.as_path(), access_time, modify_time) {
-            log::error!("the file time synchronization is abnormal,\
-             which may be caused by the operating system,\
-              which does not affect subsequent operations.\
-               error info: {:?}", e)
-        }
+    fn send(&self, cmd: &str) -> SshResult<()> {
+        let mut data = Data::new();
+        data.put_u8(message::SSH_MSG_CHANNEL_DATA)
+            .put_u32(self.channel.server_channel)
+            .put_bytes(cmd.as_bytes());
+        let mut packet = Packet::from(data);
+        packet.build();
+        let mut client = util::client()?;
+        client.write(packet.as_slice())
     }
-
-
 
     fn send_end(&self) -> SshResult<()> {
         let mut data = Data::new();
@@ -440,7 +447,6 @@ fn check_path(path: &Path) -> SshResult<()> {
 pub struct ScpFile {
     modify_time: i64,
     access_time: i64,
-    mode: String,
     size: u64,
     name: String,
     is_dir: bool,
@@ -453,7 +459,6 @@ impl ScpFile {
             modify_time: 0,
             access_time: 0,
             size: 0,
-            mode: String::new(),
             name: String::new(),
             is_dir: false,
             local_path: Default::default()

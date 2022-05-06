@@ -153,6 +153,14 @@ pub mod strings {
 }
 
 #[allow(dead_code)]
+pub mod permission {
+    // 文件夹默认权限
+    pub const DIR                       :&'static str = "775";
+    // 文件默认权限
+    pub const FILE                      :&'static str = "664";
+}
+
+#[allow(dead_code)]
 pub mod scp_arg {
     pub const SOURCE                    :&'static str = "-f";
     pub const SINK                      :&'static str = "-t";
