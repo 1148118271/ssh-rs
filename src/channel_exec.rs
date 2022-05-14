@@ -8,6 +8,7 @@ pub struct ChannelExec(pub(crate) Channel);
 impl ChannelExec {
 
     fn exec_command(&self, command: &str) -> SshResult<()> {
+        println!("exec_command");
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.0.server_channel)
@@ -27,6 +28,7 @@ impl ChannelExec {
         for mut result in results {
             if result.is_empty() { continue }
             let message_code = result.get_u8();
+            println!("message_code > {}", message_code);
             match message_code {
                 message::SSH_MSG_CHANNEL_DATA => {
                     let cc = result.get_u32();

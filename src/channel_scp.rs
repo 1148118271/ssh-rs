@@ -1,14 +1,15 @@
 use std::ffi::OsStr;
-use std::fs;
-use std::fs::{File, metadata, OpenOptions, Permissions};
-use std::io::Write;
+use std::{fs, io};
+use std::fs::{File, metadata, OpenOptions, Permissions, read_dir};
+use std::io::{Read, Write};
 use std::num::ParseIntError;
-use std::path::{Path, PathBuf};
+use std::path::{Display, Path, PathBuf};
 use std::ptr::read;
 use std::time::{Duration, SystemTime, SystemTimeError, UNIX_EPOCH};
 use crate::{Channel, message, permission, scp_arg, scp_flag, SshError, strings, util};
 use crate::error::{SshErrorKind, SshResult};
 use crate::packet::{Data, Packet};
+use crate::size::BUF_SIZE;
 
 pub struct ChannelScp {
     pub(crate) channel: Channel,
@@ -17,10 +18,29 @@ pub struct ChannelScp {
 
 }
 
-#[test] fn t() {
-    println!("{}", u32::from_str_radix("775", 8).unwrap());
 
-}
+// fn t1(buf: PathBuf) {
+//     if buf.is_dir() {
+//         println!("{}", buf.to_str().unwrap() );
+//         for x in read_dir(buf).unwrap() {
+//             let buf1 = x.unwrap().path();
+//             t1(buf1);
+//         }
+//         println!(">>>>> EDN <<<<<");
+//     } else {
+//         println!("{}", buf.to_str().unwrap() );
+//     }
+//
+// }
+//
+// #[test] fn t() {
+//     let root_path = "/Users/gaoxiangkang/Goland";
+//     let mut this_path = root_path;
+//     let mut buf = PathBuf::from(this_path);
+//     t1(buf);
+//     // println!("{}", buf.to_str().unwrap() );
+//
+// }
 
 impl ChannelScp {
 
@@ -31,61 +51,103 @@ impl ChannelScp {
         check_path(local_path)?;
         check_path(remote_path)?;
 
-        let local_path_str = local_path.to_str().unwrap();
         let remote_path_str = remote_path.to_str().unwrap();
 
-        self.local_path = local_path.to_path_buf();
-
         self.exec_scp(self.upload_command_init(remote_path_str).as_str())?;
-
+        self.get_end()?;
         let mut scp_file = ScpFile::new();
-
         scp_file.local_path = local_path.to_path_buf();
-
-
-
+        self.file_all(&mut scp_file)?;
+        self.channel.close();
         Ok(())
     }
 
 
-    fn process_u(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
+    fn file_all(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
+        println!("buf ---> {}", scp_file.local_path.to_str().unwrap());
+        scp_file.name = scp_file.local_path.file_name().unwrap().to_str().unwrap().to_string();
+        self.send_time(scp_file)?;
+        if scp_file.local_path.is_dir() {
+            self.send_dir(scp_file)?;
+            for p in read_dir(scp_file.local_path.as_path()).unwrap() {
+                let buf1 = p.unwrap().path();
+                scp_file.local_path = buf1.clone();
+                self.file_all(scp_file);
+            }
+            println!("=>>>>>>EDN");
+            self.send_bytes(&[scp_flag::E as u8, b'\n']).unwrap();
+            self.get_end().unwrap();
+        } else {
+            scp_file.size = scp_file.local_path.as_path().metadata()?.len();
+            self.send_file(scp_file);
+        }
+        Ok(())
+    }
+
+
+    fn send_file(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
+        let cmd = format!("C0{} {} {}\n", permission::FILE, scp_file.size, scp_file.name);
+        self.send(&cmd)?;
+        self.get_end()?;
+        let mut file = File::open(scp_file.local_path.as_path()).unwrap();
+        let mut count = 0;
         loop {
-            let data = self.read_data()?;
-            match *&data[0] {
-                scp_flag::END => {
-                    match scp_file.local_path.is_dir() {
-                        true => {}
-                        false => {}
-                    }
-                },
-                // error
-                scp_flag::ERR | scp_flag::FATAL_ERR =>
-                    return Err(SshError::from(SshErrorKind::ScpError(util::from_utf8(data)?))),
-                _ => return Err(SshError::from(SshErrorKind::ScpError("unknown error.".to_string())))
+            let mut s = [0u8; 20480];
+            let i = file.read(&mut s).unwrap();
+            count = count + i;
+            // if 122880 == count {
+            //     println!(">>>>>> 122880");
+            //     let result = self.read_data().unwrap();
+            //     println!("122880 === {:?}", result);
+            //     return Ok(())
+            // }
+            self.send_bytes(&s[..i]).unwrap();
+            println!("count = {}, size = {}", count, scp_file.size);
+            if count == scp_file.size as usize {
+                println!("end 0");
+                self.send_bytes(&[0]).unwrap();
+                break
             }
         }
-    }
-
-    fn process_dir_u(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
-        if self.is_sync_permissions && !cfg!(windows) {
-            self.send_time(scp_file)?
-        }
-
-
+        // // 发送文件详情
+        // let mut buf = [0; 1024 * 2];
+        // let mut v = vec![];
+        // loop {
+        //     let len = file.read(&mut buf).unwrap();
+        //     if len <= 0  {
+        //         break;
+        //     }
+        //     v.extend(&buf[..len])
+        //
+        // }
+        // v.truncate(v.len());
+        // v.extend_from_slice(&[0]);
+        // self.send_bytes(&v)?;
+        println!("b end");
+        self.get_end().unwrap();
         Ok(())
     }
 
+    fn send_dir(&mut self, scp_file: &ScpFile) -> SshResult<()> {
+        let cmd = format!("D0{} 0 {}\n", permission::DIR, scp_file.name);
+        self.send(&cmd)?;
+        self.get_end()
+    }
 
-    fn send_time(&self, scp_file: &mut ScpFile) -> SshResult<()> {
+
+    fn send_time(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
         self.get_time(scp_file)?;
         // "T1647767946 0 1647767946 0\n";
-        let cmd = format!("T{} 0 {}\n", scp_file.modify_time, scp_file.access_time);
-        self.send(&cmd);
-        Ok(())
+        let cmd = format!("T{} 0 {} 0\n", scp_file.modify_time, scp_file.access_time);
+        self.send(&cmd)?;
+        self.get_end()
     }
 
+
+
     fn get_time(&self, scp_file: &mut ScpFile) -> SshResult<()> {
-        let metadata = metadata(scp_file.local_path.as_path())?;
+        println!("{:?}", scp_file.local_path.as_path());
+        let metadata = metadata(scp_file.local_path.as_path()).unwrap();
         // 最后修改时间
         let modified_time = match metadata.modified() {
             Ok(t) => t,
@@ -118,23 +180,55 @@ impl ChannelScp {
         Ok(())
     }
 
+    fn get_end(&mut self) -> SshResult<()> {
+        let vec = self.read_data()?;
+        println!("code: {:?}", *&vec[0]);
+        match *&vec[0] {
+            scp_flag::END => Ok(()),
+            // error
+            scp_flag::ERR | scp_flag::FATAL_ERR => {
+                let s = util::from_utf8(vec).unwrap();
+                println!("err {}", s);
+                Err(SshError::from(SshErrorKind::ScpError(s)))
+            },
+            _ => Err(SshError::from(SshErrorKind::ScpError("unknown error.".to_string())))
+        }
+    }
 
     fn upload_command_init(&self, remote_path: &str) -> String {
-        let mut cmd = format!(
-            "{} {} {} {}",
-            strings::SCP,
-            scp_arg::SOURCE,
-            scp_arg::QUIET,
-            scp_arg::RECURSIVE
-        );
-        if self.is_sync_permissions && !cfg!(windows) {
-            cmd.push_str(" ");
-            cmd.push_str(scp_arg::PRESERVE_TIMES)
-        }
-        cmd.push_str(" ");
+        // let mut cmd = format!(
+        //     "{} {} {} {}",
+        //     strings::SCP,
+        //     scp_arg::SINK,
+        //     scp_arg::QUIET,
+        //     scp_arg::RECURSIVE
+        // );
+        // let mut cmd = format!(
+        //     "{} {} {} {}",
+        //     strings::SCP,
+        //     scp_arg::SINK,
+        //     scp_arg::QUIET,
+        //     scp_arg::RECURSIVE
+        // );
+        // if self.is_sync_permissions {
+        //     cmd.push_str(" ");
+        //     cmd.push_str(scp_arg::PRESERVE_TIMES)
+        // }
+        let mut cmd = String::new();
+        cmd.push_str("scp -t -r -q -p ");
         cmd.push_str(remote_path);
         cmd
     }
+
+
+
+
+
+
+
+
+    ///   download
+
 
     pub fn download<S: AsRef<OsStr> + ?Sized>(&mut self, local_path: &S, remote_path: &S) -> SshResult<()> {
         let local_path = Path::new(local_path);
@@ -335,10 +429,23 @@ impl ChannelScp {
 
 
     fn send(&self, cmd: &str) -> SshResult<()> {
+        println!("cmd {}", cmd.trim());
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.channel.server_channel)
             .put_bytes(cmd.as_bytes());
+        let mut packet = Packet::from(data);
+        packet.build();
+        let mut client = util::client()?;
+        client.write(packet.as_slice())
+    }
+
+    fn send_bytes(&self, bytes: &[u8]) -> SshResult<()> {
+        println!("bytes");
+        let mut data = Data::new();
+        data.put_u8(message::SSH_MSG_CHANNEL_DATA)
+            .put_u32(self.channel.server_channel)
+            .put_bytes(bytes);
         let mut packet = Packet::from(data);
         packet.build();
         let mut client = util::client()?;
@@ -363,6 +470,7 @@ impl ChannelScp {
             let mut client = util::client()?;
             let results = client.read()?;
             util::unlock(client);
+
             for mut result in results {
                 let message_code = result.get_u8();
                 match message_code {
@@ -379,7 +487,7 @@ impl ChannelScp {
                             self.channel.close()?;
                             return Ok(vec)
                         }
-                    }
+                    },
                     _ => self.channel.other(message_code, result)?
                 }
             }
@@ -388,6 +496,7 @@ impl ChannelScp {
     }
 
     fn exec_scp(&mut self, command: &str) -> SshResult<()> {
+        println!("exec scp");
         let mut data = Data::new();
         data.put_u8(message::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.channel.server_channel)
@@ -451,6 +560,7 @@ pub struct ScpFile {
     name: String,
     is_dir: bool,
     local_path: PathBuf,
+    been_sent: Vec<String>
 }
 
 impl ScpFile {
@@ -461,7 +571,8 @@ impl ScpFile {
             size: 0,
             name: String::new(),
             is_dir: false,
-            local_path: Default::default()
+            local_path: Default::default(),
+            been_sent: vec![]
         }
     }
 }

@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use crate::{message, strings, size, util, Client};
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
@@ -67,7 +68,19 @@ impl Channel {
             }
             message::SSH_MSG_NEWKEYS => self.kex.new_keys()?,
             // 通道大小 暂不处理
-            message::SSH_MSG_CHANNEL_WINDOW_ADJUST => {}
+            message::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
+                println!("通道大小");
+                let mut d = Data(result.0);
+                // println!("{}", d.get_u32());
+                // println!("{}", d.get_u32());
+                // CHANNEL_WINDOW
+                let option = util::get_channel_window(d.get_u32()).unwrap();
+                if let Some(mut v) = option {
+                    let i = d.get_u32();
+                    println!("远程客户端大小: {}", i);
+                    v.borrow_mut().add_remote_window_size(i)
+                }
+            }
             message::SSH_MSG_CHANNEL_EOF => {}
             message::SSH_MSG_CHANNEL_REQUEST => {}
             message::SSH_MSG_CHANNEL_SUCCESS => {}
@@ -152,6 +165,8 @@ impl Channel {
                     message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
                         result.get_u32();
                         self.server_channel = result.get_u32();
+                        println!("服务端window size {}",  result.get_u32());
+                        println!("服务端buf size {}",  result.get_u32());
                         util::set_channel_window(
                             self.client_channel,
                             ChannelWindowSize::new(self.client_channel, self.server_channel));
@@ -252,7 +267,10 @@ impl Channel {
 pub(crate) struct ChannelWindowSize {
     pub(crate) client_channel: u32,
     pub(crate) server_channel: u32,
+    /// 本地窗口大小
     pub(crate) window_size   : u32,
+    /// 远程窗口大小
+    pub(crate) r_window_size : u32
 }
 
 impl ChannelWindowSize {
@@ -260,7 +278,8 @@ impl ChannelWindowSize {
         ChannelWindowSize{
             client_channel,
             server_channel,
-            window_size: 0
+            window_size: 0,
+            r_window_size: 0
         }
     }
     pub(crate) fn process_window_size(mut data: Data, client: &mut Client) -> SshResult<()> {
@@ -306,6 +325,10 @@ impl ChannelWindowSize {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn add_remote_window_size(&mut self, rws: u32) {
+        self.r_window_size = self.r_window_size + rws;
     }
 }
 

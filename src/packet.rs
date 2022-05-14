@@ -8,6 +8,10 @@ pub struct Packet(Data);
 
 impl Packet {
 
+    pub(crate) fn unpacking(&self) -> Data {
+        Packet::processing_data(self.0.to_vec())
+    }
+
     pub(crate) fn processing_data(d: Vec<u8>) -> Data {
         let padding_length = *(&d[4]);
         let vec = (&d[5..(d.len() - padding_length as usize)]).to_vec();
