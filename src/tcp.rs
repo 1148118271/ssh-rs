@@ -130,22 +130,6 @@ impl Client {
 
         if let Some(mut v) = result {
 
-            // if v.r_window_size > 0 && v.r_window_size <= 1994626 {
-            //     println!("已使用20分之一");
-            //     loop {
-            //         let v = self.read().unwrap();
-            //         if !v.is_empty() {
-            //             for mut x in v {
-            //                 println!("消息码: {}", x.get_u8())
-            //                 // if message::SSH_MSG_CHANNEL_WINDOW_ADJUST == x.get_u8() {
-            //                 //
-            //                 // }
-            //             }
-            //             return Ok(())
-            //         }
-            //     }
-            // }
-
             let s = LOCAL_WINDOW_SIZE - v.r_window_size;
             println!("s => {}", s);
             if v.r_window_size > 0 && s > 0 && LOCAL_WINDOW_SIZE / s <= 20 {
@@ -173,14 +157,6 @@ impl Client {
 
             v.r_window_size = v.r_window_size - size;
 
-            // if v.r_window_size > size {
-            //     v.r_window_size = v.r_window_size - size;
-            // } else {
-            //     let v = self.read().unwrap();
-            //     for mut x in v {
-            //         println!("消息码: {}", x.get_u8())
-            //     }
-            // }
             println!("r_window_size: {}", v.r_window_size);
         }
 

@@ -15,7 +15,7 @@
 //!     // enable logging
 //!     ssh.enable_log(true).unwrap();
 //!     let mut session = ssh.get_session("127.0.0.1:22").unwrap();
-//!     session.set_user_and_password("root".to_string(), "123456".to_string());
+//!     session.set_user_and_password("root", "123456");
 //!     session.connect().unwrap();
 //!     exec(&mut session);
 //!     shell(&mut session);

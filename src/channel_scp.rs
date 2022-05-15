@@ -95,12 +95,6 @@ impl ChannelScp {
             let mut s = [0u8; 20480];
             let i = file.read(&mut s).unwrap();
             count = count + i;
-            // if 122880 == count {
-            //     println!(">>>>>> 122880");
-            //     let result = self.read_data().unwrap();
-            //     println!("122880 === {:?}", result);
-            //     return Ok(())
-            // }
             self.send_bytes(&s[..i]).unwrap();
             println!("count = {}, size = {}", count, scp_file.size);
             if count == scp_file.size as usize {
@@ -109,20 +103,6 @@ impl ChannelScp {
                 break
             }
         }
-        // // 发送文件详情
-        // let mut buf = [0; 1024 * 2];
-        // let mut v = vec![];
-        // loop {
-        //     let len = file.read(&mut buf).unwrap();
-        //     if len <= 0  {
-        //         break;
-        //     }
-        //     v.extend(&buf[..len])
-        //
-        // }
-        // v.truncate(v.len());
-        // v.extend_from_slice(&[0]);
-        // self.send_bytes(&v)?;
         println!("b end");
         self.get_end().unwrap();
         Ok(())
