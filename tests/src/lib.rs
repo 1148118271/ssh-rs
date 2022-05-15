@@ -32,9 +32,9 @@
 //
 //
 //         // let ssh: SSH = SSH::new();
-//         // let mut session = ssh.get_session("47.105.46.145:6000").unwrap();
+//         // let mut session = ssh.get_session("127.0.0.1：22").unwrap();
 //         // session.set_nonblocking(true).unwrap();
-//         // session.set_user_and_password("ubuntu", "gaoxiangkang");
+//         // session.set_user_and_password("ubuntu", "123456");
 //         // session.connect().unwrap();
 //         // let mut scp = session.open_scp().unwrap();
 //         // scp.upload("/Users/gaoxiangkang/Goland", "/opt/test").unwrap();
@@ -136,9 +136,9 @@
 //     #[test]
 //     fn test() {
 //         let ssh: SSH = SSH::new();
-//         let mut session = ssh.get_session("47.105.46.145:6000").unwrap();
+//         let mut session = ssh.get_session("127.0.0.1:22").unwrap();
 //         session.set_nonblocking(true).unwrap();
-//         session.set_user_and_password("ubuntu", "gaoxiangkang");
+//         session.set_user_and_password("ubuntu", "123456");
 //         session.connect().unwrap();
 //         let mut channel = session.open_channel().unwrap();
 //         let mut data = Data::new();
@@ -300,9 +300,9 @@
 //     #[test]
 //     fn test3() {
 //         let ssh: SSH = SSH::new();
-//         let mut session = ssh.get_session("47.105.46.145:6000").unwrap();
+//         let mut session = ssh.get_session("127.0.0.1:22").unwrap();
 //         session.set_nonblocking(true).unwrap();
-//         session.set_user_and_password("ubuntu", "gaoxiangkang");
+//         session.set_user_and_password("ubuntu", "123456");
 //         session.connect().unwrap();
 //         let mut channel = session.open_channel().unwrap();
 //         let mut data = Data::new();
