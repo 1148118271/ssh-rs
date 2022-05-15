@@ -10,7 +10,7 @@
 //     use std::string::FromUtf8Error;
 //     use std::sync::atomic::Ordering::Relaxed;
 //     use filetime::{FileTime, set_file_times};
-//     use crate::package::{Data, Packet};
+//     use crate::packet::{Data, Packet};
 //     use crate::{Channel, global, message, scp_flag, SSH, SshError, strings, util};
 //     use crate::channel::ChannelWindowSize;
 //     use crate::error::{SshErrorKind, SshResult};
@@ -42,7 +42,7 @@
 //
 //
 //     fn t1(buf: PathBuf, channel: &mut Channel) {
-//         let mut package = Packet::new();
+//         let mut packet = Packet::new();
 //         // 发送时间
 //         let time = "T1647767946 0 1647767946 0\n";
 //
@@ -50,11 +50,11 @@
 //         data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //             .put_u32(channel.server_channel)
 //             .put_str(time);
-//         package.put_data(data);
-//         package.build();
+//         packet.put_data(data);
+//         packet.build();
 //
 //         let mut client = util::client().unwrap();
-//         client.write(package.as_slice()).unwrap();
+//         client.write(packet.as_slice()).unwrap();
 //         util::unlock(client);
 //
 //         // 接收返回码
@@ -69,11 +69,11 @@
 //             data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //                 .put_u32(channel.server_channel)
 //                 .put_str(file_info.as_str());
-//             package.put_data(data);
-//             package.build();
+//             packet.put_data(data);
+//             packet.build();
 //
 //             let mut client = util::client().unwrap();
-//             client.write(package.as_slice()).unwrap();
+//             client.write(packet.as_slice()).unwrap();
 //             util::unlock(client);
 //
 //             // 接收返回码
@@ -90,11 +90,11 @@
 //             data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //                 .put_u32(channel.server_channel)
 //                 .put_bytes(&[scp_flag::E as u8, b'\n']);
-//             package.put_data(data);
-//             package.build();
+//             packet.put_data(data);
+//             packet.build();
 //
 //             let mut client = util::client().unwrap();
-//             client.write(package.as_slice()).unwrap();
+//             client.write(packet.as_slice()).unwrap();
 //             util::unlock(client);
 //
 //             // 接收返回码
@@ -107,22 +107,22 @@
 //             data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //                 .put_u32(channel.server_channel)
 //                 .put_str(file_info.as_str());
-//             package.put_data(data);
-//             package.build();
+//             packet.put_data(data);
+//             packet.build();
 //
 //             let mut client = util::client().unwrap();
-//             client.write(package.as_slice()).unwrap();
+//             client.write(packet.as_slice()).unwrap();
 //             util::unlock(client);
 //
 //             let mut data = Data::new();
 //             data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //                 .put_u32(channel.server_channel)
 //                 .put_bytes(&[0]);
-//             package.put_data(data);
-//             package.build();
+//             packet.put_data(data);
+//             packet.build();
 //
 //             let mut client = util::client().unwrap();
-//             client.write(package.as_slice()).unwrap();
+//             client.write(packet.as_slice()).unwrap();
 //             util::unlock(client);
 //
 //
@@ -147,10 +147,10 @@
 //             .put_str(strings::EXEC)
 //             .put_u8(true as u8)
 //             .put_bytes(b"scp -t -r -q -p /opt/test");
-//         let mut package = Packet::from(data);
-//         package.build();
+//         let mut packet = Packet::from(data);
+//         packet.build();
 //         let mut client = util::client().unwrap();
-//         client.write(package.as_slice()).unwrap();
+//         client.write(packet.as_slice()).unwrap();
 //         util::unlock(client);
 //
 //
@@ -167,11 +167,11 @@
 //         // data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //         //     .put_u32(channel.server_channel)
 //         //     .put_str(time);
-//         // package.put_data(data);
-//         // package.build();
+//         // packet.put_data(data);
+//         // packet.build();
 //         //
 //         // let mut client = util::client().unwrap();
-//         // client.write(package.as_slice()).unwrap();
+//         // client.write(packet.as_slice()).unwrap();
 //         // util::unlock(client);
 //         //
 //         //
@@ -181,11 +181,11 @@
 //         // data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //         //     .put_u32(channel.server_channel)
 //         //     .put_str(file_info.as_str());
-//         // package.put_data(data);
-//         // package.build();
+//         // packet.put_data(data);
+//         // packet.build();
 //         //
 //         // let mut client = util::client().unwrap();
-//         // client.write(package.as_slice()).unwrap();
+//         // client.write(packet.as_slice()).unwrap();
 //         // util::unlock(client);
 //         //
 //         // // 接收返回码
@@ -197,11 +197,11 @@
 //         // data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //         //     .put_u32(channel.server_channel)
 //         //     .put_bytes(&[scp_flag::E, b'\n']);
-//         // package.put_data(data);
-//         // package.build();
+//         // packet.put_data(data);
+//         // packet.build();
 //         //
 //         // let mut client = util::client().unwrap();
-//         // client.write(package.as_slice()).unwrap();
+//         // client.write(packet.as_slice()).unwrap();
 //         // util::unlock(client);
 //         //
 //         // // 发送时间
@@ -214,11 +214,11 @@
 //         // data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //         //     .put_u32(channel.server_channel)
 //         //     .put_str(time);
-//         // package.put_data(data);
-//         // package.build();
+//         // packet.put_data(data);
+//         // packet.build();
 //         //
 //         // let mut client = util::client().unwrap();
-//         // client.write(package.as_slice()).unwrap();
+//         // client.write(packet.as_slice()).unwrap();
 //         // util::unlock(client);
 //         //
 //         //
@@ -237,11 +237,11 @@
 //         // data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //         //     .put_u32(channel.server_channel)
 //         //     .put_str(file_info.as_str());
-//         // package.put_data(data);
-//         // package.build();
+//         // packet.put_data(data);
+//         // packet.build();
 //         //
 //         // let mut client = util::client().unwrap();
-//         // client.write(package.as_slice()).unwrap();
+//         // client.write(packet.as_slice()).unwrap();
 //         // util::unlock(client);
 //         //
 //         //
@@ -269,11 +269,11 @@
 //         // data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //         //     .put_u32(channel.server_channel)
 //         //     .put_bytes(&v);
-//         // package.put_data(data);
-//         // package.build();
+//         // packet.put_data(data);
+//         // packet.build();
 //         //
 //         // let mut client = util::client().unwrap();
-//         // client.write(package.as_slice()).unwrap();
+//         // client.write(packet.as_slice()).unwrap();
 //         // util::unlock(client);
 //         //
 //         // let vec = read_data(&mut channel).unwrap();
@@ -311,10 +311,10 @@
 //             .put_str(strings::EXEC)
 //             .put_u8(true as u8)
 //             .put_bytes(b"scp -f -r -q -p /opt/test");
-//         let mut package = Packet::from(data);
-//         package.build();
+//         let mut packet = Packet::from(data);
+//         packet.build();
 //         let mut client = util::client().unwrap();
-//         client.write(package.as_slice()).unwrap();
+//         client.write(packet.as_slice()).unwrap();
 //         util::unlock(client);
 //         send_end(&mut channel);
 //
@@ -374,10 +374,10 @@
 //         data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //             .put_u32(channel.server_channel)
 //             .put_bytes(&[0]);
-//         let mut package = Packet::from(data);
-//         package.build();
+//         let mut packet = Packet::from(data);
+//         packet.build();
 //         let mut client = util::client().unwrap();
-//         client.write(package.as_slice()).unwrap();
+//         client.write(packet.as_slice()).unwrap();
 //     }
 //
 //     fn read_data(channel: &mut Channel) -> SshResult<Vec<u8>> {
