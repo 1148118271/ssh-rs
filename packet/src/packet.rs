@@ -47,34 +47,23 @@ pub struct Packet {
 
 impl Packet {
 
-    // pub(crate) fn unpacking(&self) -> Data {
-    //     Packet::processing_data(self.0.to_vec())
-    // }
-    //
-    // pub(crate) fn processing_data(d: Vec<u8>) -> Data {
-    //     let padding_length = *(&d[4]);
-    //     let vec = (&d[5..(d.len() - padding_length as usize)]).to_vec();
-    //     Data(vec)
-    // }
-    //
-    // pub(crate) fn from(d: Data) -> Packet {
-    //     Packet(d)
-    // }
-    //
-    // pub(crate) fn new() -> Packet {
-    //     Packet(Data::new())
-    // }
-    //
-    // pub(crate) fn put_data(&mut self, d: Data) {
-    //     self.0 = d;
-    // }
-    //
+    pub(crate) fn unpacking(&mut self) -> Data {
+        if self.value.is_empty() {
+            return Data::new()
+        }
+        let padding_length = *(&self.value[4]);
+        let vec = (&self.value[5..(self.value.len() - padding_length as usize)]).to_vec();
+        let data = Data::from(vec);
+        self.data = data.clone();
+        data
+    }
+
     pub(crate) fn refresh(&mut self) {
         self.value.clear();
         self.data = Data::new()
     }
 
-    //
+    // 封包
     pub(crate) fn packaging(&mut self, is_encrypt: bool) {
         let data_len =  self.data.len() as u32;
         let mut padding_len = match is_encrypt {
@@ -98,11 +87,10 @@ impl Packet {
         packet_len_u8s.extend(buf);
         self.value = packet_len_u8s;
     }
-    //
-    //
-    // pub fn as_slice(&self) -> &[u8] {
-    //     self.0.as_slice()
-    // }
+
+    pub fn as_slice(&self) -> &[u8] {
+        self.value.as_slice()
+    }
 
 }
 
