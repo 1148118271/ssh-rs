@@ -1,5 +1,6 @@
 use crate::channel::Channel;
-use crate::{message, util};
+use constant::ssh_msg_code;
+use crate::util;
 use crate::error::SshResult;
 use crate::packet::{Data, Packet};
 
@@ -15,7 +16,7 @@ impl ChannelShell {
             if result.is_empty() { continue }
             let message_code = result.get_u8();
             match message_code {
-                message::SSH_MSG_CHANNEL_DATA => {
+                ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                     let cc = result.get_u32();
                     if cc == self.0.client_channel {
                         let mut vec = result.get_u8s();
@@ -30,7 +31,7 @@ impl ChannelShell {
 
     pub fn write(&self, buf: &[u8]) -> SshResult<()> {
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_CHANNEL_DATA)
+        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.0.server_channel)
             .put_bytes(buf);
         let mut packet = Packet::from(data);

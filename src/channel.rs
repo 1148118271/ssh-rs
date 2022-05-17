@@ -1,11 +1,13 @@
 use std::borrow::BorrowMut;
-use crate::{message, strings, size, util, Client};
+use std::io::Write;
+use constant::{ssh_msg_code, size, ssh_str};
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
 use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::kex::{Kex, processing_server_algorithm};
 use crate::packet::{Data, Packet};
+use crate::{Client, util};
 
 pub struct Channel {
     pub(crate) kex: Kex,
@@ -21,16 +23,16 @@ impl Channel {
 
     pub(crate) fn other(&mut self, message_code: u8, mut result: Data) -> SshResult<()> {
         match message_code {
-            message::SSH_MSG_GLOBAL_REQUEST => {
+            ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
-                data.put_u8(message::SSH_MSG_REQUEST_FAILURE);
+                data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
                 let mut packet = Packet::from(data);
                 packet.build();
                 let mut client = util::client()?;
                 client.write(packet.as_slice())?;
                 util::unlock(client)
             }
-            message::SSH_MSG_KEXINIT => {
+            ssh_msg_code::SSH_MSG_KEXINIT => {
                 //let data = Packet::processing_data(result);
                 let vec = result.to_vec();
                 let mut data = Data(vec![message_code]);
@@ -51,7 +53,7 @@ impl Channel {
 
                 self.kex.send_qc()?;
             }
-            message::SSH_MSG_KEX_ECDH_REPLY => {
+            ssh_msg_code::SSH_MSG_KEX_ECDH_REPLY => {
                 // 生成session_id并且获取signature
                 let sig = self
                     .kex
@@ -66,9 +68,9 @@ impl Channel {
                     return Err(SshError::from(SshErrorKind::SignatureError))
                 }
             }
-            message::SSH_MSG_NEWKEYS => self.kex.new_keys()?,
+            ssh_msg_code::SSH_MSG_NEWKEYS => self.kex.new_keys()?,
             // 通道大小 暂不处理
-            message::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
+            ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
                 println!("通道大小");
                 let mut d = Data(result.0);
                 // println!("{}", d.get_u32());
@@ -81,11 +83,11 @@ impl Channel {
                     v.borrow_mut().add_remote_window_size(i)
                 }
             }
-            message::SSH_MSG_CHANNEL_EOF => {}
-            message::SSH_MSG_CHANNEL_REQUEST => {}
-            message::SSH_MSG_CHANNEL_SUCCESS => {}
-            message::SSH_MSG_CHANNEL_FAILURE => return Err(SshError::from(SshErrorKind::ChannelFailureError)),
-            message::SSH_MSG_CHANNEL_CLOSE => {
+            ssh_msg_code::SSH_MSG_CHANNEL_EOF => {}
+            ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {}
+            ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {}
+            ssh_msg_code::SSH_MSG_CHANNEL_FAILURE => return Err(SshError::from(SshErrorKind::ChannelFailureError)),
+            ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
                 let cc = result.get_u32();
                 if cc == self.client_channel {
                     self.remote_close = true;
@@ -107,7 +109,7 @@ impl Channel {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
                 match message_code {
-                    message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
+                    ssh_msg_code::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
                         result.get_u32();
                         self.server_channel = result.get_u32();
                         // 请求伪终端
@@ -115,7 +117,7 @@ impl Channel {
                         // 打开shell通道
                         self.get_shell()?;
                     }
-                    message::SSH_MSG_CHANNEL_SUCCESS => {
+                    ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {
                         util::set_channel_window(
                             self.client_channel,
                             ChannelWindowSize::new(self.client_channel, self.server_channel));
@@ -138,7 +140,7 @@ impl Channel {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
                 match message_code {
-                    message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
+                    ssh_msg_code::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
                         result.get_u32();
                         self.server_channel = result.get_u32();
                         util::set_channel_window(
@@ -162,7 +164,7 @@ impl Channel {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
                 match message_code {
-                    message::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
+                    ssh_msg_code::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
                         result.get_u32();
                         self.server_channel = result.get_u32();
                         println!("服务端window size {}",  result.get_u32());
@@ -191,7 +193,7 @@ impl Channel {
     fn send_close(&mut self) -> SshResult<()> {
         if self.local_close { return Ok(()); }
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_CHANNEL_CLOSE)
+        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_CLOSE)
             .put_u32(self.server_channel);
         let mut packet = Packet::from(data);
         packet.build();
@@ -211,7 +213,7 @@ impl Channel {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
                 match message_code {
-                    message::SSH_MSG_CHANNEL_CLOSE => {
+                    ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
                         let cc = result.get_u32();
                         if cc == self.client_channel {
                             self.remote_close = true;
@@ -226,9 +228,9 @@ impl Channel {
 
     fn get_shell(&self) -> SshResult<()> {
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_CHANNEL_REQUEST)
+        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.server_channel)
-            .put_str(strings::SHELL)
+            .put_str(ssh_str::SHELL)
             .put_u8(true as u8);
         let mut packet = Packet::from(data);
         packet.build();
@@ -238,11 +240,11 @@ impl Channel {
 
     fn request_pty(&self) -> SshResult<()> {
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_CHANNEL_REQUEST)
+        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(0)
-            .put_str(strings::PTY_REQ)
+            .put_str(ssh_str::PTY_REQ)
             .put_u8(false as u8)
-            .put_str(strings::XTERM_VAR)
+            .put_str(ssh_str::XTERM_VAR)
             .put_u32(80)
             .put_u32(24)
             .put_u32(640)
@@ -289,13 +291,13 @@ impl ChannelWindowSize {
         let msg_code = data.get_u8();
 
         let (client_channel_no, size) = match msg_code {
-            message::SSH_MSG_CHANNEL_DATA => {
+            ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                 let client_channel_no = data.get_u32(); // channel serial no    4 len
                 let vec = data.get_u8s(); // string data len
                 let size = vec.len() as u32;
                 (client_channel_no, size)
             }
-            message::SSH_MSG_CHANNEL_EXTENDED_DATA => {
+            ssh_msg_code::SSH_MSG_CHANNEL_EXTENDED_DATA => {
                 let client_channel_no = data.get_u32(); // channel serial no    4 len
                 data.get_u32(); // data type code        4 len
                 let vec = data.get_u8s();  // string data len
@@ -314,7 +316,7 @@ impl ChannelWindowSize {
 
             if map.window_size >= (size::LOCAL_WINDOW_SIZE / 2) {
                 let mut data = Data::new();
-                data.put_u8(message::SSH_MSG_CHANNEL_WINDOW_ADJUST)
+                data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
                     .put_u32(map.server_channel)
                     .put_u32(size::LOCAL_WINDOW_SIZE - map.window_size);
                 let mut packet = Packet::from(data);

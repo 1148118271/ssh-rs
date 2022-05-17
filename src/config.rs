@@ -1,4 +1,5 @@
-use crate::{algorithms, CURVE25519, KeyExchange, PublicKey, RSA, SshError, SshResult, strings};
+use constant::{algorithms, CLIENT_VERSION};
+use crate::{CURVE25519, KeyExchange, PublicKey, RSA, SshError, SshResult};
 use crate::encryption::{DH, EcdhP256, SIGN};
 use crate::encryption::ed25519::Ed25519;
 use crate::error::SshErrorKind;
@@ -43,7 +44,7 @@ pub(crate) struct VersionConfig {
 impl VersionConfig {
     pub(crate) fn new() -> Self {
         VersionConfig {
-            client_version: strings::CLIENT_VERSION.to_string(),
+            client_version: CLIENT_VERSION.to_string(),
             server_version: String::new()
         }
     }

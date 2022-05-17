@@ -6,10 +6,10 @@ use std::num::ParseIntError;
 use std::path::{Display, Path, PathBuf};
 use std::ptr::read;
 use std::time::{Duration, SystemTime, SystemTimeError, UNIX_EPOCH};
-use crate::{Channel, message, permission, scp_arg, scp_flag, SshError, strings, util};
+use constant::{permission, scp, ssh_msg_code, ssh_str};
+use crate::{util, SshError, Channel};
 use crate::error::{SshErrorKind, SshResult};
 use crate::packet::{Data, Packet};
-use crate::size::BUF_SIZE;
 
 pub struct ChannelScp {
     pub(crate) channel: Channel,
@@ -75,7 +75,7 @@ impl ChannelScp {
                 self.file_all(scp_file);
             }
             println!("=>>>>>>EDN");
-            self.send_bytes(&[scp_flag::E as u8, b'\n']).unwrap();
+            self.send_bytes(&[scp::E as u8, b'\n']).unwrap();
             self.get_end().unwrap();
         } else {
             scp_file.size = scp_file.local_path.as_path().metadata()?.len();
@@ -164,9 +164,9 @@ impl ChannelScp {
         let vec = self.read_data()?;
         println!("code: {:?}", *&vec[0]);
         match *&vec[0] {
-            scp_flag::END => Ok(()),
+            scp::END => Ok(()),
             // error
-            scp_flag::ERR | scp_flag::FATAL_ERR => {
+            scp::ERR | scp::FATAL_ERR => {
                 let s = util::from_utf8(vec).unwrap();
                 println!("err {}", s);
                 Err(SshError::from(SshErrorKind::ScpError(s)))
@@ -179,20 +179,20 @@ impl ChannelScp {
         // let mut cmd = format!(
         //     "{} {} {} {}",
         //     strings::SCP,
-        //     scp_arg::SINK,
-        //     scp_arg::QUIET,
-        //     scp_arg::RECURSIVE
+        //     scp::SINK,
+        //     scp::QUIET,
+        //     scp::RECURSIVE
         // );
         // let mut cmd = format!(
         //     "{} {} {} {}",
         //     strings::SCP,
-        //     scp_arg::SINK,
-        //     scp_arg::QUIET,
-        //     scp_arg::RECURSIVE
+        //     scp::SINK,
+        //     scp::QUIET,
+        //     scp::RECURSIVE
         // );
         // if self.is_sync_permissions {
         //     cmd.push_str(" ");
-        //     cmd.push_str(scp_arg::PRESERVE_TIMES)
+        //     cmd.push_str(scp::PRESERVE_TIMES)
         // }
         let mut cmd = String::new();
         cmd.push_str("scp -t -r -q -p ");
@@ -248,15 +248,15 @@ impl ChannelScp {
             }
             let code = &data[0];
             match *code {
-                scp_flag::T => {
+                scp::T => {
                     // 处理时间
                     let (modify_time, access_time) = file_time(data)?;
                     scp_file.modify_time = modify_time;
                     scp_file.access_time = access_time;
                 }
-                scp_flag::C => self.process_file_d(data, scp_file)?,
-                scp_flag::D => self.process_dir_d(data, scp_file)?,
-                scp_flag::E => {
+                scp::C => self.process_file_d(data, scp_file)?,
+                scp::D => self.process_dir_d(data, scp_file)?,
+                scp::E => {
                     match scp_file.local_path.parent() {
                         None => {}
                         Some(v) => {
@@ -268,7 +268,7 @@ impl ChannelScp {
                     }
                 }
                 // error
-                scp_flag::ERR | scp_flag::FATAL_ERR =>
+                scp::ERR | scp::FATAL_ERR =>
                     return Err(SshError::from(SshErrorKind::ScpError(util::from_utf8(data)?))),
                 _ => return Err(SshError::from(SshErrorKind::ScpError("unknown error.".to_string())))
             }
@@ -411,7 +411,7 @@ impl ChannelScp {
     fn send(&self, cmd: &str) -> SshResult<()> {
         println!("cmd {}", cmd.trim());
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_CHANNEL_DATA)
+        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.channel.server_channel)
             .put_bytes(cmd.as_bytes());
         let mut packet = Packet::from(data);
@@ -423,7 +423,7 @@ impl ChannelScp {
     fn send_bytes(&self, bytes: &[u8]) -> SshResult<()> {
         println!("bytes");
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_CHANNEL_DATA)
+        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.channel.server_channel)
             .put_bytes(bytes);
         let mut packet = Packet::from(data);
@@ -434,9 +434,9 @@ impl ChannelScp {
 
     fn send_end(&self) -> SshResult<()> {
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_CHANNEL_DATA)
+        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.channel.server_channel)
-            .put_bytes(&[scp_flag::END]);
+            .put_bytes(&[scp::END]);
         let mut packet = Packet::from(data);
         packet.build();
         let mut client = util::client()?;
@@ -454,13 +454,13 @@ impl ChannelScp {
             for mut result in results {
                 let message_code = result.get_u8();
                 match message_code {
-                    message::SSH_MSG_CHANNEL_DATA => {
+                    ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                         let cc = result.get_u32();
                         if cc == self.channel.client_channel {
                             vec.extend(result.get_u8s())
                         }
                     }
-                    message::SSH_MSG_CHANNEL_CLOSE => {
+                    ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
                         let cc = result.get_u32();
                         if cc == self.channel.client_channel {
                             self.channel.remote_close = true;
@@ -478,9 +478,9 @@ impl ChannelScp {
     fn exec_scp(&mut self, command: &str) -> SshResult<()> {
         println!("exec scp");
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_CHANNEL_REQUEST)
+        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.channel.server_channel)
-            .put_str(strings::EXEC)
+            .put_str(ssh_str::EXEC)
             .put_u8(true as u8)
             .put_str(command);
         let mut packet = Packet::from(data);
@@ -492,14 +492,14 @@ impl ChannelScp {
     fn download_command_init(&self, remote_path: &str) -> String {
         let mut cmd = format!(
             "{} {} {} {}",
-            strings::SCP,
-            scp_arg::SOURCE,
-            scp_arg::QUIET,
-            scp_arg::RECURSIVE
+            ssh_str::SCP,
+            scp::SOURCE,
+            scp::QUIET,
+            scp::RECURSIVE
         );
         if self.is_sync_permissions {
             cmd.push_str(" ");
-            cmd.push_str(scp_arg::PRESERVE_TIMES)
+            cmd.push_str(scp::PRESERVE_TIMES)
         }
         cmd.push_str(" ");
         cmd.push_str(remote_path);

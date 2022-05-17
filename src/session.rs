@@ -2,12 +2,12 @@ use std::sync::MutexGuard;
 use std::sync::atomic::Ordering::Relaxed;
 use crate::channel::Channel;
 use crate::tcp::Client;
-use crate::{strings, message, size, global, ChannelExec, ChannelShell};
+use constant::{ssh_msg_code, size, ssh_str};
 use crate::channel_scp::ChannelScp;
 use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::kex::Kex;
 use crate::packet::{Data, Packet};
-use crate::util;
+use crate::{ChannelExec, ChannelShell, global, util};
 
 
 pub struct Session;
@@ -114,8 +114,8 @@ impl Session {
 
     fn ssh_open_channel(&mut self, client_channel: u32) -> SshResult<()> {
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_CHANNEL_OPEN)
-            .put_str(strings::SESSION)
+        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_OPEN)
+            .put_str(ssh_str::SESSION)
             .put_u32(client_channel)
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
@@ -127,8 +127,8 @@ impl Session {
 
     fn initiate_authentication(&mut self) -> SshResult<()> {
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_SERVICE_REQUEST)
-            .put_str(strings::SSH_USERAUTH);
+        data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
+            .put_str(ssh_str::SSH_USERAUTH);
         let mut packet = Packet::from(data);
         packet.build();
         let mut client = util::client()?;
@@ -143,21 +143,21 @@ impl Session {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
                 match message_code {
-                    message::SSH_MSG_SERVICE_ACCEPT => {
+                    ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
                         // 开始密码验证 TODO 目前只支持密码验证
                         password_authentication(&mut client)?;
                     }
-                    message::SSH_MSG_USERAUTH_FAILURE => {
+                    ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
                         log::error!("user auth failure.");
                         return Err(SshError::from(SshErrorKind::PasswordError))
                     },
-                    message::SSH_MSG_USERAUTH_SUCCESS => {
+                    ssh_msg_code::SSH_MSG_USERAUTH_SUCCESS => {
                         log::info!("user auth successful.");
                         return Ok(())
                     },
-                    message::SSH_MSG_GLOBAL_REQUEST => {
+                    ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                         let mut data = Data::new();
-                        data.put_u8(message::SSH_MSG_REQUEST_FAILURE);
+                        data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
                         let mut packet = Packet::from(data);
                         packet.build();
                         client.write(packet.as_slice())?
@@ -199,10 +199,10 @@ fn password_authentication(client: &mut MutexGuard<'static, Client>) -> SshResul
     }
 
     let mut data = Data::new();
-    data.put_u8(message::SSH_MSG_USERAUTH_REQUEST)
+    data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
         .put_str(config.user.username.as_str())
-        .put_str(strings::SSH_CONNECTION)
-        .put_str(strings::PASSWORD)
+        .put_str(ssh_str::SSH_CONNECTION)
+        .put_str(ssh_str::PASSWORD)
         .put_u8(false as u8)
         .put_str(config.user.password.as_str());
     let mut packet = Packet::from(data);

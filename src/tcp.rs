@@ -2,13 +2,12 @@ use std::io;
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::sync::atomic::Ordering::Relaxed;
-use crate::{global, message, size, util};
+use constant::{ssh_msg_code, size};
 use crate::channel::ChannelWindowSize;
 use crate::encryption::ChaCha20Poly1305;
 use crate::error::{SshError, SshResult};
 use crate::packet::{Data, Packet};
-use crate::size::LOCAL_WINDOW_SIZE;
-use crate::util::encryption_key;
+use crate::{global, util};
 
 
 pub struct Client {
@@ -110,13 +109,13 @@ impl Client {
         let msg_code = data.get_u8();
 
         let (client_channel_no, size) = match msg_code {
-            message::SSH_MSG_CHANNEL_DATA => {
+            ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                 let client_channel_no = data.get_u32(); // channel serial no    4 len
                 let vec = data.get_u8s(); // string data len
                 let size = vec.len() as u32;
                 (client_channel_no, size)
             }
-            message::SSH_MSG_CHANNEL_EXTENDED_DATA => {
+            ssh_msg_code::SSH_MSG_CHANNEL_EXTENDED_DATA => {
                 let client_channel_no = data.get_u32(); // channel serial no    4 len
                 data.get_u32(); // data type code        4 len
                 let vec = data.get_u8s();  // string data len
@@ -130,9 +129,9 @@ impl Client {
 
         if let Some(mut v) = result {
 
-            let s = LOCAL_WINDOW_SIZE - v.r_window_size;
+            let s = size::LOCAL_WINDOW_SIZE - v.r_window_size;
             println!("s => {}", s);
-            if v.r_window_size > 0 && s > 0 && LOCAL_WINDOW_SIZE / s <= 20 {
+            if v.r_window_size > 0 && s > 0 && size::LOCAL_WINDOW_SIZE / s <= 20 {
                 println!("已使用20分之一");
                 'main:
                 loop {
@@ -141,7 +140,7 @@ impl Client {
                         for mut x in datas {
                             let mc = x.get_u8();
                             println!("消息码: {}", mc);
-                            if message::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
+                            if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
                                 println!("SSH_MSG_CHANNEL_WINDOW_ADJUST");
                                 let c = x.get_u32();
                                 println!("通道编号: {}", c);
@@ -163,7 +162,7 @@ impl Client {
 
         let mut buf = buf.to_vec();
         if global::IS_ENCRYPT.load(Relaxed) {
-            let key = encryption_key()?;
+            let key = util::encryption_key()?;
             key.encryption(self.sequence.client_sequence_num, &mut buf);
         }
         self.sequence.client_auto_increment();
@@ -217,7 +216,7 @@ impl Client {
             if result.len() < 4 {
                 self.check_result_len(&mut result)?;
             }
-            let key = encryption_key()?;
+            let key = util::encryption_key()?;
             let packet_len = self.get_encrypt_packet_length(&result[..4], key);
             let data_len = (packet_len + 4 + 16) as usize;
             if result.len() < data_len {

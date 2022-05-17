@@ -1,13 +1,13 @@
 use std::sync::atomic::Ordering;
 use ring::digest;
-use crate::{message, global, SshResult, util};
+use constant::ssh_msg_code;
 use crate::config::{CompressionAlgorithm, EncryptionAlgorithm, KeyExchangeAlgorithm, MacAlgorithm, PublicKeyAlgorithm};
 use crate::encryption::{ChaCha20Poly1305, CURVE25519, DH, H, KeyExchange, PublicKey, SIGN};
 use crate::encryption::rsa::RSA;
 use crate::error::{SshError, SshErrorKind};
 use crate::hash::HASH;
 use crate::packet::{Data, Packet};
-
+use crate::{global, SshResult, util};
 
 
 pub(crate) struct Kex {
@@ -37,7 +37,7 @@ impl Kex {
             util::update_encryption_key(None);
         }
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_KEXINIT);
+        data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
         data.extend(util::cookie());
         data.extend(config.algorithm.client_algorithm.as_i());
         data.put_str("")
@@ -62,7 +62,7 @@ impl Kex {
                 if result.is_empty() { continue }
                 let message_code = result[0];
                 match message_code {
-                    message::SSH_MSG_KEXINIT => {
+                    ssh_msg_code::SSH_MSG_KEXINIT => {
                         self.h.set_i_s(result.as_slice());
                         return processing_server_algorithm(result)
                     }
@@ -75,7 +75,7 @@ impl Kex {
 
     pub(crate) fn send_qc(&self) -> SshResult<()> {
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_KEX_ECDH_INIT);
+        data.put_u8(ssh_msg_code::SSH_MSG_KEX_ECDH_INIT);
         data.put_bytes(self.dh.get_public_key());
         let mut packet = Packet::from(data);
         packet.build();
@@ -93,7 +93,7 @@ impl Kex {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
                 match message_code {
-                    message::SSH_MSG_KEX_ECDH_REPLY => {
+                    ssh_msg_code::SSH_MSG_KEX_ECDH_REPLY => {
                         // 生成session_id并且获取signature
                         let sig = self.generate_session_id_and_get_signature(result)?;
                         // 验签
@@ -105,7 +105,7 @@ impl Kex {
                             return Err(SshError::from(SshErrorKind::SignatureError))
                         }
                     }
-                    message::SSH_MSG_NEWKEYS => {
+                    ssh_msg_code::SSH_MSG_NEWKEYS => {
                         self.new_keys()?;
                         return Ok(())
                     }
@@ -117,7 +117,7 @@ impl Kex {
 
     pub(crate) fn new_keys(&mut self) -> Result<(), SshError> {
         let mut data = Data::new();
-        data.put_u8(message::SSH_MSG_NEWKEYS);
+        data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
         let mut packet = Packet::from(data);
         packet.build();
         let mut client = util::client()?;
