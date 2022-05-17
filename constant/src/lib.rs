@@ -7,7 +7,7 @@ pub const CLIENT_VERSION            :&'static str = "SSH-2.0-SSH_RS-0.1.3";
 #[allow(dead_code)]
 pub mod ssh_str {
     /// 准备认证
-    pub const SSH_USER_AUTH             :&'static str = "ssh-userauth";
+    pub const SSH_USERAUTH             :&'static str = "ssh-userauth";
     /// 开始认证
     pub const SSH_CONNECTION            :&'static str = "ssh-connection";
     /// 密码认证方式
