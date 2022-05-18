@@ -1,10 +1,26 @@
 use std::sync::atomic::Ordering;
-use ring::digest;
 use constant::ssh_msg_code;
-use encryption::{ChaCha20Poly1305, CURVE25519, DH, H, KeyExchange, PublicKey, SIGN, RSA, HASH};
+use encryption::{
+    ChaCha20Poly1305,
+    CURVE25519,
+    DH,
+    H,
+    KeyExchange,
+    PublicKey,
+    SIGN,
+    RSA,
+    HASH,
+    digest
+};
 use error::{SshError, SshErrorKind, SshResult};
 use packet::{Data, Packet};
-use crate::config::{CompressionAlgorithm, EncryptionAlgorithm, KeyExchangeAlgorithm, MacAlgorithm, PublicKeyAlgorithm};
+use crate::config::{
+    CompressionAlgorithm,
+    EncryptionAlgorithm,
+    KeyExchangeAlgorithm,
+    MacAlgorithm,
+    PublicKeyAlgorithm}
+;
 use crate::{global, util};
 
 

@@ -5,6 +5,7 @@ mod ecdh_sha2_nistp256;
 mod rsa;
 mod hash;
 
+pub use ring::digest;
 
 pub use {
     curve25519::CURVE25519,

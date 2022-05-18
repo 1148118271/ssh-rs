@@ -28,7 +28,6 @@ encryption = { path = "./encryption" }
 error = { path = "./error" }
 slog = { path = "./slog" }
 
-ring = "0.16.20"
 rand = "0.8"
 log = "0.4"
 filetime = "0.2"
