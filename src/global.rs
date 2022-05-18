@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU32};
 use std::sync::Mutex;
 use encryption::ChaCha20Poly1305;
-use crate::slog::Slog;
+use slog::Slog;
 use crate::{Config, Client};
 use crate::channel::ChannelWindowSize;
 
@@ -12,8 +12,6 @@ pub(crate) static CLIENT_CHANNEL: AtomicU32 = AtomicU32::new(0);
 
 // 密钥是否交换完成 true 是  false 否
 pub(crate) static IS_ENCRYPT: AtomicBool = AtomicBool::new(false);
-
-pub(crate) static SLOG: Slog = Slog;
 
 pub(crate) static mut CLIENT: Option<Mutex<Client>> = None;
 

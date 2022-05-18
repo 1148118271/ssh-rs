@@ -84,7 +84,6 @@ mod channel_exec;
 mod channel_scp;
 mod config;
 mod util;
-mod slog;
 
 pub use session::Session;
 pub use channel::Channel;
@@ -93,10 +92,10 @@ pub use channel_exec::ChannelExec;
 
 use std::net::ToSocketAddrs;
 use std::sync::Mutex;
+use slog::Slog;
 use encryption::{CURVE25519, KeyExchange, PublicKey, RSA};
 use error::{SshError, SshResult};
 use crate::config::Config;
-use crate::slog::Slog;
 use crate::tcp::Client;
 
 

@@ -16,7 +16,8 @@ members = [
     "constant",
     "packet",
     "encryption",
-    "error"
+    "error",
+    "slog"
 ]
 
 [dependencies]
@@ -25,6 +26,7 @@ constant = { path = "./constant" }
 packet = { path = "./packet" }
 encryption = { path = "./encryption" }
 error = { path = "./error" }
+slog = { path = "./slog" }
 
 ring = "0.16.20"
 rand = "0.8"
