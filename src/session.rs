@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering::Relaxed;
 use packet::{Data, Packet};
 use constant::{ssh_msg_code, size, ssh_str};
 use error::{SshError, SshErrorKind, SshResult};
+use slog::log;
 use crate::channel::Channel;
 use crate::tcp::Client;
 use crate::channel_scp::ChannelScp;

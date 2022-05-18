@@ -7,6 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use constant::{permission, scp, ssh_msg_code, ssh_str};
 use packet::{Data, Packet};
 use error::{SshErrorKind, SshResult, SshError};
+use slog::log;
 use crate::{util,  Channel};
 
 

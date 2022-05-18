@@ -413,7 +413,6 @@ dependencies = [
  "encryption",
  "error",
  "filetime",
- "log",
  "packet",
  "rand",
  "slog",

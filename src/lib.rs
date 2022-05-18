@@ -92,7 +92,7 @@ pub use channel_exec::ChannelExec;
 
 use std::net::ToSocketAddrs;
 use std::sync::Mutex;
-use slog::Slog;
+use slog::{log, Slog};
 use error::{SshError, SshResult};
 use crate::config::Config;
 use crate::tcp::Client;

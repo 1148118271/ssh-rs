@@ -2,6 +2,7 @@ use constant::{algorithms, CLIENT_VERSION};
 use packet::Data;
 use error::SshErrorKind;
 use encryption::{CURVE25519, KeyExchange, PublicKey, RSA, DH, EcdhP256, SIGN, Ed25519};
+use slog::log;
 use crate::{SshError, SshResult};
 
 

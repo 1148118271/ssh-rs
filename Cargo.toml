@@ -29,5 +29,4 @@ error = { path = "./error" }
 slog = { path = "./slog" }
 
 rand = "0.8"
-log = "0.4"
 filetime = "0.2"

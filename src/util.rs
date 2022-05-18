@@ -5,6 +5,7 @@ use rand::Rng;
 use rand::rngs::OsRng;
 use encryption::ChaCha20Poly1305;
 use error::{SshError, SshErrorKind, SshResult};
+use slog::log;
 use crate::{Client, Config};
 use crate::channel::ChannelWindowSize;
 use crate::global::{CHANNEL_WINDOW, CLIENT, CONFIG, ENCRYPTION_KEY};

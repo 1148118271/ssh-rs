@@ -14,6 +14,7 @@ use encryption::{
 };
 use error::{SshError, SshErrorKind, SshResult};
 use packet::{Data, Packet};
+use slog::log;
 use crate::config::{
     CompressionAlgorithm,
     EncryptionAlgorithm,
