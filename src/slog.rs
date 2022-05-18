@@ -1,5 +1,5 @@
 use log::{LevelFilter, Log, Metadata, Record};
-use crate::error::{SshErrorKind, SshResult};
+use error::{SshErrorKind, SshResult};
 use crate::global::SLOG;
 use crate::SshError;
 

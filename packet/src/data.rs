@@ -41,7 +41,7 @@ use std::ops::{Deref, DerefMut};
 /// 字符）。
 ///
 #[derive(Debug, Clone)]
-pub(crate) struct Data(Vec<u8>);
+pub struct Data(Vec<u8>);
 
 impl Data {
 
@@ -50,18 +50,18 @@ impl Data {
     }
 
     // 把字节数组置空
-    pub(crate) fn refresh(&mut self) {
+    pub fn refresh(&mut self) {
         self.0.clear();
     }
 
     // 无符号字节 8位
-    pub(crate) fn put_byte(&mut self, v: u8) -> &mut Self {
+    pub fn put_u8(&mut self, v: u8) -> &mut Self {
         self.0.push(v);
         self
     }
 
     // 32位无符号整型
-    pub(crate) fn put_u32(&mut self, v: u32) -> &mut Self {
+    pub fn put_u32(&mut self, v: u32) -> &mut Self {
         let vec = v.to_be_bytes().to_vec();
         self.0.extend(&vec);
         self
@@ -69,7 +69,7 @@ impl Data {
 
     // 字符串型数据
     // 需要计算字符串长度
-    pub(crate) fn put_str(&mut self, str: &str) -> &mut Self {
+    pub fn put_str(&mut self, str: &str) -> &mut Self {
         let v = str.as_bytes();
         self.put_u32(v.len() as u32);
         self.0.extend(v);
@@ -78,7 +78,7 @@ impl Data {
 
     // 字节数组
     // 需要计算数组长度
-    pub(crate) fn put_bytes(&mut self, v: &[u8]) -> &mut Self {
+    pub fn put_u8s(&mut self, v: &[u8]) -> &mut Self {
         self.put_u32(v.len() as u32);
         self.0.extend(v);
         self
@@ -90,28 +90,28 @@ impl Data {
     // 对于正数，如果最高位将被置为 1，则必须在前面加一个值为 0 的字节。
     // 禁止包含值为 0 或 255 的非必要的前导字节（leading bytes）。
     // 零必须被存储为具有 0 个字节的数据的字符串。
-    pub(crate) fn put_mpint(&mut self, v: &[u8]) -> Vec<u8> {
+    pub fn put_mpint(&mut self, v: &[u8]) -> Vec<u8> {
         let mut result: Vec<u8> = Vec::new();
         // 0x80 = 128
         if v[0] & 0x80 != 0 {
             result.push(0);
         }
         result.extend(v);
-        self.put_bytes(&result).to_vec()
+        self.put_u8s(&result).to_vec()
     }
 
     // 跳过多少位数据
-    pub(crate) fn skip(&mut self, size: usize) {
+    pub fn skip(&mut self, size: usize) {
         self.0 = (&self.0[size..]).to_vec();
     }
 
     // 获取字节
-    pub(crate) fn get_byte(&mut self) -> u8 {
+    pub fn get_u8(&mut self) -> u8 {
         self.0.remove(0)
     }
 
     // 获取32位无符号整型
-    pub(crate) fn get_u32(&mut self) -> u32 {
+    pub fn get_u32(&mut self) -> u32 {
         let mut a = (&self.0[0..4]).to_vec();
         // 4位字节反转后直接转成u32类型
         self.0 = (&self.0[4..]).to_vec();
@@ -122,7 +122,7 @@ impl Data {
     }
 
     // 获取字节数组
-    pub(crate) fn get_bytes(&mut self) -> Vec<u8> {
+    pub fn get_u8s(&mut self) -> Vec<u8> {
         let len = self.get_u32() as usize;
         let bytes = (&self.0[0_usize..len]).to_vec();
         self.0 = (&self.0[len..]).to_vec();

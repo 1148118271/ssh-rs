@@ -1,8 +1,10 @@
-use crate::channel::Channel;
 use constant::{ssh_msg_code, ssh_str};
+use error::SshResult;
+use packet::{Data, Packet};
+use crate::channel::Channel;
 use crate::util;
-use crate::error::SshResult;
-use crate::packet::{Data, Packet};
+
+
 
 pub struct ChannelExec(pub(crate) Channel);
 

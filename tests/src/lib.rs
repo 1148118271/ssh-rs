@@ -10,7 +10,7 @@
 //     use std::string::FromUtf8Error;
 //     use std::sync::atomic::Ordering::Relaxed;
 //     use filetime::{FileTime, set_file_times};
-//     use crate::packet::{Data, Packet};
+//     use packet::{Data, Packet};
 //     use crate::{Channel, global, message, scp_flag, SSH, SshError, strings, util};
 //     use crate::channel::ChannelWindowSize;
 //     use crate::error::{SshErrorKind, SshResult};
@@ -89,7 +89,7 @@
 //             let mut data = Data::new();
 //             data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //                 .put_u32(channel.server_channel)
-//                 .put_bytes(&[scp_flag::E as u8, b'\n']);
+//                 .put_u8(&[scp_flag::E as u8, b'\n']);
 //             packet.put_data(data);
 //             packet.build();
 //
@@ -117,7 +117,7 @@
 //             let mut data = Data::new();
 //             data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //                 .put_u32(channel.server_channel)
-//                 .put_bytes(&[0]);
+//                 .put_u8s(&[0]);
 //             packet.put_data(data);
 //             packet.build();
 //
@@ -146,7 +146,7 @@
 //             .put_u32(channel.server_channel)
 //             .put_str(strings::EXEC)
 //             .put_u8(true as u8)
-//             .put_bytes(b"scp -t -r -q -p /opt/test");
+//             .put_u8s(b"scp -t -r -q -p /opt/test");
 //         let mut packet = Packet::from(data);
 //         packet.build();
 //         let mut client = util::client().unwrap();
@@ -196,7 +196,7 @@
 //         // let mut data = Data::new();
 //         // data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //         //     .put_u32(channel.server_channel)
-//         //     .put_bytes(&[scp_flag::E, b'\n']);
+//         //     .put_u8s(&[scp_flag::E, b'\n']);
 //         // packet.put_data(data);
 //         // packet.build();
 //         //
@@ -268,7 +268,7 @@
 //         // let mut data = Data::new();
 //         // data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //         //     .put_u32(channel.server_channel)
-//         //     .put_bytes(&v);
+//         //     .put_u8s(&v);
 //         // packet.put_data(data);
 //         // packet.build();
 //         //
@@ -310,7 +310,7 @@
 //             .put_u32(channel.server_channel)
 //             .put_str(strings::EXEC)
 //             .put_u8(true as u8)
-//             .put_bytes(b"scp -f -r -q -p /opt/test");
+//             .put_u8s(b"scp -f -r -q -p /opt/test");
 //         let mut packet = Packet::from(data);
 //         packet.build();
 //         let mut client = util::client().unwrap();
@@ -373,7 +373,7 @@
 //         let mut data = Data::new();
 //         data.put_u8(message::SSH_MSG_CHANNEL_DATA)
 //             .put_u32(channel.server_channel)
-//             .put_bytes(&[0]);
+//             .put_u8s(&[0]);
 //         let mut packet = Packet::from(data);
 //         packet.build();
 //         let mut client = util::client().unwrap();

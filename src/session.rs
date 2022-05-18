@@ -1,12 +1,12 @@
 use std::sync::MutexGuard;
 use std::sync::atomic::Ordering::Relaxed;
+use packet::{Data, Packet};
+use constant::{ssh_msg_code, size, ssh_str};
+use error::{SshError, SshErrorKind, SshResult};
 use crate::channel::Channel;
 use crate::tcp::Client;
-use constant::{ssh_msg_code, size, ssh_str};
 use crate::channel_scp::ChannelScp;
-use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::kex::Kex;
-use crate::packet::{Data, Packet};
 use crate::{ChannelExec, ChannelShell, global, util};
 
 

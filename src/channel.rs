@@ -1,12 +1,12 @@
 use std::borrow::BorrowMut;
 use std::io::Write;
 use constant::{ssh_msg_code, size, ssh_str};
+use error::{SshError, SshErrorKind, SshResult};
+use packet::{Data, Packet};
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
-use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::kex::{Kex, processing_server_algorithm};
-use crate::packet::{Data, Packet};
 use crate::{Client, util};
 
 pub struct Channel {
@@ -35,7 +35,7 @@ impl Channel {
             ssh_msg_code::SSH_MSG_KEXINIT => {
                 //let data = Packet::processing_data(result);
                 let vec = result.to_vec();
-                let mut data = Data(vec![message_code]);
+                let mut data = Data::from(vec![message_code]);
                 data.extend(vec);
                 self.kex.h.set_i_s(data.as_slice());
                 processing_server_algorithm(data)?;
@@ -72,13 +72,13 @@ impl Channel {
             // 通道大小 暂不处理
             ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
                 println!("通道大小");
-                let mut d = Data(result.0);
+                // let mut d = Data::from(result.clone().into());
                 // println!("{}", d.get_u32());
                 // println!("{}", d.get_u32());
                 // CHANNEL_WINDOW
-                let option = util::get_channel_window(d.get_u32()).unwrap();
+                let option = util::get_channel_window(result.get_u32()).unwrap();
                 if let Some(mut v) = option {
-                    let i = d.get_u32();
+                    let i = result.get_u32();
                     println!("远程客户端大小: {}", i);
                     v.borrow_mut().add_remote_window_size(i)
                 }
@@ -256,7 +256,7 @@ impl Channel {
             0, 1, 0xc2, 0,        // 115200 again
             0_u8,                 // TTY_OP_END
         ];
-        data.put_bytes(&model);
+        data.put_u8s(&model);
         let mut packet = Packet::from(data);
         packet.build();
         let mut client = util::client()?;

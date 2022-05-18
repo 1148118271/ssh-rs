@@ -3,10 +3,11 @@ use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::sync::atomic::Ordering::Relaxed;
 use constant::{ssh_msg_code, size};
+use encryption::ChaCha20Poly1305;
+use packet::{Data, Packet};
+use error::{SshError, SshResult};
+
 use crate::channel::ChannelWindowSize;
-use crate::encryption::ChaCha20Poly1305;
-use crate::error::{SshError, SshResult};
-use crate::packet::{Data, Packet};
 use crate::{global, util};
 
 
@@ -97,8 +98,7 @@ impl Client {
     }
 
     pub fn write(&mut self, buf: &[u8]) -> Result<(), SshError> {
-        let packet = Packet::from(Data(buf.to_vec()));
-
+        let mut packet = Packet::from(buf.to_vec());
         let mut data = packet.unpacking();
 
         // let mut data = Data(buf.to_vec());
@@ -195,11 +195,11 @@ impl Client {
             // 唯一处理 server Key Exchange Reply 和 New Keys 会一块发
             if result.len() > packet_len {
                 let (v1, v2) = result.split_at_mut(packet_len);
-                let data = Packet::processing_data(v1.to_vec());
+                let data = Packet::from(v1.to_vec()).unpacking();
                 results.push(data);
                 result = v2.to_vec();
             }
-            let data = Packet::processing_data(result);
+            let data = Packet::from(result).unpacking();
             results.push(data);
             return Ok(())
         }
@@ -225,7 +225,7 @@ impl Client {
             let (this, remaining) = result.split_at_mut(data_len);
             let decryption_result =
                 key.decryption(self.sequence.server_sequence_num, &mut this.to_vec())?;
-            let data = Packet::processing_data(decryption_result);
+            let data = Packet::from(decryption_result).unpacking();
 
             // change the channel window size
             ChannelWindowSize::process_window_size(data.clone(), self)?;

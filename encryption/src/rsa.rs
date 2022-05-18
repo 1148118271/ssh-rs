@@ -1,6 +1,6 @@
 use rsa::PublicKey;
-use crate::encryption::PublicKey as PubK;
-use crate::packet::Data;
+use crate::PublicKey as PubK;
+use packet::Data;
 use crate::SshError;
 
 fn u8s_to_u32s(v: Vec<u8>) -> Vec<u32> {
@@ -11,7 +11,7 @@ fn u8s_to_u32s(v: Vec<u8>) -> Vec<u32> {
     vec
 }
 
-pub(crate) struct RSA;
+pub struct RSA;
 
 impl PubK for RSA {
     fn new() -> Self where Self: Sized {
@@ -20,7 +20,7 @@ impl PubK for RSA {
 
     fn verify_signature(&self, ks: &[u8], message: &[u8], sig: &[u8]) -> Result<bool, SshError> {
 
-        let mut data = Data((&ks[4..]).to_vec());
+        let mut data = Data::from((&ks[4..]).to_vec());
         data.get_u8s();
 
         let e = rsa::BigUint::from_bytes_be(data.get_u8s().as_slice());

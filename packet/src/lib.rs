@@ -1,2 +1,5 @@
-pub mod packet;
-pub mod data;
+mod packet;
+mod data;
+
+pub use packet::Packet;
+pub use data::Data;

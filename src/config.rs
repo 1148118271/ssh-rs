@@ -1,9 +1,9 @@
 use constant::{algorithms, CLIENT_VERSION};
-use crate::{CURVE25519, KeyExchange, PublicKey, RSA, SshError, SshResult};
-use crate::encryption::{DH, EcdhP256, SIGN};
-use crate::encryption::ed25519::Ed25519;
-use crate::error::SshErrorKind;
-use crate::packet::Data;
+use packet::Data;
+use error::SshErrorKind;
+use encryption::{CURVE25519, KeyExchange, PublicKey, RSA, DH, EcdhP256, SIGN, Ed25519};
+use crate::{SshError, SshResult};
+
 
 #[derive(Clone)]
 pub(crate) struct Config {

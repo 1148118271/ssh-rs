@@ -73,19 +73,14 @@
 
 
 
-
-mod packet;
 mod tcp;
-mod encryption;
 mod session;
-mod hash;
 mod channel;
 mod kex;
 mod global;
 mod channel_shell;
 mod channel_exec;
 
-pub mod error;
 mod channel_scp;
 mod config;
 mod util;
@@ -98,10 +93,9 @@ pub use channel_exec::ChannelExec;
 
 use std::net::ToSocketAddrs;
 use std::sync::Mutex;
+use encryption::{CURVE25519, KeyExchange, PublicKey, RSA};
+use error::{SshError, SshResult};
 use crate::config::Config;
-use crate::encryption::{CURVE25519, KeyExchange, PublicKey};
-use crate::encryption::rsa::RSA;
-use crate::error::{SshError, SshResult};
 use crate::slog::Slog;
 use crate::tcp::Client;
 

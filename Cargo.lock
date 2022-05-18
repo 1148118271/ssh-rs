@@ -91,6 +91,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "encryption"
+version = "0.1.0"
+dependencies = [
+ "error",
+ "packet",
+ "ring",
+ "rsa",
+]
+
+[[package]]
+name = "error"
+version = "0.1.0"
+
+[[package]]
 name = "filetime"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -388,11 +402,13 @@ name = "ssh-rs"
 version = "0.1.3"
 dependencies = [
  "constant",
+ "encryption",
+ "error",
  "filetime",
  "log",
+ "packet",
  "rand",
  "ring",
- "rsa",
 ]
 
 [[package]]

@@ -1,46 +1,45 @@
 use ring::agreement;
 use ring::agreement::{EphemeralPrivateKey, PublicKey};
-use crate::encryption::KeyExchange;
-use crate::error::{SshError, SshErrorKind};
+use error::SshErrorKind;
+use crate::{KeyExchange, SshError};
 
-pub struct CURVE25519 {
+pub struct EcdhP256 {
     pub private_key: EphemeralPrivateKey,
     pub public_key: PublicKey
 }
 
-
-impl KeyExchange for CURVE25519 {
-
+impl KeyExchange for EcdhP256 {
     fn new() -> Result<Self, SshError> {
         let rng = ring::rand::SystemRandom::new();
-        let private_key = match agreement::EphemeralPrivateKey::generate(&agreement::X25519, &rng) {
+        let private_key =
+            match agreement::EphemeralPrivateKey::generate(&agreement::ECDH_P256, &rng) {
             Ok(v) => v,
             Err(_) => return Err(SshError::from(SshErrorKind::EncryptionError))
         };
         match private_key.compute_public_key() {
             Ok(public_key) =>
-                Ok(CURVE25519 {
-                private_key,
-                public_key
-            }),
+                Ok(EcdhP256 {
+                    private_key,
+                    public_key
+                }),
             Err(_) => Err(SshError::from(SshErrorKind::EncryptionError))
         }
-
     }
 
     fn get_public_key(&self) -> &[u8] {
         self.public_key.as_ref()
     }
 
-    fn get_shared_secret(&self, puk: Vec<u8>) -> Result<Vec<u8>, SshError> {
-        let mut public_key = [0u8; 32];
-        public_key.copy_from_slice(&puk);
 
-        let server_pub = agreement::UnparsedPublicKey::new(&agreement::X25519, public_key);
+    fn get_shared_secret(&self, puk: Vec<u8>) -> Result<Vec<u8>, SshError> {
+        let mut public_key = [0u8; 65];
+        public_key.copy_from_slice(&puk);
+        let server_pub =
+            agreement::UnparsedPublicKey::new(&agreement::ECDH_P256, puk);
         let private_key = unsafe { (&self.private_key as *const EphemeralPrivateKey).read() };
         match agreement::agree_ephemeral(
             private_key,
-            &server_pub,
+           &server_pub,
             ring::error::Unspecified,
             |_key_material| {
                 Ok(_key_material.to_vec())
@@ -50,12 +49,5 @@ impl KeyExchange for CURVE25519 {
             Err(_) => Err(SshError::from(SshErrorKind::EncryptionError))
         }
     }
-}
 
-
-#[test]
-pub fn test2() {
-    let i = 38400_u32;
-    let i1 = u32::from_be_bytes([0, 0, 0x96, 0]);
-    println!("{:?}", i1);
 }

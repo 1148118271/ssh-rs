@@ -47,7 +47,7 @@ pub struct Packet {
 
 impl Packet {
 
-    pub(crate) fn unpacking(&mut self) -> Data {
+    pub fn unpacking(&mut self) -> Data {
         if self.value.is_empty() {
             return Data::new()
         }
@@ -58,18 +58,20 @@ impl Packet {
         data
     }
 
-    pub(crate) fn refresh(&mut self) {
+    pub fn refresh(&mut self) {
         self.value.clear();
         self.data = Data::new()
     }
 
     // 封包
-    pub(crate) fn packaging(&mut self, is_encrypt: bool) {
+    pub fn build(&mut self) {
         let data_len =  self.data.len() as u32;
-        let mut padding_len = match is_encrypt {
-                true => 8 - (data_len + 1) % 8,
-                false => 16 - (data_len + 5) % 16
-            };
+        // let mut padding_len = match is_encrypt {
+        //         true => 8 - (data_len + 1) % 8,
+        //         false => 16 - (data_len + 5) % 16
+        //     };
+        // TODO
+        let mut padding_len = 16 - (data_len + 5) % 16;
         if padding_len < 4 { padding_len += 8 }
         // 组装数据 []
         let mut buf = vec![];

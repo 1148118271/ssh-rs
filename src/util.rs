@@ -3,10 +3,10 @@ use std::str::FromStr;
 use std::sync::{Mutex, MutexGuard};
 use rand::Rng;
 use rand::rngs::OsRng;
-use crate::error::{SshErrorKind, SshResult};
-use crate::{Client, Config, SshError};
+use encryption::ChaCha20Poly1305;
+use error::{SshError, SshErrorKind, SshResult};
+use crate::{Client, Config};
 use crate::channel::ChannelWindowSize;
-use crate::encryption::ChaCha20Poly1305;
 use crate::global::{CHANNEL_WINDOW, CLIENT, CONFIG, ENCRYPTION_KEY};
 
 

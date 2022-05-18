@@ -1,8 +1,9 @@
-use crate::channel::Channel;
+use error::SshResult;
+use packet::{Data, Packet};
 use constant::ssh_msg_code;
+use crate::channel::Channel;
 use crate::util;
-use crate::error::SshResult;
-use crate::packet::{Data, Packet};
+
 
 pub struct ChannelShell(pub(crate) Channel);
 
@@ -33,7 +34,7 @@ impl ChannelShell {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.0.server_channel)
-            .put_bytes(buf);
+            .put_u8s(buf);
         let mut packet = Packet::from(data);
         packet.build();
         let mut client = util::client()?;

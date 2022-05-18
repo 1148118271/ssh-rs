@@ -1,13 +1,11 @@
 use std::sync::atomic::Ordering;
 use ring::digest;
 use constant::ssh_msg_code;
+use encryption::{ChaCha20Poly1305, CURVE25519, DH, H, KeyExchange, PublicKey, SIGN, RSA, HASH};
+use error::{SshError, SshErrorKind, SshResult};
+use packet::{Data, Packet};
 use crate::config::{CompressionAlgorithm, EncryptionAlgorithm, KeyExchangeAlgorithm, MacAlgorithm, PublicKeyAlgorithm};
-use crate::encryption::{ChaCha20Poly1305, CURVE25519, DH, H, KeyExchange, PublicKey, SIGN};
-use crate::encryption::rsa::RSA;
-use crate::error::{SshError, SshErrorKind};
-use crate::hash::HASH;
-use crate::packet::{Data, Packet};
-use crate::{global, SshResult, util};
+use crate::{global, util};
 
 
 pub(crate) struct Kex {
@@ -76,7 +74,7 @@ impl Kex {
     pub(crate) fn send_qc(&self) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEX_ECDH_INIT);
-        data.put_bytes(self.dh.get_public_key());
+        data.put_u8s(self.dh.get_public_key());
         let mut packet = Packet::from(data);
         packet.build();
         let mut client = util::client()?;
@@ -123,7 +121,7 @@ impl Kex {
         let mut client = util::client()?;
         client.write(packet.as_slice())?;
 
-        let hash = HASH::new(&self.h.k, &self.session_id, &self.session_id);
+        let hash: HASH = HASH::new(&self.h.k, &self.session_id, &self.session_id);
         let poly1305 = ChaCha20Poly1305::new(hash);
         global::IS_ENCRYPT.store(true, Ordering::Relaxed);
         util::update_encryption_key(Some(poly1305));
@@ -142,7 +140,7 @@ impl Kex {
         let hb = self.h.as_bytes();
         self.session_id = digest::digest(&digest::SHA256, &hb).as_ref().to_vec();
         let h = data.get_u8s();
-        let mut hd = Data(h);
+        let mut hd = Data::from(h);
         hd.get_u8s();
         let signature = hd.get_u8s();
         Ok(signature)

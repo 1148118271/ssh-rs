@@ -14,15 +14,19 @@ repository = "https://github.com/1148118271/ssh-rs"
 [workspace]
 members = [
     "constant",
-    "packet"
+    "packet",
+    "encryption",
+    "error"
 ]
 
 [dependencies]
 
 constant = { path = "./constant" }
+packet = { path = "./packet" }
+encryption = { path = "./encryption" }
+error = { path = "./error" }
 
 ring = "0.16.20"
 rand = "0.8"
 log = "0.4"
 filetime = "0.2"
-rsa = "0.5"

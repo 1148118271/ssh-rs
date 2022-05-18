@@ -1,16 +1,25 @@
 mod curve25519;
-pub mod ed25519;
+mod ed25519;
 mod chacha20_poly1305_openssh;
 mod ecdh_sha2_nistp256;
-pub mod rsa;
-
-pub use curve25519::CURVE25519;
-pub use ecdh_sha2_nistp256::EcdhP256;
-pub use chacha20_poly1305_openssh::ChaCha20Poly1305;
+mod rsa;
+mod hash;
 
 
-use crate::packet::Data;
-use crate::SshError;
+pub use {
+    curve25519::CURVE25519,
+    ed25519::Ed25519,
+    chacha20_poly1305_openssh::ChaCha20Poly1305,
+    ecdh_sha2_nistp256::EcdhP256,
+    crate::rsa::RSA,
+    hash::HASH
+};
+
+
+use std::sync::atomic::AtomicBool;
+use error::SshError;
+use packet::Data;
+
 
 pub type DH = dyn KeyExchange;
 
@@ -77,32 +86,32 @@ impl H {
     }
     pub fn set_i_c(&mut self, ic: &[u8]) {
         let mut data = Data::new();
-        data.put_bytes(ic);
+        data.put_u8s(ic);
         self.i_c = data.to_vec();
     }
     pub fn set_i_s(&mut self, is: &[u8]) {
         let mut data = Data::new();
-        data.put_bytes(is);
+        data.put_u8s(is);
         self.i_s = data.to_vec();
     }
     pub fn set_q_c(&mut self, qc: &[u8]) {
         let mut data = Data::new();
-        data.put_bytes(qc);
+        data.put_u8s(qc);
         self.q_c = data.to_vec();
     }
     pub fn set_q_s(&mut self, qs: &[u8]) {
         let mut data = Data::new();
-        data.put_bytes(qs);
+        data.put_u8s(qs);
         self.q_s = data.to_vec();
     }
     pub fn set_k_s(&mut self, ks: &[u8]) {
         let mut data = Data::new();
-        data.put_bytes(ks);
+        data.put_u8s(ks);
         self.k_s = data.to_vec();
     }
     pub fn set_k(&mut self, k: &[u8]) {
         let mut data = Data::new();
-        data.mpint(k);
+        data.put_mpint(k);
         self.k = data.to_vec();
     }
 

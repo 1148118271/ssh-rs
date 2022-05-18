@@ -7,9 +7,11 @@ use std::path::{Display, Path, PathBuf};
 use std::ptr::read;
 use std::time::{Duration, SystemTime, SystemTimeError, UNIX_EPOCH};
 use constant::{permission, scp, ssh_msg_code, ssh_str};
-use crate::{util, SshError, Channel};
-use crate::error::{SshErrorKind, SshResult};
-use crate::packet::{Data, Packet};
+use packet::{Data, Packet};
+use error::{SshErrorKind, SshResult, SshError};
+use crate::{util,  Channel};
+
+
 
 pub struct ChannelScp {
     pub(crate) channel: Channel,
@@ -413,7 +415,7 @@ impl ChannelScp {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.channel.server_channel)
-            .put_bytes(cmd.as_bytes());
+            .put_u8s(cmd.as_bytes());
         let mut packet = Packet::from(data);
         packet.build();
         let mut client = util::client()?;
@@ -425,7 +427,7 @@ impl ChannelScp {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.channel.server_channel)
-            .put_bytes(bytes);
+            .put_u8s(bytes);
         let mut packet = Packet::from(data);
         packet.build();
         let mut client = util::client()?;
@@ -436,7 +438,7 @@ impl ChannelScp {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.channel.server_channel)
-            .put_bytes(&[scp::END]);
+            .put_u8s(&[scp::END]);
         let mut packet = Packet::from(data);
         packet.build();
         let mut client = util::client()?;

@@ -79,27 +79,27 @@ pub enum SshErrorKind {
 
 impl PartialEq<Self> for SshErrorKind {
     fn eq(&self, other: &Self) -> bool {
-       match (&self, &other) {
-           (&SshErrorKind::IoError(io1), &SshErrorKind::IoError(io2)) => io1.kind() == io2.kind(),
-           (&SshErrorKind::EncryptionNullError, &SshErrorKind::EncryptionNullError) => true,
-           (&SshErrorKind::FromUtf8Error, &SshErrorKind::FromUtf8Error) => true,
-           (&SshErrorKind::ChannelFailureError, &SshErrorKind::ChannelFailureError) => true,
-           (&SshErrorKind::PasswordError, &SshErrorKind::PasswordError) => true,
-           (&SshErrorKind::UserNullError, &SshErrorKind::UserNullError) => true,
-           (&SshErrorKind::PasswordNullError, &SshErrorKind::PasswordNullError) => true,
-           (&SshErrorKind::SignatureError, &SshErrorKind::SignatureError) => true,
-           (&SshErrorKind::VersionError, &SshErrorKind::VersionError) => true,
-           (&SshErrorKind::KeyExchangeError, &SshErrorKind::KeyExchangeError) => true,
-           (&SshErrorKind::MutexError, &SshErrorKind::MutexError) => true,
-           (&SshErrorKind::ScpError(v1), &SshErrorKind::ScpError(v2)) => v1.eq(v2),
-           (&SshErrorKind::PathNullError, &SshErrorKind::PathNullError) => true,
-           (&SshErrorKind::LogError, &SshErrorKind::LogError) => true,
-           (&SshErrorKind::ConfigNullError, &SshErrorKind::ConfigNullError) => true,
-           (&SshErrorKind::ClientNullError, &SshErrorKind::ClientNullError) => true,
-           (&SshErrorKind::EncryptionError, &SshErrorKind::EncryptionError) => true,
-           (&SshErrorKind::UnknownError(v1), &SshErrorKind::UnknownError(v2)) => v1.eq(v2),
-           _ => false
-       }
+        match (&self, &other) {
+            (&SshErrorKind::IoError(io1), &SshErrorKind::IoError(io2)) => io1.kind() == io2.kind(),
+            (&SshErrorKind::EncryptionNullError, &SshErrorKind::EncryptionNullError) => true,
+            (&SshErrorKind::FromUtf8Error, &SshErrorKind::FromUtf8Error) => true,
+            (&SshErrorKind::ChannelFailureError, &SshErrorKind::ChannelFailureError) => true,
+            (&SshErrorKind::PasswordError, &SshErrorKind::PasswordError) => true,
+            (&SshErrorKind::UserNullError, &SshErrorKind::UserNullError) => true,
+            (&SshErrorKind::PasswordNullError, &SshErrorKind::PasswordNullError) => true,
+            (&SshErrorKind::SignatureError, &SshErrorKind::SignatureError) => true,
+            (&SshErrorKind::VersionError, &SshErrorKind::VersionError) => true,
+            (&SshErrorKind::KeyExchangeError, &SshErrorKind::KeyExchangeError) => true,
+            (&SshErrorKind::MutexError, &SshErrorKind::MutexError) => true,
+            (&SshErrorKind::ScpError(v1), &SshErrorKind::ScpError(v2)) => v1.eq(v2),
+            (&SshErrorKind::PathNullError, &SshErrorKind::PathNullError) => true,
+            (&SshErrorKind::LogError, &SshErrorKind::LogError) => true,
+            (&SshErrorKind::ConfigNullError, &SshErrorKind::ConfigNullError) => true,
+            (&SshErrorKind::ClientNullError, &SshErrorKind::ClientNullError) => true,
+            (&SshErrorKind::EncryptionError, &SshErrorKind::EncryptionError) => true,
+            (&SshErrorKind::UnknownError(v1), &SshErrorKind::UnknownError(v2)) => v1.eq(v2),
+            _ => false
+        }
     }
 }
 
