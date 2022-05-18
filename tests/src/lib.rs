@@ -411,3 +411,8 @@
 //         return byte != 1 && byte != 2
 //     }
 // }
+
+#[test] fn f() {
+    let v = 8 - (18 + 1) % 8;
+    println!("{}", v)
+}

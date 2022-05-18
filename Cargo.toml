@@ -17,7 +17,8 @@ members = [
     "packet",
     "encryption",
     "error",
-    "slog"
+    "slog",
+    "tests"
 ]
 
 [dependencies]

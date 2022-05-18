@@ -127,11 +127,13 @@ impl Session {
     }
 
     fn initiate_authentication(&mut self) -> SshResult<()> {
+        println!("initiate_authentication");
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
+        println!("data len {}", data.len());
         let mut packet = Packet::from(data);
-        packet.build();
+        packet.build_1(true);
         let mut client = util::client()?;
         client.write(packet.as_slice())
     }
@@ -145,6 +147,7 @@ impl Session {
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
+                        log::info!("密码验证");
                         // 开始密码验证 TODO 目前只支持密码验证
                         password_authentication(&mut client)?;
                     }
@@ -207,7 +210,7 @@ fn password_authentication(client: &mut MutexGuard<'static, Client>) -> SshResul
         .put_u8(false as u8)
         .put_str(config.user.password.as_str());
     let mut packet = Packet::from(data);
-    packet.build();
+    packet.build_1(true);
     client.write(packet.as_slice())
 }
 

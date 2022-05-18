@@ -396,7 +396,7 @@ impl ChannelScp {
                 false => permission::FILE
             }, 8) {
                 Ok(mode) => {
-                    if let Err(_) = file.set_permissions(Permissions::from_mode(mode)) {
+                    if let Err(_) = file.set_permissions(fs::Permissions::from_mode(mode)) {
                         log::error!("the operating system does not allow modification of file permissions, \
                         which does not affect subsequent operations.");
                     }
