@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::sync::atomic::Ordering::Relaxed;
 use constant::{ssh_msg_code, size};
-use encryption::ChaCha20Poly1305;
+use encryption::{ChaCha20Poly1305, IS_ENCRYPT};
 use packet::{Data, Packet};
 use error::{SshError, SshResult};
 
@@ -161,7 +161,7 @@ impl Client {
 
 
         let mut buf = buf.to_vec();
-        if global::IS_ENCRYPT.load(Relaxed) {
+        if IS_ENCRYPT.load(Relaxed) {
             let key = util::encryption_key()?;
             key.encryption(self.sequence.client_sequence_num, &mut buf);
         }
@@ -186,7 +186,7 @@ impl Client {
 
     fn process_data(&mut self, mut result: Vec<u8>, results: &mut Vec<Data>) -> SshResult<()> {
         // 未加密
-        if !global::IS_ENCRYPT.load(Relaxed) {
+        if !IS_ENCRYPT.load(Relaxed) {
             self.sequence.server_auto_increment();
             let packet_len = &result[..4];
             let mut packet_len_slice = [0_u8; 4];

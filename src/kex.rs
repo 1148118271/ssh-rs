@@ -10,7 +10,8 @@ use encryption::{
     SIGN,
     RSA,
     HASH,
-    digest
+    digest,
+    IS_ENCRYPT
 };
 use error::{SshError, SshErrorKind, SshResult};
 use packet::{Data, Packet};
@@ -47,8 +48,8 @@ impl Kex {
     pub(crate) fn send_algorithm(&mut self) -> SshResult<()> {
         let config = util::config()?;
         log::info!("client algorithms: [{}]", config.algorithm.client_algorithm.to_string());
-        if global::IS_ENCRYPT.load(Ordering::Relaxed) {
-            global::IS_ENCRYPT.store(false, Ordering::Relaxed);
+        if IS_ENCRYPT.load(Ordering::Relaxed) {
+            IS_ENCRYPT.store(false, Ordering::Relaxed);
             util::update_encryption_key(None);
         }
         let mut data = Data::new();
@@ -140,7 +141,7 @@ impl Kex {
 
         let hash: HASH = HASH::new(&self.h.k, &self.session_id, &self.session_id);
         let poly1305 = ChaCha20Poly1305::new(hash);
-        global::IS_ENCRYPT.store(true, Ordering::Relaxed);
+        IS_ENCRYPT.store(true, Ordering::Relaxed);
         util::update_encryption_key(Some(poly1305));
         Ok(())
     }

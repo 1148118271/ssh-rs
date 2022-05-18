@@ -5,6 +5,7 @@ mod ecdh_sha2_nistp256;
 mod rsa;
 mod hash;
 
+use std::sync::atomic::AtomicBool;
 pub use ring::digest;
 
 pub use {
@@ -15,6 +16,10 @@ pub use {
     crate::rsa::RSA,
     hash::HASH
 };
+
+
+// 密钥是否交换完成 true 是  false 否
+pub static IS_ENCRYPT: AtomicBool = AtomicBool::new(false);
 
 
 use error::SshError;
