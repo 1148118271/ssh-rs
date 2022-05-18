@@ -1,11 +1,9 @@
 use std::ffi::OsStr;
-use std::{fs, io};
-use std::fs::{File, metadata, OpenOptions, Permissions, read_dir};
+use std::fs;
+use std::fs::{File, metadata, OpenOptions, read_dir};
 use std::io::{Read, Write};
-use std::num::ParseIntError;
-use std::path::{Display, Path, PathBuf};
-use std::ptr::read;
-use std::time::{Duration, SystemTime, SystemTimeError, UNIX_EPOCH};
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 use constant::{permission, scp, ssh_msg_code, ssh_str};
 use packet::{Data, Packet};
 use error::{SshErrorKind, SshResult, SshError};
@@ -542,7 +540,6 @@ pub struct ScpFile {
     name: String,
     is_dir: bool,
     local_path: PathBuf,
-    been_sent: Vec<String>
 }
 
 impl ScpFile {
@@ -554,7 +551,6 @@ impl ScpFile {
             name: String::new(),
             is_dir: false,
             local_path: Default::default(),
-            been_sent: vec![]
         }
     }
 }

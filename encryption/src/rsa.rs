@@ -3,13 +3,6 @@ use crate::PublicKey as PubK;
 use packet::Data;
 use crate::SshError;
 
-fn u8s_to_u32s(v: Vec<u8>) -> Vec<u32> {
-    let mut vec = vec![];
-    for x in v {
-        vec.push(x as u32)
-    }
-    vec
-}
 
 pub struct RSA;
 

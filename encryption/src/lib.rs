@@ -16,7 +16,6 @@ pub use {
 };
 
 
-use std::sync::atomic::AtomicBool;
 use error::SshError;
 use packet::Data;
 

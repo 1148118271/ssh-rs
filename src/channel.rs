@@ -1,5 +1,4 @@
 use std::borrow::BorrowMut;
-use std::io::Write;
 use constant::{ssh_msg_code, size, ssh_str};
 use error::{SshError, SshErrorKind, SshResult};
 use packet::{Data, Packet};

@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU32};
 use std::sync::Mutex;
 use encryption::ChaCha20Poly1305;
-use slog::Slog;
 use crate::{Config, Client};
 use crate::channel::ChannelWindowSize;
 
