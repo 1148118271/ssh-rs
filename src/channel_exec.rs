@@ -10,6 +10,11 @@ pub struct ChannelExec(pub(crate) Channel);
 
 impl ChannelExec {
 
+
+    pub(crate) fn open(channel: Channel) -> Self {
+        ChannelExec(channel)
+    }
+
     fn exec_command(&self, command: &str) -> SshResult<()> {
         println!("exec_command");
         let mut data = Data::new();

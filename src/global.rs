@@ -3,7 +3,7 @@ use std::sync::atomic::AtomicU32;
 use std::sync::Mutex;
 use encryption::ChaCha20Poly1305;
 use crate::{Config, Client};
-use crate::channel::ChannelWindowSize;
+// use crate::channel::ChannelWindowSize;
 
 
 // 客户端通道编号初始值
@@ -17,4 +17,4 @@ pub(crate) static mut CONFIG: Option<Mutex<Config>> = None;
 pub(crate) static mut ENCRYPTION_KEY: Option<ChaCha20Poly1305> = None;
 
 // 每个通道的窗口大小
-pub(crate) static mut CHANNEL_WINDOW: Option<HashMap<u32, Mutex<ChannelWindowSize>>> = None;
+// pub(crate) static mut CHANNEL_WINDOW: Option<HashMap<u32, Mutex<ChannelWindowSize>>> = None;

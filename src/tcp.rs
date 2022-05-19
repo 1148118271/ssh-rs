@@ -7,7 +7,7 @@ use encryption::{ChaCha20Poly1305, IS_ENCRYPT};
 use packet::{Data, Packet};
 use error::{SshError, SshResult};
 
-use crate::channel::ChannelWindowSize;
+// use crate::channel::ChannelWindowSize;
 use crate::util;
 
 
@@ -245,7 +245,7 @@ impl Client {
             let data = Packet::from(decryption_result).unpacking();
 
             // change the channel window size
-            ChannelWindowSize::process_window_size(data.clone(), self)?;
+            // ChannelWindowSize::process_window_size(data.clone(), self)?;
 
             results.push(data);
 

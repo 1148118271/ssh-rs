@@ -9,6 +9,7 @@ use crate::tcp::Client;
 use crate::channel_scp::ChannelScp;
 use crate::kex::Kex;
 use crate::{ChannelExec, ChannelShell, global, util};
+use crate::window_size::WindowSize;
 
 
 pub struct Session;
@@ -94,7 +95,8 @@ impl Session {
             server_channel: 0,
             client_channel,
             remote_close: false,
-            local_close: false
+            local_close: false,
+            window_size: WindowSize::new()
         })
     }
 

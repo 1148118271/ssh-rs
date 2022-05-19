@@ -15,8 +15,6 @@ use crate::{util,  Channel};
 pub struct ChannelScp {
     pub(crate) channel: Channel,
     pub(crate) local_path: PathBuf,
-    pub(crate) is_sync_permissions: bool,
-
 }
 
 
@@ -44,6 +42,15 @@ pub struct ChannelScp {
 // }
 
 impl ChannelScp {
+
+
+    pub(crate) fn open(channel: Channel) -> Self {
+        ChannelScp {
+            channel,
+            local_path: Default::default(),
+        }
+    }
+
 
     pub fn upload<S: AsRef<OsStr> + ?Sized>(&mut self, local_path: &S, remote_path: &S) -> SshResult<()> {
         let local_path = Path::new(local_path);
@@ -233,13 +240,6 @@ impl ChannelScp {
         Ok(())
     }
 
-    /// whether to synchronize the remote file permissions, the last modification time, the last access time
-    /// the windows operating system does not support file permissions synchronization,
-    /// only the last modification time and last access time synchronization
-    pub fn set_is_sync_permissions(&mut self, b: bool) {
-        self.is_sync_permissions = b;
-    }
-
     fn process_d(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
         loop {
             self.send_end()?;
@@ -374,10 +374,6 @@ impl ChannelScp {
 
 
     fn sync_permissions(&self, scp_file: &mut ScpFile, file: File) {
-        if !self.is_sync_permissions {
-            return;
-        }
-
         let modify_time = filetime::FileTime::from_unix_time(scp_file.modify_time, 0);
         let access_time = filetime::FileTime::from_unix_time(scp_file.access_time, 0);
         if let Err(e) = filetime::set_file_times(scp_file.local_path.as_path(), access_time, modify_time) {
@@ -483,20 +479,15 @@ impl ChannelScp {
     }
 
     fn download_command_init(&self, remote_path: &str) -> String {
-        let mut cmd = format!(
-            "{} {} {} {}",
+        format!(
+            "{} {} {} {} {} {}",
             ssh_str::SCP,
             scp::SOURCE,
             scp::QUIET,
-            scp::RECURSIVE
-        );
-        if self.is_sync_permissions {
-            cmd.push_str(" ");
-            cmd.push_str(scp::PRESERVE_TIMES)
-        }
-        cmd.push_str(" ");
-        cmd.push_str(remote_path);
-        cmd
+            scp::RECURSIVE,
+            scp::PRESERVE_TIMES,
+            remote_path
+        )
     }
 
 }
