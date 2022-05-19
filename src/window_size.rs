@@ -1,6 +1,4 @@
 
-
-
 struct WindowSize {
     client_channel_no: u32,
     server_channel_no: u32,

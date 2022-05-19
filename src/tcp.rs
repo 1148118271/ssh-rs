@@ -11,6 +11,9 @@ use crate::channel::ChannelWindowSize;
 use crate::util;
 
 
+
+
+
 pub struct Client {
     pub(crate) stream: TcpStream,
     sequence: Sequence,
@@ -106,64 +109,65 @@ impl Client {
         // println!("填充长度 {}", data.get_u8());
         // println!("消息标志 {:?}", data.get_u8());
 
-        let mut data = buf.clone();
+        // TODO 暂时不使用
+        // let mut data = buf.clone();
+        //
+        // let msg_code = data.get_u8();
+        //
+        // let (client_channel_no, size, flag) = match msg_code {
+        //     ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
+        //         let client_channel_no = data.get_u32(); // channel serial no    4 len
+        //         let vec = data.get_u8s(); // string data len
+        //         let size = vec.len() as u32;
+        //         (client_channel_no, size, true)
+        //     }
+        //     ssh_msg_code::SSH_MSG_CHANNEL_EXTENDED_DATA => {
+        //         let client_channel_no = data.get_u32(); // channel serial no    4 len
+        //         data.get_u32(); // data type code        4 len
+        //         let vec = data.get_u8s();  // string data len
+        //         let size = vec.len() as u32;
+        //         (client_channel_no, size, true)
+        //     }
+        //     _ => (0, 0, false)
+        // };
 
-        let msg_code = data.get_u8();
-
-        let (client_channel_no, size, flag) = match msg_code {
-            ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
-                let client_channel_no = data.get_u32(); // channel serial no    4 len
-                let vec = data.get_u8s(); // string data len
-                let size = vec.len() as u32;
-                (client_channel_no, size, true)
-            }
-            ssh_msg_code::SSH_MSG_CHANNEL_EXTENDED_DATA => {
-                let client_channel_no = data.get_u32(); // channel serial no    4 len
-                data.get_u32(); // data type code        4 len
-                let vec = data.get_u8s();  // string data len
-                let size = vec.len() as u32;
-                (client_channel_no, size, true)
-            }
-            _ => (0, 0, false)
-        };
-
-        if flag {
-
-            let result = util::get_channel_window(client_channel_no).unwrap();
-
-            if let Some(mut v) = result {
-
-                let s = size::LOCAL_WINDOW_SIZE - v.r_window_size;
-                println!("s => {}", s);
-                if v.r_window_size > 0 && s > 0 && size::LOCAL_WINDOW_SIZE / s <= 20 {
-                    println!("已使用20分之一");
-                    'main:
-                    loop {
-                        let datas = self.read().unwrap();
-                        if !datas.is_empty() {
-                            for mut x in datas {
-                                let mc = x.get_u8();
-                                println!("消息码: {}", mc);
-                                if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
-                                    println!("SSH_MSG_CHANNEL_WINDOW_ADJUST");
-                                    let c = x.get_u32();
-                                    println!("通道编号: {}", c);
-                                    let i = x.get_u32();
-                                    println!("远程客户端大小: {}", i);
-                                    v.r_window_size = v.r_window_size + i;
-                                    break 'main;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                v.r_window_size = v.r_window_size - size;
-
-                println!("r_window_size: {}", v.r_window_size);
-            }
-
-        }
+        // if flag {
+        //
+        //     let result = util::get_channel_window(client_channel_no).unwrap();
+        //
+        //     if let Some(mut v) = result {
+        //
+        //         let s = size::LOCAL_WINDOW_SIZE - v.r_window_size;
+        //         println!("s => {}", s);
+        //         if v.r_window_size > 0 && s > 0 && size::LOCAL_WINDOW_SIZE / s <= 20 {
+        //             println!("已使用20分之一");
+        //             'main:
+        //             loop {
+        //                 let datas = self.read().unwrap();
+        //                 if !datas.is_empty() {
+        //                     for mut x in datas {
+        //                         let mc = x.get_u8();
+        //                         println!("消息码: {}", mc);
+        //                         if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
+        //                             println!("SSH_MSG_CHANNEL_WINDOW_ADJUST");
+        //                             let c = x.get_u32();
+        //                             println!("通道编号: {}", c);
+        //                             let i = x.get_u32();
+        //                             println!("远程客户端大小: {}", i);
+        //                             v.r_window_size = v.r_window_size + i;
+        //                             break 'main;
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //
+        //         v.r_window_size = v.r_window_size - size;
+        //
+        //         println!("r_window_size: {}", v.r_window_size);
+        //     }
+        //
+        // }
 
         let mut packet = Packet::from(buf);
         let buf = if IS_ENCRYPT.load(Relaxed) {
