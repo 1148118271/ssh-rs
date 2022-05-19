@@ -1,7 +1,7 @@
 use std::borrow::BorrowMut;
 use constant::{ssh_msg_code, size, ssh_str};
 use error::{SshError, SshErrorKind, SshResult};
-use packet::{Data, Packet};
+use packet::Data;
 use slog::log;
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
@@ -26,10 +26,8 @@ impl Channel {
             ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
                 data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                let mut packet = Packet::from(data);
-                packet.build();
                 let mut client = util::client()?;
-                client.write(packet.as_slice())?;
+                client.write(data)?;
                 util::unlock(client)
             }
             ssh_msg_code::SSH_MSG_KEXINIT => {
@@ -195,10 +193,8 @@ impl Channel {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_CLOSE)
             .put_u32(self.server_channel);
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())?;
+        client.write(data)?;
         self.local_close = true;
         Ok(())
     }
@@ -232,10 +228,8 @@ impl Channel {
             .put_u32(self.server_channel)
             .put_str(ssh_str::SHELL)
             .put_u8(true as u8);
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
     fn request_pty(&self) -> SshResult<()> {
@@ -257,10 +251,8 @@ impl Channel {
             0_u8,                 // TTY_OP_END
         ];
         data.put_u8s(&model);
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
 }
@@ -319,9 +311,7 @@ impl ChannelWindowSize {
                 data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
                     .put_u32(map.server_channel)
                     .put_u32(size::LOCAL_WINDOW_SIZE - map.window_size);
-                let mut packet = Packet::from(data);
-                packet.build();
-                client.write(packet.as_slice())?;
+                client.write(data)?;
                 map.window_size = 0;
             }
         }

@@ -8,7 +8,7 @@ use packet::{Data, Packet};
 use error::{SshError, SshResult};
 
 use crate::channel::ChannelWindowSize;
-use crate::{global, util};
+use crate::util;
 
 
 pub struct Client {
@@ -97,14 +97,16 @@ impl Client {
         }
     }
 
-    pub fn write(&mut self, buf: &[u8]) -> Result<(), SshError> {
-        let mut packet = Packet::from(buf.to_vec());
-        let mut data = packet.unpacking();
+    pub fn write(&mut self, buf: Data) -> Result<(), SshError> {
+        //let mut packet = Packet::from(buf.to_vec());
+        //let mut data = packet.unpacking();
 
         // let mut data = Data(buf.to_vec());
         // println!("数据包总长度 {}", data.get_u32());
         // println!("填充长度 {}", data.get_u8());
         // println!("消息标志 {:?}", data.get_u8());
+
+        let mut data = buf.clone();
 
         let msg_code = data.get_u8();
 
@@ -162,22 +164,29 @@ impl Client {
             }
 
         }
-        let mut buf = buf.to_vec();
-        println!("未加密 buf len {}", buf.len());
-        if IS_ENCRYPT.load(Relaxed) {
+
+        let mut packet = Packet::from(buf);
+        let buf = if IS_ENCRYPT.load(Relaxed) {
+            packet.build(true);
+            let mut buf = packet.to_vec();
             let key = util::encryption_key()?;
             key.encryption(self.sequence.client_sequence_num, &mut buf);
-            println!("加密后 buf len {}", buf.len());
-        }
+            buf
+        } else {
+            packet.build(false);
+            packet.to_vec()
+        };
+
         self.sequence.client_auto_increment();
-        match self.stream.write(&buf) {
-            Ok(_) => {}
-            Err(e) => return Err(SshError::from(e))
-        };
-        match self.stream.flush() {
-            Ok(_) => {}
-            Err(e) => return Err(SshError::from(e))
-        };
+
+        if let Err(e) = self.stream.write(&buf) {
+            return Err(SshError::from(e))
+        }
+
+        if let Err(e) = self.stream.flush() {
+            return Err(SshError::from(e))
+        }
+
         Ok(())
     }
 

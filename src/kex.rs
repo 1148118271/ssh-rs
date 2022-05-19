@@ -14,7 +14,7 @@ use encryption::{
     IS_ENCRYPT
 };
 use error::{SshError, SshErrorKind, SshResult};
-use packet::{Data, Packet};
+use packet::Data;
 use slog::log;
 use crate::config::{
     CompressionAlgorithm,
@@ -23,7 +23,7 @@ use crate::config::{
     MacAlgorithm,
     PublicKeyAlgorithm}
 ;
-use crate::{global, util};
+use crate::util;
 
 
 pub(crate) struct Kex {
@@ -63,10 +63,8 @@ impl Kex {
 
         self.h.set_i_c(data.as_slice());
 
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
 
@@ -93,10 +91,8 @@ impl Kex {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEX_ECDH_INIT);
         data.put_u8s(self.dh.get_public_key());
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
 
@@ -134,10 +130,8 @@ impl Kex {
     pub(crate) fn new_keys(&mut self) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())?;
+        client.write(data)?;
 
         let hash: HASH = HASH::new(&self.h.k, &self.session_id, &self.session_id);
         let poly1305 = ChaCha20Poly1305::new(hash);

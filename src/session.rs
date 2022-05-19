@@ -1,6 +1,6 @@
 use std::sync::MutexGuard;
 use std::sync::atomic::Ordering::Relaxed;
-use packet::{Data, Packet};
+use packet::Data;
 use constant::{ssh_msg_code, size, ssh_str};
 use error::{SshError, SshErrorKind, SshResult};
 use slog::log;
@@ -120,10 +120,8 @@ impl Session {
             .put_u32(client_channel)
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
     fn initiate_authentication(&mut self) -> SshResult<()> {
@@ -132,10 +130,8 @@ impl Session {
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
         println!("data len {}", data.len());
-        let mut packet = Packet::from(data);
-        packet.build_1(true);
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
     fn authentication(&mut self) -> SshResult<()> {
@@ -162,9 +158,7 @@ impl Session {
                     ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                         let mut data = Data::new();
                         data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                        let mut packet = Packet::from(data);
-                        packet.build();
-                        client.write(packet.as_slice())?
+                        client.write(data)?
                     }
                     _ => {}
                 }
@@ -209,8 +203,6 @@ fn password_authentication(client: &mut MutexGuard<'static, Client>) -> SshResul
         .put_str(ssh_str::PASSWORD)
         .put_u8(false as u8)
         .put_str(config.user.password.as_str());
-    let mut packet = Packet::from(data);
-    packet.build_1(true);
-    client.write(packet.as_slice())
+    client.write(data)
 }
 

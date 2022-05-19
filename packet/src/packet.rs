@@ -62,46 +62,13 @@ impl Packet {
     }
 
     // 封包
-    pub fn build(&mut self) {
-        let data_len =  self.data.len() as u32;
-        // let mut padding_len = match is_encrypt {
-        //         true => 8 - (data_len + 1) % 8,
-                    // 未加密的填充: 整个包的总长度是8的倍数，并且填充长度不能小于4
-        //         false => 16 - (data_len + 5) % 16
-        //     };
-        // TODO
-        let mut padding_len = 16 - (data_len + 5) % 16;
-        if padding_len < 4 { padding_len += 8 }
-
-        println!("data len = {}, padding len = {}", data_len, padding_len);
-
-        // 组装数据 []
-        let mut buf = vec![];
-        // [padding_length]
-        buf.push(padding_len as u8);
-        // [padding_length, payload]
-        buf.extend(self.data.as_slice());
-        // [padding_length, payload, randomPadding]
-        // 默认 0
-        buf.extend(vec![0; padding_len as usize]);
-        // 获取总长度
-        let packet_len = buf.len() as u32;
-        let mut packet_len_u8s= packet_len.to_be_bytes().to_vec();
-        // [packet_length, padding_length, payload, randomPadding]
-        packet_len_u8s.extend(buf);
-        self.value = packet_len_u8s;
-    }
-
-
-    // 封包
-    pub fn build_1(&mut self, is_encrypt: bool) {
+    pub fn build(&mut self, is_encrypt: bool) {
         let data_len =  self.data.len() as u32;
         let mut padding_len = match is_encrypt {
                 true => 8 - (data_len + 1) % 8,
+            // 未加密的填充: 整个包的总长度是8的倍数，并且填充长度不能小于4
                 false => 16 - (data_len + 5) % 16
             };
-        // TODO
-        // let mut padding_len = 16 - (data_len + 5) % 16;
         if padding_len < 4 { padding_len += 8 }
 
         println!("data len = {}, padding len = {}", data_len, padding_len);
@@ -123,8 +90,13 @@ impl Packet {
         self.value = packet_len_u8s;
     }
 
+
     pub fn as_slice(&self) -> &[u8] {
         self.value.as_slice()
+    }
+
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.value.to_vec()
     }
 
 }

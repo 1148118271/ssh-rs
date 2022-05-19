@@ -1,5 +1,5 @@
 use error::SshResult;
-use packet::{Data, Packet};
+use packet::Data;
 use constant::ssh_msg_code;
 use crate::channel::Channel;
 use crate::util;
@@ -35,10 +35,8 @@ impl ChannelShell {
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.0.server_channel)
             .put_u8s(buf);
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
     pub fn close(mut self) -> SshResult<()> {

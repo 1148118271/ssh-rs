@@ -5,7 +5,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use constant::{permission, scp, ssh_msg_code, ssh_str};
-use packet::{Data, Packet};
+use packet::Data;
 use error::{SshErrorKind, SshResult, SshError};
 use slog::log;
 use crate::{util,  Channel};
@@ -415,10 +415,8 @@ impl ChannelScp {
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.channel.server_channel)
             .put_u8s(cmd.as_bytes());
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
     fn send_bytes(&self, bytes: &[u8]) -> SshResult<()> {
@@ -427,10 +425,8 @@ impl ChannelScp {
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.channel.server_channel)
             .put_u8s(bytes);
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
     fn send_end(&self) -> SshResult<()> {
@@ -438,10 +434,8 @@ impl ChannelScp {
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.channel.server_channel)
             .put_u8s(&[scp::END]);
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
     fn read_data(&mut self) -> SshResult<Vec<u8>> {
@@ -484,10 +478,8 @@ impl ChannelScp {
             .put_str(ssh_str::EXEC)
             .put_u8(true as u8)
             .put_str(command);
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
     fn download_command_init(&self, remote_path: &str) -> String {

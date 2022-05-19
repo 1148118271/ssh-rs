@@ -1,6 +1,6 @@
 use constant::{ssh_msg_code, ssh_str};
 use error::SshResult;
-use packet::{Data, Packet};
+use packet::Data;
 use crate::channel::Channel;
 use crate::util;
 
@@ -18,10 +18,8 @@ impl ChannelExec {
             .put_str(ssh_str::EXEC)
             .put_u8(true as u8)
             .put_str(command);
-        let mut packet = Packet::from(data);
-        packet.build();
         let mut client = util::client()?;
-        client.write(packet.as_slice())
+        client.write(data)
     }
 
     fn get_data(&mut self, v: &mut Vec<u8>) -> SshResult<()> {
