@@ -412,7 +412,11 @@
 //     }
 // }
 
+use ssh_rs::SSH;
+
 #[test] fn f() {
+    let ssh = SSH::new();
+    ssh.enable_log(true);
     let v = 8 - (18 + 1) % 8;
     println!("{}", v)
 }

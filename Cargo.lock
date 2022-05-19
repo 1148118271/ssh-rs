@@ -450,6 +450,9 @@ dependencies = [
 [[package]]
 name = "tests"
 version = "0.1.0"
+dependencies = [
+ "ssh-rs",
+]
 
 [[package]]
 name = "typenum"

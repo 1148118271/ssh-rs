@@ -84,6 +84,7 @@ mod channel_exec;
 mod channel_scp;
 mod config;
 mod util;
+mod window_size;
 
 pub use session::Session;
 pub use channel::Channel;
