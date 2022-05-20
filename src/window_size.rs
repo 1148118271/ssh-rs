@@ -23,7 +23,7 @@ impl WindowSize {
         self.remote_window_size = self.remote_window_size + ws;
     }
 
-    pub fn sub_local_window_size(&mut self, ws: u32, server_channel: u32)  -> SshResult<()> {
+    pub fn sub_local_window_size(&mut self, ws: u32, server_channel: u32) -> SshResult<()> {
         self.local_window_size = self.local_window_size - ws;
         let used = LOCAL_WINDOW_SIZE - self.local_window_size;
         if (LOCAL_WINDOW_SIZE / used) > 20 {

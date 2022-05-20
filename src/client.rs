@@ -11,6 +11,7 @@ use error::{SshError, SshErrorKind, SshResult};
 use slog::log;
 
 use crate::util;
+use crate::window_size::WindowSize;
 
 
 static mut CLIENT: Option<Mutex<Client>> = None;
@@ -78,7 +79,7 @@ impl Client {
         }
     }
 
-    pub(crate) fn read(&mut self) -> Result<Vec<Data>, SshError> {
+    pub(crate) fn read(&mut self/*, ws: Option<&mut WindowSize>*/) -> Result<Vec<Data>, SshError> {
         let mut results = vec![];
         let mut result = vec![0; size::BUF_SIZE as usize];
         let len = match self.stream.read(&mut result) {
@@ -95,37 +96,46 @@ impl Client {
                 return Err(SshError::from(e))
             }
         };
+
         result.truncate(len);
-        self.process_data(result, &mut results)?;
+        // 处理未加密数据
+        if !IS_ENCRYPT.load(Relaxed) {
+            self.process_data(result, &mut results);
+        }
+        // 处理加密数据
+        else {
+            self.process_data_encrypt(result, &mut results/*, ws*/);
+        }
+
         Ok(results)
     }
 
-    fn process_data(&mut self, mut result: Vec<u8>, results: &mut Vec<Data>) -> SshResult<()> {
+    fn process_data(&mut self, mut result: Vec<u8>, results: &mut Vec<Data>) {
         // 未加密
-        if !IS_ENCRYPT.load(Relaxed) {
-            self.sequence.server_auto_increment();
-            let packet_len = &result[..4];
-            let mut packet_len_slice = [0_u8; 4];
-            packet_len_slice.copy_from_slice(packet_len);
-            let packet_len = (u32::from_be_bytes(packet_len_slice) as usize) + 4;
-            // 唯一处理 server Key Exchange Reply 和 New Keys 会一块发
-            if result.len() > packet_len {
-                let (v1, v2) = result.split_at_mut(packet_len);
-                let data = Packet::from(v1.to_vec()).unpacking();
-                results.push(data);
-                result = v2.to_vec();
-            }
-            let data = Packet::from(result).unpacking();
+        self.sequence.server_auto_increment();
+        let packet_len = &result[..4];
+        let mut packet_len_slice = [0_u8; 4];
+        packet_len_slice.copy_from_slice(packet_len);
+        let packet_len = (u32::from_be_bytes(packet_len_slice) as usize) + 4;
+        // 唯一处理 server Key Exchange Reply 和 New Keys 会一块发
+        if result.len() > packet_len {
+            let (v1, v2) = result.split_at_mut(packet_len);
+            let data = Packet::from(v1.to_vec()).unpacking();
             results.push(data);
-            return Ok(())
+            result = v2.to_vec();
         }
-
-        // 加密数据
-        self.process_data_encrypt(result, results)
+        let data = Packet::from(result).unpacking();
+        results.push(data);
 
     }
 
-    fn process_data_encrypt(&mut self, mut result: Vec<u8>, results: &mut Vec<Data>) -> SshResult<()> {
+    fn process_data_encrypt(
+        &mut self,
+        mut result: Vec<u8>,
+        results: &mut Vec<Data>,
+        // ws: Option<&mut WindowSize>
+    ) -> SshResult<()>
+    {
         loop {
             self.sequence.server_auto_increment();
             if result.len() < 4 {
@@ -142,15 +152,17 @@ impl Client {
                 key.decryption(self.sequence.server_sequence_num, &mut this.to_vec())?;
             let data = Packet::from(decryption_result).unpacking();
 
+            // 判断是否需要修改窗口大小
+            // let ds = data.as_slice();
+            // let mc = &ds[0];
+            // if *mc == ssh_msg_code::SSH_MSG_CHANNEL_DATA || *mc == ssh_msg_code::S { }
+
             // change the channel window size
             // ChannelWindowSize::process_window_size(data.clone(), self)?;
-
             results.push(data);
-
             if remaining.len() <= 0 {
                 break;
             }
-
             result = remaining.to_vec();
         }
         Ok(())

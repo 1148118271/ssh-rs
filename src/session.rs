@@ -82,9 +82,7 @@ impl Session {
     }
 
     pub fn open_channel(&mut self) -> SshResult<Channel> {
-
         log::info!("channel opened.");
-
         let client_channel = global::CLIENT_CHANNEL.load(Relaxed);
         self.ssh_open_channel(client_channel)?;
         global::CLIENT_CHANNEL.fetch_add(1, Relaxed);
@@ -113,14 +111,48 @@ impl Session {
     //     channel.open_scp()
     // }
 
-    fn ssh_open_channel(&mut self, client_channel: u32) -> SshResult<()> {
+    fn ssh_open_channel(&mut self, client_channel: u32) -> SshResult<(u32, u32)> {
+        // 本地请求远程打开通道
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_OPEN)
             .put_str(ssh_str::SESSION)
             .put_u32(client_channel)
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
-        client::locking()?.write(data)
+        let mut client = client::locking()?;
+        client.write(data)?;
+        client::unlock(client);
+
+
+        // 远程回应是否可以打开通道
+        loop {
+            let mut client = client::locking()?;
+            let results = client.read()?;
+            client::unlock(client);
+            for mut result in results {
+                if result.is_empty() { continue }
+                let message_code = result.get_u8();
+                match message_code {
+                    // 打开请求通过
+                    ssh_msg_code::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
+                        // 接收方通道号
+                        result.get_u32();
+                        // 发送方通道号
+                        let server_channel = result.get_u32();
+                        // 远程初始窗口大小
+                        let rws = result.get_u32();
+                        // 远程的最大数据包大小， 暂时不需要
+                        result.get_u32();
+                        return Ok((server_channel, rws));
+                    },
+                    // 打开请求拒绝
+                    ssh_msg_code::SSH_MSG_CHANNEL_OPEN_FAILURE => {
+
+                    },
+                    _ => {}
+                }
+            }
+        }
     }
 
     fn initiate_authentication(&mut self) -> SshResult<()> {
