@@ -55,6 +55,7 @@ impl Display for SshError {
 
 #[derive(Debug)]
 pub enum SshErrorKind {
+    SshConnectionError(String),
     IoError(io::Error),
     EncryptionNullError,
     FromUtf8Error,
@@ -80,6 +81,7 @@ pub enum SshErrorKind {
 impl PartialEq<Self> for SshErrorKind {
     fn eq(&self, other: &Self) -> bool {
         match (&self, &other) {
+            (&SshErrorKind::SshConnectionError(v1), &SshErrorKind::SshConnectionError(v2)) => v1.eq(v2),
             (&SshErrorKind::IoError(io1), &SshErrorKind::IoError(io2)) => io1.kind() == io2.kind(),
             (&SshErrorKind::EncryptionNullError, &SshErrorKind::EncryptionNullError) => true,
             (&SshErrorKind::FromUtf8Error, &SshErrorKind::FromUtf8Error) => true,
@@ -109,6 +111,7 @@ impl PartialEq<Self> for SshErrorKind {
 impl SshErrorKind {
     fn as_str(&self) -> &str {
         match self {
+            SshErrorKind::SshConnectionError(v) => v.as_str(),
             SshErrorKind::FromUtf8Error => "The UTF8 conversion is abnormal",
             SshErrorKind::ChannelFailureError => "Connection channel failure",
             SshErrorKind::PasswordError => "Password authentication failed",

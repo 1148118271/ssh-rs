@@ -84,15 +84,18 @@ impl Session {
     pub fn open_channel(&mut self) -> SshResult<Channel> {
         log::info!("channel opened.");
         let client_channel = global::CLIENT_CHANNEL.load(Relaxed);
-        self.ssh_open_channel(client_channel)?;
+        self.send_open_channel(client_channel)?;
+        let (server_channel, rws) = self.receive_open_channel()?;
         global::CLIENT_CHANNEL.fetch_add(1, Relaxed);
+        let mut win_size = WindowSize::new();
+        win_size.add_remote_window_size(rws);
         Ok(Channel {
             kex: Kex::new()?,
-            server_channel: 0,
+            server_channel,
             client_channel,
             remote_close: false,
             local_close: false,
-            window_size: WindowSize::new()
+            window_size: win_size
         })
     }
 
@@ -111,8 +114,8 @@ impl Session {
     //     channel.open_scp()
     // }
 
-    fn ssh_open_channel(&mut self, client_channel: u32) -> SshResult<(u32, u32)> {
-        // 本地请求远程打开通道
+    // 本地请求远程打开通道
+    fn send_open_channel(&mut self, client_channel: u32) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_OPEN)
             .put_str(ssh_str::SESSION)
@@ -120,11 +123,11 @@ impl Session {
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
         let mut client = client::locking()?;
-        client.write(data)?;
-        client::unlock(client);
+        client.write(data)
+    }
 
-
-        // 远程回应是否可以打开通道
+    // 远程回应是否可以打开通道
+    fn receive_open_channel(&mut self) -> SshResult<(u32, u32)> {
         loop {
             let mut client = client::locking()?;
             let results = client.read()?;
@@ -145,9 +148,40 @@ impl Session {
                         result.get_u32();
                         return Ok((server_channel, rws));
                     },
+                    /*
+                        byte SSH_MSG_CHANNEL_OPEN_FAILURE
+                        uint32 recipient channel
+                        uint32 reason code
+                        string description，ISO-10646 UTF-8 编码[RFC3629]
+                        string language tag，[RFC3066]
+                    */
                     // 打开请求拒绝
                     ssh_msg_code::SSH_MSG_CHANNEL_OPEN_FAILURE => {
+                        result.get_u32();
+                        // 失败原因码
+                        let code = result.get_u32();
+                        // 消息详情 默认utf-8编码
+                        let description = String::from_utf8(result.get_u8s())
+                            .unwrap_or(String::from("error"));
+                        // language tag 暂不处理， 应该是 en-US
+                        result.get_u8s();
 
+                        let err_msg = match code {
+                            ssh_msg_code::SSH_OPEN_ADMINISTRATIVELY_PROHIBITED => {
+                                format!("SSH_OPEN_ADMINISTRATIVELY_PROHIBITED: {}", description)
+                            },
+                            ssh_msg_code::SSH_OPEN_CONNECT_FAILED => {
+                                format!("SSH_OPEN_CONNECT_FAILED: {}", description)
+                            },
+                            ssh_msg_code::SSH_OPEN_UNKNOWN_CHANNEL_TYPE => {
+                                format!("SSH_OPEN_UNKNOWN_CHANNEL_TYPE: {}", description)
+                            },
+                            ssh_msg_code::SSH_OPEN_RESOURCE_SHORTAGE => {
+                                format!("SSH_OPEN_RESOURCE_SHORTAGE: {}", description)
+                            },
+                            _ => description
+                        };
+                        return Err(SshError::from(SshErrorKind::SshConnectionError(err_msg)))
                     },
                     _ => {}
                 }

@@ -114,7 +114,6 @@ impl SSH {
             Some(
                 Mutex::new(Config::new()))
         );
-
         log::info!("connection to the server is successful.");
         Session.set_nonblocking(true)?;
         Ok(Session)

@@ -137,6 +137,13 @@ pub mod ssh_msg_code {
     pub const SSH_DISCONNECT_AUTH_CANCELLED_BY_USER             :u8 = 13;
     pub const SSH_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE     :u8 = 14;
     pub const SSH_DISCONNECT_ILLEGAL_USER_NAME                  :u8 = 15;
+
+
+    // 通道连接失败码 SSH_MSG_CHANNEL_OPEN_FAILURE
+    pub const SSH_OPEN_ADMINISTRATIVELY_PROHIBITED              :u32 = 1;
+    pub const SSH_OPEN_CONNECT_FAILED                           :u32 = 2;
+    pub const SSH_OPEN_UNKNOWN_CHANNEL_TYPE                     :u32 = 3;
+    pub const SSH_OPEN_RESOURCE_SHORTAGE                        :u32 = 4;
 }
 
 

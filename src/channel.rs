@@ -102,19 +102,16 @@ impl Channel {
 
     pub fn open_shell(mut self) -> SshResult<ChannelShell> {
         log::info!("shell opened.");
-        self.confirmation()?;
         return ChannelShell::open(self)
     }
 
     pub fn open_exec(mut self) -> SshResult<ChannelExec> {
         log::info!("exec opened.");
-        self.confirmation()?;
         return Ok(ChannelExec::open(self))
     }
 
     // pub fn open_scp(mut self) -> SshResult<ChannelScp> {
     //     log::info!("scp opened.");
-    //     self.confirmation()?;
     //     return Ok(ChannelScp::open(self))
     // }
 
@@ -124,32 +121,6 @@ impl Channel {
         self.receive_close()
     }
 
-    fn confirmation(&mut self) -> SshResult<()> {
-        loop {
-            let mut client = client::locking()?;
-            let results = client.read()?;
-            client::unlock(client);
-            for mut result in results {
-                if result.is_empty() { continue }
-                let message_code = result.get_u8();
-                match message_code {
-                    ssh_msg_code::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
-                        // 接收方通道号
-                        result.get_u32();
-                        // 发送方通道号
-                        self.server_channel = result.get_u32();
-                        // 远程初始窗口大小
-                        let rws = result.get_u32();
-                        self.window_size.add_remote_window_size(rws);
-                        // 远程的最大数据包大小， 暂时不需要
-                        result.get_u32();
-                        return Ok(());
-                    }
-                    _ => self.other(message_code, result)?
-                }
-            }
-        }
-    }
 
     fn send_close(&mut self) -> SshResult<()> {
         if self.local_close { return Ok(()); }
