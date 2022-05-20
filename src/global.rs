@@ -9,7 +9,7 @@ use crate::{Config, Client};
 // 客户端通道编号初始值
 pub(crate) static CLIENT_CHANNEL: AtomicU32 = AtomicU32::new(0);
 
-pub(crate) static mut CLIENT: Option<Mutex<Client>> = None;
+// pub(crate) static mut CLIENT: Option<Mutex<Client>> = None;
 
 pub(crate) static mut CONFIG: Option<Mutex<Config>> = None;
 

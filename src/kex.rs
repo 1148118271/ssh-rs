@@ -23,7 +23,7 @@ use crate::config::{
     MacAlgorithm,
     PublicKeyAlgorithm}
 ;
-use crate::util;
+use crate::{client, util};
 
 
 pub(crate) struct Kex {
@@ -63,13 +63,13 @@ impl Kex {
 
         self.h.set_i_c(data.as_slice());
 
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         client.write(data)
     }
 
 
     pub(crate) fn receive_algorithm(&mut self) -> SshResult<()> {
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         loop {
             let results = client.read()?;
             for result in results {
@@ -91,16 +91,16 @@ impl Kex {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEX_ECDH_INIT);
         data.put_u8s(self.dh.get_public_key());
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         client.write(data)
     }
 
 
     pub(crate) fn verify_signature_and_new_keys(&mut self) -> SshResult<()> {
         loop {
-            let mut client = util::client()?;
+            let mut client = client::locking()?;
             let results = client.read()?;
-            util::unlock(client);
+            client::unlock(client);
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -130,7 +130,7 @@ impl Kex {
     pub(crate) fn new_keys(&mut self) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         client.write(data)?;
 
         let hash: HASH = HASH::new(&self.h.k, &self.session_id, &self.session_id);

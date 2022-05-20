@@ -55,7 +55,7 @@
 //
 //         let mut client = util::client().unwrap();
 //         client.write(packet.as_slice()).unwrap();
-//         util::unlock(client);
+//         client::unlock(client);
 //
 //         // 接收返回码
 //         let vec = read_data(channel).unwrap();
@@ -74,7 +74,7 @@
 //
 //             let mut client = util::client().unwrap();
 //             client.write(packet.as_slice()).unwrap();
-//             util::unlock(client);
+//             client::unlock(client);
 //
 //             // 接收返回码
 //             let vec = read_data(channel).unwrap();
@@ -95,7 +95,7 @@
 //
 //             let mut client = util::client().unwrap();
 //             client.write(packet.as_slice()).unwrap();
-//             util::unlock(client);
+//             client::unlock(client);
 //
 //             // 接收返回码
 //             let vec = read_data(channel).unwrap();
@@ -112,7 +112,7 @@
 //
 //             let mut client = util::client().unwrap();
 //             client.write(packet.as_slice()).unwrap();
-//             util::unlock(client);
+//             client::unlock(client);
 //
 //             let mut data = Data::new();
 //             data.put_u8(message::SSH_MSG_CHANNEL_DATA)
@@ -123,7 +123,7 @@
 //
 //             let mut client = util::client().unwrap();
 //             client.write(packet.as_slice()).unwrap();
-//             util::unlock(client);
+//             client::unlock(client);
 //
 //
 //             // 接收返回码
@@ -151,7 +151,7 @@
 //         packet.build();
 //         let mut client = util::client().unwrap();
 //         client.write(packet.as_slice()).unwrap();
-//         util::unlock(client);
+//         client::unlock(client);
 //
 //
 //         // 接收返回码
@@ -172,7 +172,7 @@
 //         //
 //         // let mut client = util::client().unwrap();
 //         // client.write(packet.as_slice()).unwrap();
-//         // util::unlock(client);
+//         // client::unlock(client);
 //         //
 //         //
 //         // // 发送文件夹
@@ -186,7 +186,7 @@
 //         //
 //         // let mut client = util::client().unwrap();
 //         // client.write(packet.as_slice()).unwrap();
-//         // util::unlock(client);
+//         // client::unlock(client);
 //         //
 //         // // 接收返回码
 //         // let vec = read_data(&mut channel).unwrap();
@@ -202,7 +202,7 @@
 //         //
 //         // let mut client = util::client().unwrap();
 //         // client.write(packet.as_slice()).unwrap();
-//         // util::unlock(client);
+//         // client::unlock(client);
 //         //
 //         // // 发送时间
 //         // let time = "T1647767946 0 1647767946 0\n";
@@ -219,7 +219,7 @@
 //         //
 //         // let mut client = util::client().unwrap();
 //         // client.write(packet.as_slice()).unwrap();
-//         // util::unlock(client);
+//         // client::unlock(client);
 //         //
 //         //
 //         //
@@ -242,7 +242,7 @@
 //         //
 //         // let mut client = util::client().unwrap();
 //         // client.write(packet.as_slice()).unwrap();
-//         // util::unlock(client);
+//         // client::unlock(client);
 //         //
 //         //
 //         // // 接收返回码
@@ -274,7 +274,7 @@
 //         //
 //         // let mut client = util::client().unwrap();
 //         // client.write(packet.as_slice()).unwrap();
-//         // util::unlock(client);
+//         // client::unlock(client);
 //         //
 //         // let vec = read_data(&mut channel).unwrap();
 //         // let string = util::from_utf8(vec).unwrap();
@@ -315,7 +315,7 @@
 //         packet.build();
 //         let mut client = util::client().unwrap();
 //         client.write(packet.as_slice()).unwrap();
-//         util::unlock(client);
+//         client::unlock(client);
 //         send_end(&mut channel);
 //
 //         let vec = read_data(&mut channel).unwrap();
@@ -386,7 +386,7 @@
 //             if !v.is_empty() { break }
 //             let mut client = util::client().unwrap();
 //             let results = client.read().unwrap();
-//             util::unlock(client);
+//             client::unlock(client);
 //             for mut buf in results {
 //                 let message_code = buf.get_u8();
 //                 match message_code {

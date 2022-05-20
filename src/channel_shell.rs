@@ -2,7 +2,7 @@ use error::SshResult;
 use packet::Data;
 use constant::{ssh_msg_code, ssh_str};
 use crate::channel::Channel;
-use crate::util;
+use crate::{client, util};
 
 
 pub struct ChannelShell(pub(crate) Channel);
@@ -14,9 +14,9 @@ impl ChannelShell {
         ChannelShell::request_pty(&channel)?;
         ChannelShell::get_shell(&channel)?;
         loop {
-            let mut client = util::client()?;
+            let mut client = client::locking()?;
             let results = client.read()?;
-            util::unlock(client);
+            client::unlock(client);
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -49,7 +49,7 @@ impl ChannelShell {
             0_u8,                 // TTY_OP_END
         ];
         data.put_u8s(&model);
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         client.write(data)
     }
 
@@ -59,15 +59,15 @@ impl ChannelShell {
             .put_u32(channel.server_channel)
             .put_str(ssh_str::SHELL)
             .put_u8(true as u8);
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         client.write(data)
     }
 
     pub fn read(&mut self) -> SshResult<Vec<u8>> {
         let mut buf = vec![];
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         let results = client.read()?;
-        util::unlock(client);
+        client::unlock(client);
         for mut result in results {
             if result.is_empty() { continue }
             let message_code = result.get_u8();
@@ -90,7 +90,7 @@ impl ChannelShell {
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.0.server_channel)
             .put_u8s(buf);
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         client.write(data)
     }
 

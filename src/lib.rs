@@ -73,7 +73,9 @@
 
 
 
-mod tcp;
+extern crate core;
+
+mod client;
 mod session;
 mod channel;
 mod kex;
@@ -91,12 +93,12 @@ pub use channel::Channel;
 pub use channel_shell::ChannelShell;
 pub use channel_exec::ChannelExec;
 
-use std::net::ToSocketAddrs;
-use std::sync::Mutex;
+use std::net::{TcpStream, ToSocketAddrs};
+use std::sync::{Arc, Mutex};
 use slog::{log, Slog};
 use error::{SshError, SshResult};
 use crate::config::Config;
-use crate::tcp::Client;
+use crate::client::Client;
 
 
 pub struct SSH;
@@ -107,17 +109,13 @@ impl SSH {
     }
 
     pub fn get_session<A: ToSocketAddrs>(self, adder: A) -> SshResult<Session> {
-        util::update_client(
-            Some(Mutex::new(Client::connect(adder)?))
-        );
-
+        client::connect(adder)?;
         util::update_config(
             Some(
                 Mutex::new(Config::new()))
         );
 
         log::info!("connection to the server is successful.");
-
         Session.set_nonblocking(true)?;
         Ok(Session)
     }

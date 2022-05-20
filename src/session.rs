@@ -5,10 +5,10 @@ use constant::{ssh_msg_code, size, ssh_str};
 use error::{SshError, SshErrorKind, SshResult};
 use slog::log;
 use crate::channel::Channel;
-use crate::tcp::Client;
-use crate::channel_scp::ChannelScp;
+use crate::client::Client;
+// use crate::channel_scp::ChannelScp;
 use crate::kex::Kex;
-use crate::{ChannelExec, ChannelShell, global, util};
+use crate::{ChannelExec, ChannelShell, client, global, util};
 use crate::window_size::WindowSize;
 
 
@@ -63,8 +63,7 @@ impl Session {
 
     pub fn set_nonblocking(&mut self, nonblocking: bool) -> SshResult<()> {
         log::info!("set nonblocking: [{}]", nonblocking);
-        let client = util::client()?;
-        if let Err(e) = client.stream.set_nonblocking(nonblocking) {
+        if let Err(e) = client::locking()?.set_nonblocking(nonblocking) {
             return Err(SshError::from(e))
         }
         Ok(())
@@ -79,8 +78,7 @@ impl Session {
 
     pub fn close(self) -> SshResult<()> {
         log::info!("session close.");
-        let mut client = util::client()?;
-        client.close()
+        client::locking()?.close()
     }
 
     pub fn open_channel(&mut self) -> SshResult<Channel> {
@@ -110,10 +108,10 @@ impl Session {
         channel.open_shell()
     }
 
-    pub fn open_scp(&mut self) -> SshResult<ChannelScp> {
-        let channel = self.open_channel()?;
-        channel.open_scp()
-    }
+    // pub fn open_scp(&mut self) -> SshResult<ChannelScp> {
+    //     let channel = self.open_channel()?;
+    //     channel.open_scp()
+    // }
 
     fn ssh_open_channel(&mut self, client_channel: u32) -> SshResult<()> {
         let mut data = Data::new();
@@ -122,8 +120,7 @@ impl Session {
             .put_u32(client_channel)
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
-        let mut client = util::client()?;
-        client.write(data)
+        client::locking()?.write(data)
     }
 
     fn initiate_authentication(&mut self) -> SshResult<()> {
@@ -132,12 +129,12 @@ impl Session {
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
         println!("data len {}", data.len());
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         client.write(data)
     }
 
     fn authentication(&mut self) -> SshResult<()> {
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         loop {
             let results = client.read()?;
             for mut result in results {
@@ -169,7 +166,7 @@ impl Session {
     }
 
     fn send_version(&mut self) -> SshResult<()> {
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         let config = util::config()?;
         client.write_version(format!("{}\r\n", config.version.client_version).as_bytes())?;
         log::info!("client version: [{}]", config.version.client_version);
@@ -177,7 +174,7 @@ impl Session {
     }
 
     fn receive_version(&mut self) -> SshResult<()> {
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         let vec = client.read_version();
         let from_utf8 = util::from_utf8(vec)?;
         let sv = from_utf8.trim();

@@ -4,10 +4,10 @@ use error::{SshError, SshErrorKind, SshResult};
 use packet::Data;
 use slog::log;
 use crate::channel_exec::ChannelExec;
-use crate::channel_scp::ChannelScp;
+// use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
 use crate::kex::{Kex, processing_server_algorithm};
-use crate::{Client, util};
+use crate::{Client, client, util};
 use crate::window_size::WindowSize;
 
 pub struct Channel {
@@ -28,9 +28,9 @@ impl Channel {
             ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
                 data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                let mut client = util::client()?;
+                let mut client = client::locking()?;
                 client.write(data)?;
-                util::unlock(client)
+                client::unlock(client)
             }
             ssh_msg_code::SSH_MSG_KEXINIT => {
                 //let data = Packet::processing_data(result);
@@ -76,7 +76,14 @@ impl Channel {
                 // 需要调整增加的窗口大小
                 let rws = result.get_u32();
                 self.window_size.add_remote_window_size(rws);
-            }
+            },
+            // 拓展通道, 暂时用不到
+            // ssh_msg_code::SSH_MSG_CHANNEL_EXTENDED_DATA => {
+            //     result.get_u32(); // channel serial no    4 len
+            //     result.get_u32(); // data type code        4 len
+            //     let vec = result.get_u8s();  // string data len
+            //     self.window_size.sub_local_window_size(result.len() as u32);
+            // }
             ssh_msg_code::SSH_MSG_CHANNEL_EOF => {}
             ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {}
             ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {}
@@ -93,12 +100,35 @@ impl Channel {
         Ok(())
     }
 
+    pub fn open_shell(mut self) -> SshResult<ChannelShell> {
+        log::info!("shell opened.");
+        self.confirmation()?;
+        return ChannelShell::open(self)
+    }
+
+    pub fn open_exec(mut self) -> SshResult<ChannelExec> {
+        log::info!("exec opened.");
+        self.confirmation()?;
+        return Ok(ChannelExec::open(self))
+    }
+
+    // pub fn open_scp(mut self) -> SshResult<ChannelScp> {
+    //     log::info!("scp opened.");
+    //     self.confirmation()?;
+    //     return Ok(ChannelScp::open(self))
+    // }
+
+    pub fn close(&mut self) -> SshResult<()> {
+        log::info!("channel close.");
+        self.send_close()?;
+        self.receive_close()
+    }
 
     fn confirmation(&mut self) -> SshResult<()> {
         loop {
-            let mut client = util::client()?;
+            let mut client = client::locking()?;
             let results = client.read()?;
-            util::unlock(client);
+            client::unlock(client);
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -121,36 +151,12 @@ impl Channel {
         }
     }
 
-    pub fn open_shell(mut self) -> SshResult<ChannelShell> {
-        log::info!("shell opened.");
-        self.confirmation()?;
-        return ChannelShell::open(self)
-    }
-
-    pub fn open_exec(mut self) -> SshResult<ChannelExec> {
-        log::info!("exec opened.");
-        self.confirmation()?;
-        return Ok(ChannelExec::open(self))
-    }
-    
-    pub fn open_scp(mut self) -> SshResult<ChannelScp> {
-        log::info!("scp opened.");
-        self.confirmation()?;
-        return Ok(ChannelScp::open(self))
-    }
-
-    pub fn close(&mut self) -> SshResult<()> {
-        log::info!("channel close.");
-        self.send_close()?;
-        self.receive_close()
-    }
-
     fn send_close(&mut self) -> SshResult<()> {
         if self.local_close { return Ok(()); }
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_CLOSE)
             .put_u32(self.server_channel);
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         client.write(data)?;
         self.local_close = true;
         Ok(())
@@ -159,9 +165,9 @@ impl Channel {
     fn receive_close(&mut self) -> SshResult<()> {
         if self.remote_close { return Ok(()); }
         loop {
-            let mut client = util::client()?;
+            let mut client = client::locking()?;
             let results = client.read()?;
-            util::unlock(client);
+            client::unlock(client);
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();

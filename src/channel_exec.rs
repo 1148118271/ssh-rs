@@ -2,7 +2,7 @@ use constant::{ssh_msg_code, ssh_str};
 use error::SshResult;
 use packet::Data;
 use crate::channel::Channel;
-use crate::util;
+use crate::{client, util};
 
 
 
@@ -23,14 +23,14 @@ impl ChannelExec {
             .put_str(ssh_str::EXEC)
             .put_u8(true as u8)
             .put_str(command);
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         client.write(data)
     }
 
     fn get_data(&mut self, v: &mut Vec<u8>) -> SshResult<()> {
-        let mut client = util::client()?;
+        let mut client = client::locking()?;
         let results = client.read()?;
-        util::unlock(client);
+        client::unlock(client);
         for mut result in results {
             if result.is_empty() { continue }
             let message_code = result.get_u8();
