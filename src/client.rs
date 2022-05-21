@@ -2,7 +2,7 @@ use std::io;
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
-use std::sync::{Arc, LockResult, Mutex, MutexGuard};
+use std::sync::{Mutex, MutexGuard};
 use std::sync::atomic::Ordering::Relaxed;
 use constant::{ssh_msg_code, size};
 use encryption::{ChaCha20Poly1305, IS_ENCRYPT};
@@ -79,7 +79,11 @@ impl Client {
         }
     }
 
-    pub(crate) fn read(&mut self/*, ws: Option<&mut WindowSize>*/) -> Result<Vec<Data>, SshError> {
+    pub fn read(&mut self) -> Result<Vec<Data>, SshError> {
+        self.read_data(None)
+    }
+
+    pub fn read_data(&mut self, ws: Option<&mut WindowSize>) -> Result<Vec<Data>, SshError> {
         let mut results = vec![];
         let mut result = vec![0; size::BUF_SIZE as usize];
         let len = match self.stream.read(&mut result) {
@@ -104,7 +108,7 @@ impl Client {
         }
         // 处理加密数据
         else {
-            self.process_data_encrypt(result, &mut results/*, ws*/);
+            self.process_data_encrypt(result, &mut results, ws)?
         }
 
         Ok(results)
@@ -133,7 +137,7 @@ impl Client {
         &mut self,
         mut result: Vec<u8>,
         results: &mut Vec<Data>,
-        // ws: Option<&mut WindowSize>
+        mut ws: Option<&mut WindowSize>
     ) -> SshResult<()>
     {
         loop {
@@ -151,14 +155,10 @@ impl Client {
             let decryption_result =
                 key.decryption(self.sequence.server_sequence_num, &mut this.to_vec())?;
             let data = Packet::from(decryption_result).unpacking();
-
             // 判断是否需要修改窗口大小
-            // let ds = data.as_slice();
-            // let mc = &ds[0];
-            // if *mc == ssh_msg_code::SSH_MSG_CHANNEL_DATA || *mc == ssh_msg_code::S { }
-
-            // change the channel window size
-            // ChannelWindowSize::process_window_size(data.clone(), self)?;
+            if let Some(v) = &mut ws {
+                v.process_local_window_size(data.as_slice())?
+            }
             results.push(data);
             if remaining.len() <= 0 {
                 break;

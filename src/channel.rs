@@ -1,4 +1,5 @@
 use std::borrow::BorrowMut;
+use std::ops::{Deref, DerefMut};
 use constant::{ssh_msg_code, size, ssh_str};
 use error::{SshError, SshErrorKind, SshResult};
 use packet::Data;
@@ -12,17 +13,26 @@ use crate::window_size::WindowSize;
 
 pub struct Channel {
     pub(crate) kex: Kex,
-    pub(crate) server_channel: u32,
-    pub(crate) client_channel: u32,
     pub(crate) remote_close: bool,
     pub(crate) local_close: bool,
     pub(crate) window_size: WindowSize
 }
 
+impl Deref for Channel {
+    type Target = WindowSize;
 
+    fn deref(&self) -> &Self::Target {
+        &self.window_size
+    }
+}
+
+impl DerefMut for Channel {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.window_size
+    }
+}
 
 impl Channel {
-
     pub(crate) fn other(&mut self, message_code: u8, mut result: Data) -> SshResult<()> {
         match message_code {
             ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
@@ -77,13 +87,6 @@ impl Channel {
                 let rws = result.get_u32();
                 self.window_size.add_remote_window_size(rws);
             },
-            // 拓展通道, 暂时用不到
-            // ssh_msg_code::SSH_MSG_CHANNEL_EXTENDED_DATA => {
-            //     result.get_u32(); // channel serial no    4 len
-            //     result.get_u32(); // data type code        4 len
-            //     let vec = result.get_u8s();  // string data len
-            //     self.window_size.sub_local_window_size(result.len() as u32);
-            // }
             ssh_msg_code::SSH_MSG_CHANNEL_EOF => {}
             ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {}
             ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {}
@@ -100,12 +103,12 @@ impl Channel {
         Ok(())
     }
 
-    pub fn open_shell(mut self) -> SshResult<ChannelShell> {
+    pub fn open_shell(self) -> SshResult<ChannelShell> {
         log::info!("shell opened.");
         return ChannelShell::open(self)
     }
 
-    pub fn open_exec(mut self) -> SshResult<ChannelExec> {
+    pub fn open_exec(self) -> SshResult<ChannelExec> {
         log::info!("exec opened.");
         return Ok(ChannelExec::open(self))
     }
@@ -120,7 +123,6 @@ impl Channel {
         self.send_close()?;
         self.receive_close()
     }
-
 
     fn send_close(&mut self) -> SshResult<()> {
         if self.local_close { return Ok(()); }
@@ -137,7 +139,7 @@ impl Channel {
         if self.remote_close { return Ok(()); }
         loop {
             let mut client = client::locking()?;
-            let results = client.read()?;
+            let results = client.read()?; // close 时不消耗窗口空间
             client::unlock(client);
             for mut result in results {
                 if result.is_empty() { continue }

@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use error::SshResult;
 use packet::Data;
 use constant::{ssh_msg_code, ssh_str};
@@ -66,7 +67,7 @@ impl ChannelShell {
     pub fn read(&mut self) -> SshResult<Vec<u8>> {
         let mut buf = vec![];
         let mut client = client::locking()?;
-        let results = client.read()?;
+        let results = client.read_data(Some(self.0.window_size.borrow_mut()))?;
         client::unlock(client);
         for mut result in results {
             if result.is_empty() { continue }

@@ -88,11 +88,11 @@ impl Session {
         let (server_channel, rws) = self.receive_open_channel()?;
         global::CLIENT_CHANNEL.fetch_add(1, Relaxed);
         let mut win_size = WindowSize::new();
+        win_size.server_channel = server_channel;
+        win_size.client_channel = client_channel;
         win_size.add_remote_window_size(rws);
         Ok(Channel {
             kex: Kex::new()?,
-            server_channel,
-            client_channel,
             remote_close: false,
             local_close: false,
             window_size: win_size

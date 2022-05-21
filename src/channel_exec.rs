@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use constant::{ssh_msg_code, ssh_str};
 use error::SshResult;
 use packet::Data;
@@ -29,7 +30,7 @@ impl ChannelExec {
 
     fn get_data(&mut self, v: &mut Vec<u8>) -> SshResult<()> {
         let mut client = client::locking()?;
-        let results = client.read()?;
+        let results = client.read_data(Some(self.0.window_size.borrow_mut()))?;
         client::unlock(client);
         for mut result in results {
             if result.is_empty() { continue }

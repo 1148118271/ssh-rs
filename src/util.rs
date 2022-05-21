@@ -25,33 +25,6 @@ pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
 pub fn unlock<T>(guard: MutexGuard<'static, T>) {
     drop(guard);
 }
-//
-//
-// pub(crate) fn update_client(v: Option<Mutex<Client>>) {
-//     unsafe {
-//         CLIENT = v
-//     }
-// }
-//
-// pub(crate) fn client() -> SshResult<MutexGuard<'static, Client>> {
-//     unsafe {
-//         match &mut CLIENT {
-//             None => {
-//                 log::error!("Client null pointer");
-//                 Err(SshError::from(SshErrorKind::ClientNullError))
-//             }
-//             Some(v) => {
-//                 match v.lock() {
-//                     Ok(c) => Ok(c),
-//                     Err(e) => {
-//                         log::error!("Get client mutex error, error info: {:?}", e);
-//                         Err(SshError::from(SshErrorKind::MutexError))
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
 
 
 pub(crate) fn update_config(v: Option<Mutex<Config>>) {
