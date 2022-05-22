@@ -93,13 +93,10 @@ pub use channel::Channel;
 pub use channel_shell::ChannelShell;
 pub use channel_exec::ChannelExec;
 
-use std::net::{TcpStream, ToSocketAddrs};
-use std::sync::{Arc, Mutex};
+use std::net::ToSocketAddrs;
 use slog::{log, Slog};
 use error::{SshError, SshResult};
 use crate::config::Config;
-use crate::client::Client;
-
 
 pub struct SSH;
 
@@ -110,10 +107,7 @@ impl SSH {
 
     pub fn get_session<A: ToSocketAddrs>(self, adder: A) -> SshResult<Session> {
         client::connect(adder)?;
-        util::update_config(
-            Some(
-                Mutex::new(Config::new()))
-        );
+        config::init(Config::new());
         log::info!("connection to the server is successful.");
         Session.set_nonblocking(true)?;
         Ok(Session)

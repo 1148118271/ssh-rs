@@ -1,8 +1,8 @@
 use constant::size::LOCAL_WINDOW_SIZE;
-use constant::{size, ssh_msg_code};
+use constant::ssh_msg_code;
 use error::SshResult;
 use packet::Data;
-use crate::{client, util};
+use crate::client;
 
 pub struct WindowSize {
     pub(crate) server_channel: u32,

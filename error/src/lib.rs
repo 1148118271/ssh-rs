@@ -168,19 +168,3 @@ impl From<String> for SshError {
         }
     }
 }
-
-#[test]
-fn test() {
-    match get_error() {
-        Ok(_) => {}
-        Err(e) => {
-            if e.kind() == SshErrorKind::SignatureError { }
-        }
-    }
-    //get_error().unwrap();
-}
-
-fn get_error() -> Result<(), SshError> {
-    return Err(SshError::from(SshErrorKind::EncryptionError))
-    // return Err(SshError::from(SshErrorKind::IoError(io::Error::from(io::ErrorKind::WouldBlock))))
-}

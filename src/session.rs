@@ -8,7 +8,7 @@ use crate::channel::Channel;
 use crate::client::Client;
 // use crate::channel_scp::ChannelScp;
 use crate::kex::Kex;
-use crate::{ChannelExec, ChannelShell, client, global, util};
+use crate::{ChannelExec, ChannelShell, client, config, global, util};
 use crate::window_size::WindowSize;
 
 
@@ -27,9 +27,8 @@ impl Session {
         self.receive_version()?;
 
         // 版本验证
-        let config = util::config()?;
+        let config = config::config()?;
         config.version.validation()?;
-        util::unlock(config);
         // 发送客户端版本
         self.send_version()?;
 
@@ -42,15 +41,12 @@ impl Session {
         kex.send_algorithm()?;
         kex.receive_algorithm()?;
 
-        let config = util::config()?;
         let (dh, sign) = config.algorithm.matching_algorithm()?;
         kex.dh = dh;
         kex.signature = sign;
 
         kex.h.set_v_c(config.version.client_version.as_str());
         kex.h.set_v_s(config.version.server_version.as_str());
-
-        util::unlock(config);
 
         kex.send_qc()?;
         kex.verify_signature_and_new_keys()?;
@@ -70,7 +66,7 @@ impl Session {
     }
 
     pub fn set_user_and_password<S: Into<String>>(&mut self, user: S, password: S) -> SshResult<()> {
-        let mut config = util::config()?;
+        let config = config::config()?;
         config.user.username = user.into();
         config.user.password = password.into();
         Ok(())
@@ -232,7 +228,7 @@ impl Session {
 
     fn send_version(&mut self) -> SshResult<()> {
         let mut client = client::locking()?;
-        let config = util::config()?;
+        let config = config::config()?;
         client.write_version(format!("{}\r\n", config.version.client_version).as_bytes())?;
         log::info!("client version: [{}]", config.version.client_version);
         Ok(())
@@ -244,7 +240,7 @@ impl Session {
         let from_utf8 = util::from_utf8(vec)?;
         let sv = from_utf8.trim();
         log::info!("server version: [{}]", sv);
-        let mut config = util::config()?;
+        let config = config::config()?;
         config.version.server_version = sv.to_string();
         Ok(())
     }
@@ -252,7 +248,7 @@ impl Session {
 
 
 fn password_authentication(client: &mut MutexGuard<'static, Client>) -> SshResult<()> {
-    let config = util::config()?;
+    let config = config::config()?;
     if config.user.username.is_empty() {
         return Err(SshError::from(SshErrorKind::UserNullError))
     }

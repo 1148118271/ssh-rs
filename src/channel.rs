@@ -1,6 +1,5 @@
-use std::borrow::BorrowMut;
 use std::ops::{Deref, DerefMut};
-use constant::{ssh_msg_code, size, ssh_str};
+use constant::{ssh_msg_code};
 use error::{SshError, SshErrorKind, SshResult};
 use packet::Data;
 use slog::log;
@@ -8,7 +7,7 @@ use crate::channel_exec::ChannelExec;
 // use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
 use crate::kex::{Kex, processing_server_algorithm};
-use crate::{Client, client, util};
+use crate::{client, config};
 use crate::window_size::WindowSize;
 
 pub struct Channel {
@@ -50,7 +49,7 @@ impl Channel {
                 self.kex.h.set_i_s(data.as_slice());
                 processing_server_algorithm(data)?;
                 self.kex.send_algorithm()?;
-                let config = util::config()?;
+                let config = config::config()?;
 
                 let (dh, sign) = config.algorithm.matching_algorithm()?;
                 self.kex.dh = dh;
@@ -59,7 +58,6 @@ impl Channel {
                 self.kex.h.set_v_c(config.version.client_version.as_str());
                 self.kex.h.set_v_s(config.version.server_version.as_str());
 
-                util::unlock(config);
 
                 self.kex.send_qc()?;
             }

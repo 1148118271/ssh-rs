@@ -4,7 +4,7 @@ use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
 use std::sync::{Mutex, MutexGuard};
 use std::sync::atomic::Ordering::Relaxed;
-use constant::{ssh_msg_code, size};
+use constant::size;
 use encryption::{ChaCha20Poly1305, IS_ENCRYPT};
 use packet::{Data, Packet};
 use error::{SshError, SshErrorKind, SshResult};

@@ -3,7 +3,7 @@ use constant::{ssh_msg_code, ssh_str};
 use error::SshResult;
 use packet::Data;
 use crate::channel::Channel;
-use crate::{client, util};
+use crate::client;
 
 
 

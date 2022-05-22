@@ -3,7 +3,7 @@ use error::SshResult;
 use packet::Data;
 use constant::{ssh_msg_code, ssh_str};
 use crate::channel::Channel;
-use crate::{client, util};
+use crate::client;
 
 
 pub struct ChannelShell(pub(crate) Channel);
