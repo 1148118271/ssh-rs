@@ -191,11 +191,9 @@ impl Session {
     }
 
     fn initiate_authentication(&mut self) -> SshResult<()> {
-        println!("initiate_authentication");
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
-        println!("data len {}", data.len());
         let mut client = client::locking()?;
         client.write(data)
     }

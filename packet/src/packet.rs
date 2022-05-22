@@ -71,8 +71,6 @@ impl Packet {
             };
         if padding_len < 4 { padding_len += 8 }
 
-        println!("data len = {}, padding len = {}", data_len, padding_len);
-
         // 组装数据 []
         let mut buf = vec![];
         // [padding_length]

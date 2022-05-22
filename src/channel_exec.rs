@@ -17,7 +17,6 @@ impl ChannelExec {
     }
 
     fn exec_command(&self, command: &str) -> SshResult<()> {
-        println!("exec_command");
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.0.server_channel)
