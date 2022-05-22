@@ -86,6 +86,7 @@ impl Channel {
                 // 需要调整增加的窗口大小
                 let rws = result.get_u32();
                 self.window_size.add_remote_window_size(rws);
+                self.window_size.add_remote_max_window_size(rws);
             },
             ssh_msg_code::SSH_MSG_CHANNEL_EOF => {}
             ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {}
@@ -157,78 +158,4 @@ impl Channel {
             }
         }
     }
-
 }
-
-
-// pub(crate) struct ChannelWindowSize {
-//     pub(crate) client_channel: u32,
-//     pub(crate) server_channel: u32,
-//     /// 本地窗口大小
-//     pub(crate) window_size   : u32,
-//     /// 远程窗口大小
-//     pub(crate) r_window_size : u32
-// }
-//
-// impl ChannelWindowSize {
-//     pub(crate) fn new(client_channel: u32, server_channel: u32) -> ChannelWindowSize {
-//         ChannelWindowSize{
-//             client_channel,
-//             server_channel,
-//             window_size: 0,
-//             r_window_size: 0
-//         }
-//     }
-//     pub(crate) fn process_window_size(mut data: Data, client: &mut Client) -> SshResult<()> {
-//
-//         if data.is_empty() { return Ok(()) }
-//
-//         let msg_code = data.get_u8();
-//
-//         let (client_channel_no, size) = match msg_code {
-//             ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
-//                 let client_channel_no = data.get_u32(); // channel serial no    4 len
-//                 let vec = data.get_u8s(); // string data len
-//                 let size = vec.len() as u32;
-//                 (client_channel_no, size)
-//             }
-//             ssh_msg_code::SSH_MSG_CHANNEL_EXTENDED_DATA => {
-//                 let client_channel_no = data.get_u32(); // channel serial no    4 len
-//                 data.get_u32(); // data type code        4 len
-//                 let vec = data.get_u8s();  // string data len
-//                 let size = vec.len() as u32;
-//                 (client_channel_no, size)
-//             }
-//             _ => return Ok(())
-//         };
-//
-//         if size <= 0 { return Ok(()) }
-//
-//         if let Some(mut map) = util::get_channel_window(client_channel_no)?
-//         {
-//
-//             *map += size;
-//
-//             if map.window_size >= (size::LOCAL_WINDOW_SIZE / 2) {
-//                 let mut data = Data::new();
-//                 data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
-//                     .put_u32(map.server_channel)
-//                     .put_u32(size::LOCAL_WINDOW_SIZE - map.window_size);
-//                 client.write(data)?;
-//                 map.window_size = 0;
-//             }
-//         }
-//
-//         Ok(())
-//     }
-//
-//     pub(crate) fn add_remote_window_size(&mut self, rws: u32) {
-//         self.r_window_size = self.r_window_size + rws;
-//     }
-// }
-//
-// impl std::ops::AddAssign<u32> for ChannelWindowSize {
-//     fn add_assign(&mut self, rhs: u32) {
-//         self.window_size += rhs;
-//     }
-// }

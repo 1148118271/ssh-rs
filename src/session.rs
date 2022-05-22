@@ -91,6 +91,7 @@ impl Session {
         win_size.server_channel = server_channel;
         win_size.client_channel = client_channel;
         win_size.add_remote_window_size(rws);
+        win_size.add_remote_max_window_size(rws);
         Ok(Channel {
             kex: Kex::new()?,
             remote_close: false,

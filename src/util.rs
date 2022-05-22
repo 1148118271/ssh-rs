@@ -7,8 +7,7 @@ use encryption::ChaCha20Poly1305;
 use error::{SshError, SshErrorKind, SshResult};
 use slog::log;
 use crate::{Client, Config};
-// use crate::channel::ChannelWindowSize;
-use crate::global::{/*CHANNEL_WINDOW,CLIENT, */ CONFIG, ENCRYPTION_KEY};
+use crate::global::{CONFIG, ENCRYPTION_KEY};
 
 
 pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
@@ -128,13 +127,17 @@ pub(crate) fn vec_u8_to_string(v: Vec<u8>, pat: &str) -> SshResult<Vec<String>> 
 pub(crate) fn str_to_u32(v: &str) -> SshResult<u32> {
     match u32::from_str(v) {
         Ok(v) => Ok(v),
-        Err(_) => Err(SshError::from(SshErrorKind::UnknownError("str to u32 error".to_string())))
+        Err(_) => {
+            Err(SshError::from(SshErrorKind::UnknownError("str to u32 error".to_string())))
+        }
     }
 }
 
 pub(crate) fn str_to_i64(v: &str) -> SshResult<i64> {
     match i64::from_str(v) {
         Ok(v) => Ok(v),
-        Err(_) => Err(SshError::from(SshErrorKind::UnknownError("str to i64 error".to_string())))
+        Err(_) => {
+            Err(SshError::from(SshErrorKind::UnknownError("str to i64 error".to_string())))
+        }
     }
 }

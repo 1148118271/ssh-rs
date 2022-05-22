@@ -14,8 +14,6 @@ use crate::util;
 use crate::window_size::WindowSize;
 
 
-static mut CLIENT: Option<Mutex<Client>> = None;
-
 pub struct Client {
     stream: TcpStream,
     sequence: Sequence,
@@ -83,7 +81,7 @@ impl Client {
         self.read_data(None)
     }
 
-    pub fn read_data(&mut self, ws: Option<&mut WindowSize>) -> Result<Vec<Data>, SshError> {
+    pub fn read_data(&mut self, lws: Option<&mut WindowSize>) -> Result<Vec<Data>, SshError> {
         let mut results = vec![];
         let mut result = vec![0; size::BUF_SIZE as usize];
         let len = match self.stream.read(&mut result) {
@@ -108,7 +106,7 @@ impl Client {
         }
         // 处理加密数据
         else {
-            self.process_data_encrypt(result, &mut results, ws)?
+            self.process_data_encrypt(result, &mut results, lws)?
         }
 
         Ok(results)
@@ -137,7 +135,7 @@ impl Client {
         &mut self,
         mut result: Vec<u8>,
         results: &mut Vec<Data>,
-        mut ws: Option<&mut WindowSize>
+        mut lws: Option<&mut WindowSize>
     ) -> SshResult<()>
     {
         loop {
@@ -156,7 +154,7 @@ impl Client {
                 key.decryption(self.sequence.server_sequence_num, &mut this.to_vec())?;
             let data = Packet::from(decryption_result).unpacking();
             // 判断是否需要修改窗口大小
-            if let Some(v) = &mut ws {
+            if let Some(v) = &mut lws {
                 v.process_local_window_size(data.as_slice())?
             }
             results.push(data);
@@ -222,83 +220,19 @@ impl Client {
         }
     }
 
-    pub fn write(&mut self, buf: Data) -> Result<(), SshError> {
-        //let mut packet = Packet::from(buf.to_vec());
-        //let mut data = packet.unpacking();
+    pub fn write(&mut self, data: Data) -> Result<(), SshError> {
+        self.write_data(data, None)
+    }
 
-        // let mut data = Data(buf.to_vec());
-        // println!("数据包总长度 {}", data.get_u32());
-        // println!("填充长度 {}", data.get_u8());
-        // println!("消息标志 {:?}", data.get_u8());
-
-        // TODO 暂时不使用
-        // let mut data = buf.clone();
-        //
-        // let msg_code = data.get_u8();
-        //
-        // let (client_channel_no, size, flag) = match msg_code {
-        //     ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
-        //         let client_channel_no = data.get_u32(); // channel serial no    4 len
-        //         let vec = data.get_u8s(); // string data len
-        //         let size = vec.len() as u32;
-        //         (client_channel_no, size, true)
-        //     }
-        //     ssh_msg_code::SSH_MSG_CHANNEL_EXTENDED_DATA => {
-        //         let client_channel_no = data.get_u32(); // channel serial no    4 len
-        //         data.get_u32(); // data type code        4 len
-        //         let vec = data.get_u8s();  // string data len
-        //         let size = vec.len() as u32;
-        //         (client_channel_no, size, true)
-        //     }
-        //     _ => (0, 0, false)
-        // };
-
-        // if flag {
-        //
-        //     let result = util::get_channel_window(client_channel_no).unwrap();
-        //
-        //     if let Some(mut v) = result {
-        //
-        //         let s = size::LOCAL_WINDOW_SIZE - v.r_window_size;
-        //         println!("s => {}", s);
-        //         if v.r_window_size > 0 && s > 0 && size::LOCAL_WINDOW_SIZE / s <= 20 {
-        //             println!("已使用20分之一");
-        //             'main:
-        //             loop {
-        //                 let datas = self.read().unwrap();
-        //                 if !datas.is_empty() {
-        //                     for mut x in datas {
-        //                         let mc = x.get_u8();
-        //                         println!("消息码: {}", mc);
-        //                         if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
-        //                             println!("SSH_MSG_CHANNEL_WINDOW_ADJUST");
-        //                             let c = x.get_u32();
-        //                             println!("通道编号: {}", c);
-        //                             let i = x.get_u32();
-        //                             println!("远程客户端大小: {}", i);
-        //                             v.r_window_size = v.r_window_size + i;
-        //                             break 'main;
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //
-        //         v.r_window_size = v.r_window_size - size;
-        //
-        //         println!("r_window_size: {}", v.r_window_size);
-        //     }
-        //
-        // }
-
-        let mut packet = Packet::from(buf);
+    pub fn write_data(&mut self, data: Data,
+                      rws: Option<&mut WindowSize>) -> Result<(), SshError> {
         let buf = if IS_ENCRYPT.load(Relaxed) {
-            packet.build(true);
-            let mut buf = packet.to_vec();
-            let key = util::encryption_key()?;
-            key.encryption(self.sequence.client_sequence_num, &mut buf);
-            buf
+            if let Some(rws) = rws {
+                rws.process_remote_window_size(data.as_slice())?;
+            }
+            self.get_encryption_data(data)?
         } else {
+            let mut packet = Packet::from(data);
             packet.build(false);
             packet.to_vec()
         };
@@ -314,6 +248,16 @@ impl Client {
         }
 
         Ok(())
+    }
+
+
+    fn get_encryption_data(&self, data: Data) -> SshResult<Vec<u8>> {
+        let mut packet = Packet::from(data);
+        packet.build(true);
+        let mut buf = packet.to_vec();
+        let key = util::encryption_key()?;
+        key.encryption(self.sequence.client_sequence_num, &mut buf);
+        Ok(buf)
     }
 
     pub(crate) fn close(&mut self) -> Result<(), SshError> {
@@ -339,9 +283,19 @@ impl DerefMut for Client {
     }
 }
 
+
+
 fn is_would_block(e: &io::Error) -> bool {
     e.kind() == io::ErrorKind::WouldBlock
 }
+
+
+
+
+
+static mut CLIENT: Option<Mutex<Client>> = None;
+
+
 
 pub(crate) fn connect<A: ToSocketAddrs>(adder: A) -> Result<(), SshError> {
     unsafe {

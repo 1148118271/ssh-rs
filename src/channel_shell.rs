@@ -86,13 +86,13 @@ impl ChannelShell {
         Ok(buf)
     }
 
-    pub fn write(&self, buf: &[u8]) -> SshResult<()> {
+    pub fn write(&mut self, buf: &[u8]) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.0.server_channel)
             .put_u8s(buf);
         let mut client = client::locking()?;
-        client.write(data)
+        client.write_data(data, Some(self.0.window_size.borrow_mut()))
     }
 
     pub fn close(mut self) -> SshResult<()> {
