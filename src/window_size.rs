@@ -66,10 +66,7 @@ impl WindowSize {
         if used <= 0 {
             return Ok(());
         }
-        if self.remote_max_window_size
-            / (self.remote_max_window_size - self.remote_window_size)
-            > 20
-        {
+        if self.remote_max_window_size / used > 20 {
             return Ok(())
         }
         'main:
