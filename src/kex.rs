@@ -50,7 +50,7 @@ impl Kex {
         log::info!("client algorithms: [{}]", config.algorithm.client_algorithm.to_string());
         if IS_ENCRYPT.load(Ordering::Relaxed) {
             IS_ENCRYPT.store(false, Ordering::Relaxed);
-            util::update_encryption_key(None);
+            encryption::update_encryption_key(None);
         }
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
@@ -136,7 +136,7 @@ impl Kex {
         let hash: HASH = HASH::new(&self.h.k, &self.session_id, &self.session_id);
         let poly1305 = ChaCha20Poly1305::new(hash);
         IS_ENCRYPT.store(true, Ordering::Relaxed);
-        util::update_encryption_key(Some(poly1305));
+        encryption::update_encryption_key(Some(poly1305));
         Ok(())
     }
 

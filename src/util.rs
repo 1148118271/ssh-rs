@@ -1,10 +1,8 @@
 use std::str::FromStr;
 use rand::Rng;
 use rand::rngs::OsRng;
-use encryption::ChaCha20Poly1305;
 use error::{SshError, SshErrorKind, SshResult};
 use slog::log;
-use crate::global::ENCRYPTION_KEY;
 
 
 pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
@@ -18,23 +16,6 @@ pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
 }
 
 
-
-pub(crate) fn encryption_key() -> Result<&'static mut ChaCha20Poly1305, SshError>  {
-    unsafe {
-        match &mut ENCRYPTION_KEY {
-            None => {
-                log::error!("Encrypted null pointer");
-                Err(SshError::from(SshErrorKind::EncryptionNullError))
-            },
-            Some(v) => Ok(v)
-        }
-    }
-}
-pub(crate) fn update_encryption_key(v: Option<ChaCha20Poly1305>) {
-    unsafe {
-        ENCRYPTION_KEY = v
-    }
-}
 
 // 十六位随机数
 pub(crate) fn cookie() -> Vec<u8> {

@@ -10,7 +10,6 @@ use packet::{Data, Packet};
 use error::{SshError, SshErrorKind, SshResult};
 use slog::log;
 
-use crate::util;
 use crate::window_size::WindowSize;
 
 
@@ -143,7 +142,7 @@ impl Client {
             if result.len() < 4 {
                 self.check_result_len(&mut result)?;
             }
-            let key = util::encryption_key()?;
+            let key = encryption::encryption_key()?;
             let packet_len = self.get_encrypt_packet_length(&result[..4], key);
             let data_len = (packet_len + 4 + 16) as usize;
             if result.len() < data_len {
@@ -255,7 +254,7 @@ impl Client {
         let mut packet = Packet::from(data);
         packet.build(true);
         let mut buf = packet.to_vec();
-        let key = util::encryption_key()?;
+        let key = encryption::encryption_key()?;
         key.encryption(self.sequence.client_sequence_num, &mut buf);
         Ok(buf)
     }
