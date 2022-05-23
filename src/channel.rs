@@ -1,4 +1,6 @@
 use std::ops::{Deref, DerefMut};
+use std::sync::atomic::AtomicU32;
+use std::sync::atomic::Ordering::Relaxed;
 use constant::{ssh_msg_code};
 use error::{SshError, SshErrorKind, SshResult};
 use packet::Data;
@@ -9,6 +11,19 @@ use crate::channel_shell::ChannelShell;
 use crate::kex::{Kex, processing_server_algorithm};
 use crate::{client, config};
 use crate::window_size::WindowSize;
+
+
+// 客户端通道编号初始值
+pub(crate) static CLIENT_CHANNEL_NO: AtomicU32 = AtomicU32::new(0);
+
+
+pub fn current_client_channel_no() -> u32 {
+    let client_channel_no = CLIENT_CHANNEL_NO.load(Relaxed);
+    CLIENT_CHANNEL_NO.fetch_add(1, Relaxed);
+    client_channel_no
+}
+
+
 
 pub struct Channel {
     pub(crate) kex: Kex,

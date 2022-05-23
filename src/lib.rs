@@ -79,7 +79,6 @@ mod client;
 mod session;
 mod channel;
 mod kex;
-mod global;
 mod channel_shell;
 mod channel_exec;
 

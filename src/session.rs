@@ -1,5 +1,4 @@
 use std::sync::MutexGuard;
-use std::sync::atomic::Ordering::Relaxed;
 use packet::Data;
 use constant::{ssh_msg_code, size, ssh_str};
 use error::{SshError, SshErrorKind, SshResult};
@@ -8,7 +7,7 @@ use crate::channel::Channel;
 use crate::client::Client;
 // use crate::channel_scp::ChannelScp;
 use crate::kex::Kex;
-use crate::{ChannelExec, ChannelShell, client, config, global, util};
+use crate::{channel, ChannelExec, ChannelShell, client, config, util};
 use crate::window_size::WindowSize;
 
 
@@ -79,10 +78,9 @@ impl Session {
 
     pub fn open_channel(&mut self) -> SshResult<Channel> {
         log::info!("channel opened.");
-        let client_channel = global::CLIENT_CHANNEL.load(Relaxed);
+        let client_channel = channel::current_client_channel_no();
         self.send_open_channel(client_channel)?;
         let (server_channel, rws) = self.receive_open_channel()?;
-        global::CLIENT_CHANNEL.fetch_add(1, Relaxed);
         let mut win_size = WindowSize::new();
         win_size.server_channel = server_channel;
         win_size.client_channel = client_channel;
