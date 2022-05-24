@@ -71,7 +71,7 @@ impl WindowSize {
         }
         'main:
         loop {
-            let mut client = client::locking()?;
+            let client = client::default()?;
             let data_arr = client.read()?;
             if !data_arr.is_empty() {
                 for mut data in data_arr {
@@ -127,7 +127,7 @@ impl WindowSize {
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
             .put_u32(self.server_channel)
             .put_u32(used);
-        let mut client = client::locking()?;
+        let client = client::default()?;
         client.write(data)?;
         self.add_local_window_size(used);
         return Ok(());

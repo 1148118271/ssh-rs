@@ -2,7 +2,6 @@ use std::io;
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
-use std::sync::{Mutex, MutexGuard};
 use std::sync::atomic::Ordering::Relaxed;
 use constant::size;
 use encryption::{ChaCha20Poly1305, IS_ENCRYPT};
@@ -292,19 +291,19 @@ fn is_would_block(e: &io::Error) -> bool {
 
 
 
-static mut CLIENT: Option<Mutex<Client>> = None;
+static mut CLIENT: Option<Client> = None;
 
 
 
 pub(crate) fn connect<A: ToSocketAddrs>(adder: A) -> Result<(), SshError> {
     unsafe {
         let client = Client::connect(adder)?;
-        CLIENT = Some(Mutex::new(client));
+        CLIENT = Some(client);
         Ok(())
     }
 }
 
-pub(crate) fn locking() -> SshResult<MutexGuard<'static, Client>> {
+pub(crate) fn default() -> SshResult<&'static mut Client> {
     unsafe {
         match &mut CLIENT {
             None => {
@@ -312,18 +311,8 @@ pub(crate) fn locking() -> SshResult<MutexGuard<'static, Client>> {
                 Err(SshError::from(SshErrorKind::ClientNullError))
             }
             Some(v) => {
-                match v.lock() {
-                    Ok(c) => Ok(c),
-                    Err(e) => {
-                        log::error!("Get client mutex error, error info: {:?}", e);
-                        Err(SshError::from(SshErrorKind::MutexError))
-                    }
-                }
+                Ok(v)
             }
         }
     }
-}
-
-pub fn unlock<T>(guard: MutexGuard<'static, T>) {
-    drop(guard);
 }

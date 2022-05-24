@@ -6,7 +6,7 @@ use error::{SshError, SshErrorKind, SshResult};
 use packet::Data;
 use slog::log;
 use crate::channel_exec::ChannelExec;
-// use crate::channel_scp::ChannelScp;
+use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
 use crate::kex::{Kex, processing_server_algorithm};
 use crate::{client, config};
@@ -52,12 +52,10 @@ impl Channel {
             ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
                 data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                let mut client = client::locking()?;
+                let client = client::default()?;
                 client.write(data)?;
-                client::unlock(client)
             }
             ssh_msg_code::SSH_MSG_KEXINIT => {
-                //let data = Packet::processing_data(result);
                 let vec = result.to_vec();
                 let mut data = Data::from(vec![message_code]);
                 data.extend(vec);
@@ -127,10 +125,10 @@ impl Channel {
         return Ok(ChannelExec::open(self))
     }
 
-    // pub fn open_scp(mut self) -> SshResult<ChannelScp> {
-    //     log::info!("scp opened.");
-    //     return Ok(ChannelScp::open(self))
-    // }
+    pub fn open_scp(self) -> SshResult<ChannelScp> {
+        log::info!("scp opened.");
+        return Ok(ChannelScp::open(self))
+    }
 
     pub fn close(&mut self) -> SshResult<()> {
         log::info!("channel close.");
@@ -143,7 +141,7 @@ impl Channel {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_CLOSE)
             .put_u32(self.server_channel);
-        let mut client = client::locking()?;
+        let client = client::default()?;
         client.write(data)?;
         self.local_close = true;
         Ok(())
@@ -152,9 +150,8 @@ impl Channel {
     fn receive_close(&mut self) -> SshResult<()> {
         if self.remote_close { return Ok(()); }
         loop {
-            let mut client = client::locking()?;
+            let client = client::default()?;
             let results = client.read()?; // close 时不消耗窗口空间
-            client::unlock(client);
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
