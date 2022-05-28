@@ -63,11 +63,12 @@ impl Session {
         Ok(())
     }
 
-    pub fn set_user_and_password<S: Into<String>>(&mut self, user: S, password: S) -> SshResult<()> {
+    pub fn set_user_and_password<S>(&mut self, user: S, password: S)
+    where S: Into<String>
+    {
         let config = config::config();
         config.user.username = user.into();
         config.user.password = password.into();
-        Ok(())
     }
 
     pub fn close(self) -> SshResult<()> {
