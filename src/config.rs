@@ -16,13 +16,12 @@ pub(crate) fn init(config: Config) {
     }
 }
 
-pub(crate) fn config() -> SshResult<&'static mut Config> {
+pub(crate) fn config() -> &'static mut Config {
     unsafe {
         if CONFIG.is_none() {
-            log::error!("config null pointer");
-            return Err(SshError::from(SshErrorKind::ConfigNullError))
+            CONFIG = Some(Config::new())
         }
-        Ok(CONFIG.as_mut().unwrap())
+        CONFIG.as_mut().unwrap()
     }
 }
 

@@ -46,7 +46,7 @@ impl Kex {
 
 
     pub(crate) fn send_algorithm(&mut self) -> SshResult<()> {
-        let config = config::config()?;
+        let config = config::config();
         log::info!("client algorithms: [{}]", config.algorithm.client_algorithm.to_string());
         if IS_ENCRYPT.load(Ordering::Relaxed) {
             IS_ENCRYPT.store(false, Ordering::Relaxed);
@@ -162,7 +162,7 @@ pub(crate) fn processing_server_algorithm(mut data: Data) -> SshResult<()> {
     data.get_u8();
     // 跳过16位cookie
     data.skip(16);
-    let config = config::config()?;
+    let config = config::config();
     let server_algorithm = &mut config.algorithm.server_algorithm;
     server_algorithm.key_exchange_algorithm     =   KeyExchangeAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
     server_algorithm.public_key_algorithm       =   PublicKeyAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);

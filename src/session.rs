@@ -25,7 +25,7 @@ impl Session {
         self.receive_version()?;
 
         // 版本验证
-        let config = config::config()?;
+        let config = config::config();
         config.version.validation()?;
         // 发送客户端版本
         self.send_version()?;
@@ -64,7 +64,7 @@ impl Session {
     }
 
     pub fn set_user_and_password<S: Into<String>>(&mut self, user: S, password: S) -> SshResult<()> {
-        let config = config::config()?;
+        let config = config::config();
         config.user.username = user.into();
         config.user.password = password.into();
         Ok(())
@@ -224,7 +224,7 @@ impl Session {
 
     fn send_version(&mut self) -> SshResult<()> {
         let client = client::default()?;
-        let config = config::config()?;
+        let config = config::config();
         client.write_version(format!("{}\r\n", config.version.client_version).as_bytes())?;
         log::info!("client version: [{}]", config.version.client_version);
         Ok(())
@@ -236,7 +236,7 @@ impl Session {
         let from_utf8 = util::from_utf8(vec)?;
         let sv = from_utf8.trim();
         log::info!("server version: [{}]", sv);
-        let config = config::config()?;
+        let config = config::config();
         config.version.server_version = sv.to_string();
         Ok(())
     }
@@ -244,7 +244,7 @@ impl Session {
 
 
 fn password_authentication(client: &mut Client) -> SshResult<()> {
-    let config = config::config()?;
+    let config = config::config();
     if config.user.username.is_empty() {
         return Err(SshError::from(SshErrorKind::UserNullError))
     }

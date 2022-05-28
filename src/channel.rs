@@ -62,7 +62,7 @@ impl Channel {
                 self.kex.h.set_i_s(data.as_slice());
                 processing_server_algorithm(data)?;
                 self.kex.send_algorithm()?;
-                let config = config::config()?;
+                let config = config::config();
 
                 let (dh, sign) = config.algorithm.matching_algorithm()?;
                 self.kex.dh = dh;
