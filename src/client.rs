@@ -2,15 +2,13 @@ use std::io;
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
-use std::sync::{Mutex, MutexGuard};
 use std::sync::atomic::Ordering::Relaxed;
-use constant::{ssh_msg_code, size};
+use constant::size;
 use encryption::{ChaCha20Poly1305, IS_ENCRYPT};
 use packet::{Data, Packet};
 use error::{SshError, SshErrorKind, SshResult};
 use slog::log;
 
-use crate::util;
 use crate::window_size::WindowSize;
 
 
@@ -143,7 +141,7 @@ impl Client {
             if result.len() < 4 {
                 self.check_result_len(&mut result)?;
             }
-            let key = util::encryption_key()?;
+            let key = encryption::encryption_key()?;
             let packet_len = self.get_encrypt_packet_length(&result[..4], key);
             let data_len = (packet_len + 4 + 16) as usize;
             if result.len() < data_len {
@@ -239,8 +237,15 @@ impl Client {
 
         self.sequence.client_auto_increment();
 
-        if let Err(e) = self.stream.write(&buf) {
-            return Err(SshError::from(e))
+        loop {
+            if let Err(e) = self.stream.write(&buf) {
+                if is_would_block(&e) {
+                    continue
+                }
+                return Err(SshError::from(e))
+            } else {
+                break
+            }
         }
 
         if let Err(e) = self.stream.flush() {
@@ -255,7 +260,7 @@ impl Client {
         let mut packet = Packet::from(data);
         packet.build(true);
         let mut buf = packet.to_vec();
-        let key = util::encryption_key()?;
+        let key = encryption::encryption_key()?;
         key.encryption(self.sequence.client_sequence_num, &mut buf);
         Ok(buf)
     }
@@ -293,19 +298,19 @@ fn is_would_block(e: &io::Error) -> bool {
 
 
 
-static mut CLIENT: Option<Mutex<Client>> = None;
+static mut CLIENT: Option<Client> = None;
 
 
 
 pub(crate) fn connect<A: ToSocketAddrs>(adder: A) -> Result<(), SshError> {
     unsafe {
         let client = Client::connect(adder)?;
-        CLIENT = Some(Mutex::new(client));
+        CLIENT = Some(client);
         Ok(())
     }
 }
 
-pub(crate) fn locking() -> SshResult<MutexGuard<'static, Client>> {
+pub(crate) fn default() -> SshResult<&'static mut Client> {
     unsafe {
         match &mut CLIENT {
             None => {
@@ -313,18 +318,8 @@ pub(crate) fn locking() -> SshResult<MutexGuard<'static, Client>> {
                 Err(SshError::from(SshErrorKind::ClientNullError))
             }
             Some(v) => {
-                match v.lock() {
-                    Ok(c) => Ok(c),
-                    Err(e) => {
-                        log::error!("Get client mutex error, error info: {:?}", e);
-                        Err(SshError::from(SshErrorKind::MutexError))
-                    }
-                }
+                Ok(v)
             }
         }
     }
-}
-
-pub fn unlock<T>(guard: MutexGuard<'static, T>) {
-    drop(guard);
 }

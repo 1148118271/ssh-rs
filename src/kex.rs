@@ -23,7 +23,7 @@ use crate::config::{
     MacAlgorithm,
     PublicKeyAlgorithm}
 ;
-use crate::{client, util};
+use crate::{client, config, util};
 
 
 pub(crate) struct Kex {
@@ -46,11 +46,11 @@ impl Kex {
 
 
     pub(crate) fn send_algorithm(&mut self) -> SshResult<()> {
-        let config = util::config()?;
+        let config = config::config()?;
         log::info!("client algorithms: [{}]", config.algorithm.client_algorithm.to_string());
         if IS_ENCRYPT.load(Ordering::Relaxed) {
             IS_ENCRYPT.store(false, Ordering::Relaxed);
-            util::update_encryption_key(None);
+            encryption::update_encryption_key(None);
         }
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
@@ -63,13 +63,13 @@ impl Kex {
 
         self.h.set_i_c(data.as_slice());
 
-        let mut client = client::locking()?;
+        let client = client::default()?;
         client.write(data)
     }
 
 
     pub(crate) fn receive_algorithm(&mut self) -> SshResult<()> {
-        let mut client = client::locking()?;
+        let client = client::default()?;
         loop {
             let results = client.read()?;
             for result in results {
@@ -91,16 +91,15 @@ impl Kex {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEX_ECDH_INIT);
         data.put_u8s(self.dh.get_public_key());
-        let mut client = client::locking()?;
+        let client = client::default()?;
         client.write(data)
     }
 
 
     pub(crate) fn verify_signature_and_new_keys(&mut self) -> SshResult<()> {
         loop {
-            let mut client = client::locking()?;
+            let client = client::default()?;
             let results = client.read()?;
-            client::unlock(client);
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -130,13 +129,13 @@ impl Kex {
     pub(crate) fn new_keys(&mut self) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
-        let mut client = client::locking()?;
+        let client = client::default()?;
         client.write(data)?;
 
         let hash: HASH = HASH::new(&self.h.k, &self.session_id, &self.session_id);
         let poly1305 = ChaCha20Poly1305::new(hash);
         IS_ENCRYPT.store(true, Ordering::Relaxed);
-        util::update_encryption_key(Some(poly1305));
+        encryption::update_encryption_key(Some(poly1305));
         Ok(())
     }
 
@@ -163,7 +162,7 @@ pub(crate) fn processing_server_algorithm(mut data: Data) -> SshResult<()> {
     data.get_u8();
     // 跳过16位cookie
     data.skip(16);
-    let mut config = util::config()?;
+    let config = config::config()?;
     let server_algorithm = &mut config.algorithm.server_algorithm;
     server_algorithm.key_exchange_algorithm     =   KeyExchangeAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
     server_algorithm.public_key_algorithm       =   PublicKeyAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);

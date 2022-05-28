@@ -1,13 +1,9 @@
-use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::{Mutex, MutexGuard};
+use std::time::{SystemTime, UNIX_EPOCH};
 use rand::Rng;
 use rand::rngs::OsRng;
-use encryption::ChaCha20Poly1305;
 use error::{SshError, SshErrorKind, SshResult};
 use slog::log;
-use crate::{Client, Config};
-use crate::global::{CONFIG, ENCRYPTION_KEY};
 
 
 pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
@@ -21,54 +17,17 @@ pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
 }
 
 
-pub fn unlock<T>(guard: MutexGuard<'static, T>) {
-    drop(guard);
-}
-
-
-pub(crate) fn update_config(v: Option<Mutex<Config>>) {
-    unsafe {
-        CONFIG = v;
-    }
-}
-
-pub(crate) fn config() -> SshResult<MutexGuard<'static, Config>> {
-    unsafe {
-         match &mut CONFIG {
-            None => {
-                log::error!("config null pointer");
-                Err(SshError::from(SshErrorKind::ConfigNullError))
-            }
-            Some(v) => {
-                match v.lock() {
-                    Ok(c) => Ok(c),
-                    Err(e) => {
-                        log::error!("get config mutex error, error info: {:?}", e);
-                        Err(SshError::from(SshErrorKind::MutexError))
-                    }
-                }
-            }
+pub(crate) fn sys_time_to_secs(time: SystemTime) -> SshResult<u64> {
+     match time.duration_since(UNIX_EPOCH) {
+        Ok(t) => Ok(t.as_secs()),
+        Err(e) => {
+            Err(SshError::from(
+                SshErrorKind::UnknownError(
+                    format!("SystemTimeError difference: {:?}", e.duration()))))
         }
     }
 }
 
-
-pub(crate) fn encryption_key() -> Result<&'static mut ChaCha20Poly1305, SshError>  {
-    unsafe {
-        match &mut ENCRYPTION_KEY {
-            None => {
-                log::error!("Encrypted null pointer");
-                Err(SshError::from(SshErrorKind::EncryptionNullError))
-            },
-            Some(v) => Ok(v)
-        }
-    }
-}
-pub(crate) fn update_encryption_key(v: Option<ChaCha20Poly1305>) {
-    unsafe {
-        ENCRYPTION_KEY = v
-    }
-}
 
 // 十六位随机数
 pub(crate) fn cookie() -> Vec<u8> {
@@ -76,6 +35,8 @@ pub(crate) fn cookie() -> Vec<u8> {
     cookie.to_vec()
 }
 
+
+#[allow(dead_code)]
 pub(crate) fn vec_u8_to_string(v: Vec<u8>, pat: &str) -> SshResult<Vec<String>> {
     let result = from_utf8(v)?;
     let r: Vec<&str> = result.split(pat).collect();
@@ -86,6 +47,8 @@ pub(crate) fn vec_u8_to_string(v: Vec<u8>, pat: &str) -> SshResult<Vec<String>> 
     Ok(vec)
 }
 
+
+#[allow(dead_code)]
 pub(crate) fn str_to_u32(v: &str) -> SshResult<u32> {
     match u32::from_str(v) {
         Ok(v) => Ok(v),
@@ -95,6 +58,8 @@ pub(crate) fn str_to_u32(v: &str) -> SshResult<u32> {
     }
 }
 
+
+#[allow(dead_code)]
 pub(crate) fn str_to_i64(v: &str) -> SshResult<i64> {
     match i64::from_str(v) {
         Ok(v) => Ok(v),

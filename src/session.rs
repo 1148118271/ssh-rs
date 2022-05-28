@@ -1,14 +1,12 @@
-use std::sync::MutexGuard;
-use std::sync::atomic::Ordering::Relaxed;
 use packet::Data;
 use constant::{ssh_msg_code, size, ssh_str};
 use error::{SshError, SshErrorKind, SshResult};
 use slog::log;
 use crate::channel::Channel;
 use crate::client::Client;
-// use crate::channel_scp::ChannelScp;
+use crate::channel_scp::ChannelScp;
 use crate::kex::Kex;
-use crate::{ChannelExec, ChannelShell, client, global, util};
+use crate::{channel, ChannelExec, ChannelShell, client, config, util};
 use crate::window_size::WindowSize;
 
 
@@ -27,9 +25,8 @@ impl Session {
         self.receive_version()?;
 
         // 版本验证
-        let config = util::config()?;
+        let config = config::config()?;
         config.version.validation()?;
-        util::unlock(config);
         // 发送客户端版本
         self.send_version()?;
 
@@ -42,15 +39,12 @@ impl Session {
         kex.send_algorithm()?;
         kex.receive_algorithm()?;
 
-        let config = util::config()?;
         let (dh, sign) = config.algorithm.matching_algorithm()?;
         kex.dh = dh;
         kex.signature = sign;
 
         kex.h.set_v_c(config.version.client_version.as_str());
         kex.h.set_v_s(config.version.server_version.as_str());
-
-        util::unlock(config);
 
         kex.send_qc()?;
         kex.verify_signature_and_new_keys()?;
@@ -63,14 +57,14 @@ impl Session {
 
     pub fn set_nonblocking(&mut self, nonblocking: bool) -> SshResult<()> {
         log::info!("set nonblocking: [{}]", nonblocking);
-        if let Err(e) = client::locking()?.set_nonblocking(nonblocking) {
+        if let Err(e) = client::default()?.set_nonblocking(nonblocking) {
             return Err(SshError::from(e))
         }
         Ok(())
     }
 
     pub fn set_user_and_password<S: Into<String>>(&mut self, user: S, password: S) -> SshResult<()> {
-        let mut config = util::config()?;
+        let config = config::config()?;
         config.user.username = user.into();
         config.user.password = password.into();
         Ok(())
@@ -78,15 +72,14 @@ impl Session {
 
     pub fn close(self) -> SshResult<()> {
         log::info!("session close.");
-        client::locking()?.close()
+        client::default()?.close()
     }
 
     pub fn open_channel(&mut self) -> SshResult<Channel> {
         log::info!("channel opened.");
-        let client_channel = global::CLIENT_CHANNEL.load(Relaxed);
+        let client_channel = channel::current_client_channel_no();
         self.send_open_channel(client_channel)?;
         let (server_channel, rws) = self.receive_open_channel()?;
-        global::CLIENT_CHANNEL.fetch_add(1, Relaxed);
         let mut win_size = WindowSize::new();
         win_size.server_channel = server_channel;
         win_size.client_channel = client_channel;
@@ -110,10 +103,10 @@ impl Session {
         channel.open_shell()
     }
 
-    // pub fn open_scp(&mut self) -> SshResult<ChannelScp> {
-    //     let channel = self.open_channel()?;
-    //     channel.open_scp()
-    // }
+    pub fn open_scp(&mut self) -> SshResult<ChannelScp> {
+        let channel = self.open_channel()?;
+        channel.open_scp()
+    }
 
     // 本地请求远程打开通道
     fn send_open_channel(&mut self, client_channel: u32) -> SshResult<()> {
@@ -123,16 +116,15 @@ impl Session {
             .put_u32(client_channel)
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
-        let mut client = client::locking()?;
+        let client = client::default()?;
         client.write(data)
     }
 
     // 远程回应是否可以打开通道
     fn receive_open_channel(&mut self) -> SshResult<(u32, u32)> {
         loop {
-            let mut client = client::locking()?;
+            let client = client::default()?;
             let results = client.read()?;
-            client::unlock(client);
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -194,12 +186,12 @@ impl Session {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
-        let mut client = client::locking()?;
+        let client = client::default()?;
         client.write(data)
     }
 
     fn authentication(&mut self) -> SshResult<()> {
-        let mut client = client::locking()?;
+        let client = client::default()?;
         loop {
             let results = client.read()?;
             for mut result in results {
@@ -209,7 +201,7 @@ impl Session {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
                         log::info!("密码验证");
                         // 开始密码验证 TODO 目前只支持密码验证
-                        password_authentication(&mut client)?;
+                        password_authentication(client)?;
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
                         log::error!("user auth failure.");
@@ -231,28 +223,28 @@ impl Session {
     }
 
     fn send_version(&mut self) -> SshResult<()> {
-        let mut client = client::locking()?;
-        let config = util::config()?;
+        let client = client::default()?;
+        let config = config::config()?;
         client.write_version(format!("{}\r\n", config.version.client_version).as_bytes())?;
         log::info!("client version: [{}]", config.version.client_version);
         Ok(())
     }
 
     fn receive_version(&mut self) -> SshResult<()> {
-        let mut client = client::locking()?;
+        let client = client::default()?;
         let vec = client.read_version();
         let from_utf8 = util::from_utf8(vec)?;
         let sv = from_utf8.trim();
         log::info!("server version: [{}]", sv);
-        let mut config = util::config()?;
+        let config = config::config()?;
         config.version.server_version = sv.to_string();
         Ok(())
     }
 }
 
 
-fn password_authentication(client: &mut MutexGuard<'static, Client>) -> SshResult<()> {
-    let config = util::config()?;
+fn password_authentication(client: &mut Client) -> SshResult<()> {
+    let config = config::config()?;
     if config.user.username.is_empty() {
         return Err(SshError::from(SshErrorKind::UserNullError))
     }

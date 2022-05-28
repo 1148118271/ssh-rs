@@ -1,8 +1,8 @@
 use constant::size::LOCAL_WINDOW_SIZE;
-use constant::{size, ssh_msg_code};
+use constant::ssh_msg_code;
 use error::SshResult;
 use packet::Data;
-use crate::{client, util};
+use crate::client;
 
 pub struct WindowSize {
     pub(crate) server_channel: u32,
@@ -63,35 +63,30 @@ impl WindowSize {
             return Ok(());
         }
         let used = self.remote_max_window_size - self.remote_window_size;
-        if used <= 0 {
-            return Ok(());
-        }
-        if self.remote_max_window_size / used > 20 {
-            return Ok(())
-        }
-        'main:
-        loop {
-            let mut client = client::locking()?;
-            let data_arr = client.read()?;
-            if !data_arr.is_empty() {
-                for mut data in data_arr {
-                    let mc = data.get_u8();
-                    if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
-                        // 接收方 通道编号 暂不处理
-                        data.get_u32();
-                        // 远程客户端调整的窗口大小
-                        let size = data.get_u32();
-                        self.add_remote_window_size(size);
-                        break 'main
-                    }
-                }
-            }
-        }
         let size = match self.get_size(data) {
             None => return Ok(()),
             Some(size) => size
         };
         self.sub_remote_window_size(size);
+        if used > 0 && self.remote_max_window_size / used <= 20 {
+            let client = client::default()?;
+            loop {
+                let data_arr = client.read()?;
+                if !data_arr.is_empty() {
+                    for mut data in data_arr {
+                        let mc = data.get_u8();
+                        if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
+                            // 接收方 通道编号 暂不处理
+                            data.get_u32();
+                            // 远程客户端调整的窗口大小
+                            let size = data.get_u32();
+                            self.add_remote_window_size(size);
+                            return Ok(())
+                        }
+                    }
+                }
+            }
+        }
         return Ok(())
     }
 
@@ -127,7 +122,7 @@ impl WindowSize {
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
             .put_u32(self.server_channel)
             .put_u32(used);
-        let mut client = client::locking()?;
+        let client = client::default()?;
         client.write(data)?;
         self.add_local_window_size(used);
         return Ok(());

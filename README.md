@@ -9,11 +9,19 @@ fn main() {
     // enable logging
     ssh.enable_log(true).unwrap();
     let mut session = ssh.get_session("127.0.0.1:22").unwrap();
-    session.set_user_and_password("root".to_string(), "123456".to_string());
+    session.set_user_and_password("root", "123456");
     session.connect().unwrap();
-    exec(&mut session);
-    shell(&mut session);
+    
+    // exec(&mut session);
+    // shell(&mut session);
     // t_shell(&mut session);
+    
+  
+    // let mut scp = session.open_scp().unwrap();
+    // file upload
+    // scp.upload("localPath", "remotePath").unwrap();
+    // file download
+    // scp.download("localPath", "remotePath").unwrap();
 }
 
 fn exec(session: &mut Session) {
@@ -28,7 +36,7 @@ fn shell(session: &mut Session) {
     let vec = shell.read().unwrap();
     let result = String::from_utf8(vec).unwrap();
     println!("{}", result);
-    shell.write(b"ls -a\r").unwrap();
+    shell.write(b"ls -a").unwrap();
     thread::sleep(time::Duration::from_millis(200));
     let vec = shell.read().unwrap();
     let result = String::from_utf8(vec).unwrap();
@@ -94,5 +102,5 @@ fn t_shell(session: &mut Session) {
 
 
 
-### Not currently supported *scp*, *sftp* (目前不支持 scp sftp)
+### Not currently supported *sftp* (目前不支持 sftp)
 

@@ -6,6 +6,27 @@ use slog::log;
 use crate::{SshError, SshResult};
 
 
+
+pub(crate) static mut CONFIG: Option<Config> = None;
+
+
+pub(crate) fn init(config: Config) {
+    unsafe {
+        CONFIG = Some(config);
+    }
+}
+
+pub(crate) fn config() -> SshResult<&'static mut Config> {
+    unsafe {
+        if CONFIG.is_none() {
+            log::error!("config null pointer");
+            return Err(SshError::from(SshErrorKind::ConfigNullError))
+        }
+        Ok(CONFIG.as_mut().unwrap())
+    }
+}
+
+
 #[derive(Clone)]
 pub(crate) struct Config {
     pub(crate) user: UserConfig,
