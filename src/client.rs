@@ -237,8 +237,15 @@ impl Client {
 
         self.sequence.client_auto_increment();
 
-        if let Err(e) = self.stream.write(&buf) {
-            return Err(SshError::from(e))
+        loop {
+            if let Err(e) = self.stream.write(&buf) {
+                if is_would_block(&e) {
+                    continue
+                }
+                return Err(SshError::from(e))
+            } else {
+                break
+            }
         }
 
         if let Err(e) = self.stream.flush() {

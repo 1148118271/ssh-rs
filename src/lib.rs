@@ -81,9 +81,9 @@ mod channel;
 mod kex;
 mod channel_shell;
 mod channel_exec;
-
 mod channel_scp;
 mod channel_scp_d;
+mod channel_scp_u;
 mod config;
 mod util;
 mod window_size;
