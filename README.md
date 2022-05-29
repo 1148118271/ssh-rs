@@ -43,28 +43,21 @@ fn shell(session: &mut Session) {
 }
 
 fn t_shell(session: &mut Session) {
-    let shell = session.open_shell().unwrap();
-    let c1 = Arc::new(Mutex::new(shell));
-    let c2 = Arc::clone(&c1);
-    let t1 = thread::spawn( move || {
-        loop {
-            let x = c1.lock().unwrap().read().unwrap();
-            if x.is_empty() { continue }
-            stdout().write(x.as_slice()).unwrap();
-            stdout().flush().unwrap();
-        }
-    });
+    let mut shell = session.open_shell().unwrap();
+    loop {
 
-    let t2 = thread::spawn( move || {
-        loop {
-            let mut cm = String::new();
-            stdin().read_line(&mut cm).unwrap();
-            c2.lock().unwrap().write(cm.as_bytes()).unwrap();
-        }
-    });
+        sleep(Duration::from_millis(300));
 
-    t1.join().unwrap();
-    t2.join().unwrap();
+        let vec = shell.read().unwrap();
+        if vec.is_empty() { continue }
+        stdout().write(vec.as_slice()).unwrap();
+        stdout().flush().unwrap();
+
+        let mut cm = String::new();
+        stdin().read_line(&mut cm).unwrap();
+        shell.write(cm.as_bytes()).unwrap();
+
+    }
 }
 
 ```
