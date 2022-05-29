@@ -1,12 +1,12 @@
+use std::net::ToSocketAddrs;
 use packet::Data;
 use constant::{ssh_msg_code, size, ssh_str};
 use error::{SshError, SshErrorKind, SshResult};
-use slog::log;
+use slog::{log, Slog};
 use crate::channel::Channel;
-use crate::client::Client;
 use crate::channel_scp::ChannelScp;
 use crate::kex::Kex;
-use crate::{channel, ChannelExec, ChannelShell, client, config, util};
+use crate::{channel, ChannelExec, ChannelShell, client, config, Config, util};
 use crate::window_size::WindowSize;
 
 
@@ -14,7 +14,34 @@ pub struct Session;
 
 
 impl Session {
-    pub fn connect(&mut self) -> Result<(), SshError> {
+    pub fn is_usage_log(&self, b: bool) {
+        if b {
+            Slog::default()
+        }
+    }
+}
+
+impl Session {
+
+    pub fn set_user_and_password<S>(&mut self, user: S, password: S)
+        where S: Into<String>
+    {
+        let config = config::config();
+        config.user.username = user.into();
+        config.user.password = password.into();
+    }
+
+}
+
+impl Session {
+
+    pub fn connect<A>(&mut self, addr: A) -> Result<(), SshError>
+    where
+        A: ToSocketAddrs
+    {
+
+        // tcp 发起连接
+        client::connect(addr)?;
 
         log::info!("session opened.");
 
@@ -55,27 +82,6 @@ impl Session {
         self.authentication()
     }
 
-    pub fn set_nonblocking(&mut self, nonblocking: bool) -> SshResult<()> {
-        log::info!("set nonblocking: [{}]", nonblocking);
-        if let Err(e) = client::default()?.set_nonblocking(nonblocking) {
-            return Err(SshError::from(e))
-        }
-        Ok(())
-    }
-
-    pub fn set_user_and_password<S>(&mut self, user: S, password: S)
-    where S: Into<String>
-    {
-        let config = config::config();
-        config.user.username = user.into();
-        config.user.password = password.into();
-    }
-
-    pub fn close(self) -> SshResult<()> {
-        log::info!("session close.");
-        client::default()?.close()
-    }
-
     pub fn open_channel(&mut self) -> SshResult<Channel> {
         log::info!("channel opened.");
         let client_channel = channel::current_client_channel_no();
@@ -108,6 +114,15 @@ impl Session {
         let channel = self.open_channel()?;
         channel.open_scp()
     }
+
+    pub fn close(self) -> SshResult<()> {
+        log::info!("session close.");
+        client::default()?.close()
+    }
+
+}
+
+impl Session {
 
     // 本地请求远程打开通道
     fn send_open_channel(&mut self, client_channel: u32) -> SshResult<()> {
@@ -202,7 +217,7 @@ impl Session {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
                         log::info!("密码验证");
                         // 开始密码验证 TODO 目前只支持密码验证
-                        password_authentication(client)?;
+                        self.password_authentication()?;
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
                         log::error!("user auth failure.");
@@ -241,25 +256,26 @@ impl Session {
         config.version.server_version = sv.to_string();
         Ok(())
     }
-}
 
+    fn password_authentication(&mut self) -> SshResult<()> {
+        let config = config::config();
+        if config.user.username.is_empty() {
+            return Err(SshError::from(SshErrorKind::UserNullError))
+        }
+        if config.user.password.is_empty() {
+            return Err(SshError::from(SshErrorKind::PasswordNullError))
+        }
 
-fn password_authentication(client: &mut Client) -> SshResult<()> {
-    let config = config::config();
-    if config.user.username.is_empty() {
-        return Err(SshError::from(SshErrorKind::UserNullError))
+        let mut data = Data::new();
+        data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
+            .put_str(config.user.username.as_str())
+            .put_str(ssh_str::SSH_CONNECTION)
+            .put_str(ssh_str::PASSWORD)
+            .put_u8(false as u8)
+            .put_str(config.user.password.as_str());
+        let client = client::default()?;
+        client.write(data)
     }
-    if config.user.password.is_empty() {
-        return Err(SshError::from(SshErrorKind::PasswordNullError))
-    }
 
-    let mut data = Data::new();
-    data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
-        .put_str(config.user.username.as_str())
-        .put_str(ssh_str::SSH_CONNECTION)
-        .put_str(ssh_str::PASSWORD)
-        .put_u8(false as u8)
-        .put_str(config.user.password.as_str());
-    client.write(data)
 }
 

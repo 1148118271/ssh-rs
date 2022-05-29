@@ -41,8 +41,8 @@ impl Sequence {
 }
 
 impl Client {
-    pub fn connect<A: ToSocketAddrs>(adder: A) -> Result<Client, SshError> {
-        match TcpStream::connect(adder) {
+    pub fn connect<A: ToSocketAddrs>(addr: A) -> Result<Client, SshError> {
+        match TcpStream::connect(addr) {
             Ok(stream) =>
                 Ok(
                     Client{
@@ -302,9 +302,9 @@ static mut CLIENT: Option<Client> = None;
 
 
 
-pub(crate) fn connect<A: ToSocketAddrs>(adder: A) -> Result<(), SshError> {
+pub(crate) fn connect<A: ToSocketAddrs>(addr: A) -> Result<(), SshError> {
     unsafe {
-        let client = Client::connect(adder)?;
+        let client = Client::connect(addr)?;
         CLIENT = Some(client);
         Ok(())
     }

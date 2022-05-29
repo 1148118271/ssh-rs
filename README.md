@@ -5,12 +5,10 @@
 ### Quick example (简单例子):
 ```rust
 fn main() {
-    let ssh: SSH = SSH::new();
-    // enable logging
-    ssh.enable_log(true).unwrap();
-    let mut session = ssh.get_session("127.0.0.1:22").unwrap();
+    let mut session = ssh::create_session();
+    session.is_usage_log(true);
     session.set_user_and_password("root", "123456");
-    session.connect().unwrap();
+    session.connect("127.0.0.1:22").unwrap();
     
     // exec(&mut session);
     // shell(&mut session);

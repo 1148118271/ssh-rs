@@ -12,16 +12,16 @@ pub struct Slog;
 
 
 impl Slog {
-    pub fn init(level: LevelFilter)-> SshResult<()> {
+    pub fn init(level: LevelFilter) {
         if let Err(e) = log::set_logger(&SLOG) {
+            // 重复设置日志记录
             log::error!("initialization log error, the error information is: {:?}", e);
-            return Err(SshError::from(SshErrorKind::LogError))
+            return;
         }
         log::set_max_level(level);
-        Ok(())
     }
 
-    pub fn default() -> SshResult<()> {
+    pub fn default() {
         Slog::init(LevelFilter::Trace)
     }
 }
