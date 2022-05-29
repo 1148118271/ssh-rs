@@ -17,9 +17,16 @@
 //!     let mut session = ssh.get_session("127.0.0.1:22").unwrap();
 //!     session.set_user_and_password("root", "123456").unwrap();
 //!     session.connect().unwrap();
-//!     exec(&mut session);
-//!     shell(&mut session);
+//!     // exec(&mut session);
+//!     // shell(&mut session);
 //!     // t_shell(&mut session);
+//!
+//!
+//!     // let mut scp = session.open_scp().unwrap();
+//!     // file upload
+//!     // scp.upload("localPath", "remotePath").unwrap();
+//!     // file download
+//!     // scp.download("localPath", "remotePath").unwrap();
 //! }
 //!
 //! fn exec(session: &mut Session) {

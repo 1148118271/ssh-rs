@@ -36,7 +36,7 @@ fn shell(session: &mut Session) {
     let vec = shell.read().unwrap();
     let result = String::from_utf8(vec).unwrap();
     println!("{}", result);
-    shell.write(b"ls -a").unwrap();
+    shell.write(b"ls -a\n").unwrap();
     thread::sleep(time::Duration::from_millis(200));
     let vec = shell.read().unwrap();
     let result = String::from_utf8(vec).unwrap();
