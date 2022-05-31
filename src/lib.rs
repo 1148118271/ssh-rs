@@ -6,17 +6,20 @@
 //! Quick example:
 //!
 //!```
-//!use std::io::{stdin, stdout, Write};
-//!use std::sync::{Arc, Mutex};
-//!use std::{thread, time};
-//!use ssh_rs::{Channel, ChannelExec, Session, SSH};
-//!fn main() {
-//!     let ssh: SSH = SSH::new();
-//!     // enable logging
-//!     ssh.enable_log(true).unwrap();
-//!     let mut session = ssh.get_session("127.0.0.1:22").unwrap();
-//!     session.set_user_and_password("root", "123456").unwrap();
-//!     session.connect().unwrap();
+//! use ssh_rs::ssh;
+//! use ssh_rs::{ChannelExec, Session};
+//! use std::thread;
+//! use std::thread::sleep;          
+//! use std::io::{stdin, stdout, Write};
+//! use std::time::Duration;
+//!
+//! fn main() {
+//!
+//! let mut session = ssh::create_session();
+//!     session.is_usage_log(true);
+//!     session.set_user_and_password("root", "123456");
+//!     session.connect("127.0.0.1:22").unwrap();
+//!
 //!     // exec(&mut session);
 //!     // shell(&mut session);
 //!     // t_shell(&mut session);
@@ -30,19 +33,19 @@
 //! }
 //!
 //! fn exec(session: &mut Session) {
-//!     let exec: ChannelExec = session.open_exec().unwrap();
+//! let exec: ChannelExec = session.open_exec().unwrap();
 //!     let vec = exec.send_command("ls -all").unwrap();
 //!     println!("{}", String::from_utf8(vec).unwrap());
 //! }
 //!
 //! fn shell(session: &mut Session) {
-//!     let mut shell = session.open_shell().unwrap();
-//!     thread::sleep(time::Duration::from_millis(200));
+//! let mut shell = session.open_shell().unwrap();
+//!     thread::sleep(Duration::from_millis(200));
 //!     let vec = shell.read().unwrap();
 //!     let result = String::from_utf8(vec).unwrap();
 //!     println!("{}", result);
-//!     shell.write(b"ls -a\r").unwrap();
-//!     thread::sleep(time::Duration::from_millis(200));
+//!     shell.write(b"ls -a\n").unwrap();
+//!     thread::sleep(Duration::from_millis(200));
 //!     let vec = shell.read().unwrap();
 //!     let result = String::from_utf8(vec).unwrap();
 //!     println!("{}", result);
@@ -50,32 +53,22 @@
 //! }
 //!
 //! fn t_shell(session: &mut Session) {
-//!     let shell = session.open_shell().unwrap();
-//!     let c1 = Arc::new(Mutex::new(shell));
-//!     let c2 = Arc::clone(&c1);
-//!     let t1 = thread::spawn( move || {
-//!         loop {
-//!             let x = c1.lock().unwrap().read().unwrap();
-//!             if x.is_empty() { continue }
-//!             stdout().write(x.as_slice()).unwrap();
-//!             stdout().flush().unwrap();
-//!         }
-//!     });
+//! let mut shell = session.open_shell().unwrap();
+//!     loop {
 //!
-//!     let t2 = thread::spawn( move || {
-//!         loop {
-//!             let mut cm = String::new();
-//!             stdin().read_line(&mut cm).unwrap();
-//!             c2.lock().unwrap().write(cm.as_bytes()).unwrap();
-//!         }
-//!     });
+//!         sleep(Duration::from_millis(300));
 //!
-//!     t1.join().unwrap();
-//!     t2.join().unwrap();
+//!         let vec = shell.read().unwrap();
+//!         if vec.is_empty() { continue; }
+//!         stdout().write(vec.as_slice()).unwrap();
+//!         stdout().flush().unwrap();
+//!
+//!         let mut cm = String::new();
+//!         stdin().read_line(&mut cm).unwrap();
+//!         shell.write(cm.as_bytes()).unwrap();
+//!
+//!     }
 //! }
-//!
-//!
-//!
 //!```
 
 
