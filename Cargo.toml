@@ -23,11 +23,11 @@ members = [
 
 [dependencies]
 
-constant = { path = "./constant" }
-packet = { path = "./packet" }
-encryption = { path = "./encryption" }
-error = { path = "./error" }
-slog = { path = "./slog" }
+constant = { path = "./constant", version = "0.1.0" }
+packet = { path = "./packet", version = "0.1.0" }
+encryption = { path = "./encryption", version = "0.1.0" }
+error = { path = "./error", version = "0.1.0" }
+slog = { path = "./slog", version = "0.1.0" }
 
 rand = "0.8"
 filetime = "0.2"
