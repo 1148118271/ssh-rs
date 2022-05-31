@@ -3,7 +3,6 @@ pub use log;
 
 
 use log::{LevelFilter, Log, Metadata, Record};
-use error::{SshErrorKind, SshResult, SshError};
 
 pub(crate) static SLOG: Slog = Slog;
 

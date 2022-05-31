@@ -3,9 +3,9 @@ use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
-use constant::{permission, scp};
-use error::{SshError, SshErrorKind, SshResult};
-use slog::log;
+use crate::constant::{permission, scp};
+use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::slog::log;
 use crate::channel_scp::{ChannelScp, ScpFile, check_path};
 use crate::util;
 

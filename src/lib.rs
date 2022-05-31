@@ -87,13 +87,19 @@ mod channel_scp_u;
 mod config;
 mod util;
 mod window_size;
+mod error;
+mod slog;
+mod constant;
+mod data;
+mod packet;
+mod encryption;
 
 pub use session::Session;
 pub use channel::Channel;
 pub use channel_shell::ChannelShell;
 pub use channel_exec::ChannelExec;
 
-use error::{SshError, SshResult};
+use crate::error::{SshError, SshResult};
 use crate::config::Config;
 
 

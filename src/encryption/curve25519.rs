@@ -1,7 +1,7 @@
 use ring::agreement;
 use ring::agreement::{EphemeralPrivateKey, PublicKey};
-use error::{SshError, SshErrorKind};
-use crate::KeyExchange;
+use crate::error::{SshError, SshErrorKind};
+use crate::encryption::KeyExchange;
 
 pub struct CURVE25519 {
     pub private_key: EphemeralPrivateKey,

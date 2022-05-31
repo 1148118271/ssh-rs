@@ -50,6 +50,7 @@ impl Data {
     }
 
     // 把字节数组置空
+    #[allow(dead_code)]
     pub fn refresh(&mut self) {
         self.0.clear();
     }

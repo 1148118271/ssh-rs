@@ -1,8 +1,7 @@
 use ring::aead::chacha20_poly1305_openssh;
 use ring::aead::chacha20_poly1305_openssh::{OpeningKey, SealingKey};
-use error::{SshError, SshErrorKind};
-use crate::hash::HASH;
-
+use crate::error::{SshError, SshErrorKind};
+use crate::encryption::hash::HASH;
 
 pub struct ChaCha20Poly1305 {
     pub client_key: SealingKey,
@@ -10,6 +9,7 @@ pub struct ChaCha20Poly1305 {
 }
 
 impl ChaCha20Poly1305 {
+    #[allow(dead_code)]
     pub fn size() -> u32 {
         64
     }

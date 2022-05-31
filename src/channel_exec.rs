@@ -1,7 +1,7 @@
 use std::borrow::BorrowMut;
-use constant::{ssh_msg_code, ssh_str};
-use error::SshResult;
-use packet::Data;
+use crate::constant::{ssh_msg_code, ssh_str};
+use crate::error::SshResult;
+use crate::data::Data;
 use crate::channel::Channel;
 use crate::client;
 

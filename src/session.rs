@@ -1,12 +1,12 @@
 use std::net::ToSocketAddrs;
-use packet::Data;
-use constant::{ssh_msg_code, size, ssh_str};
-use error::{SshError, SshErrorKind, SshResult};
-use slog::{log, Slog};
+use crate::data::Data;
+use crate::constant::{ssh_msg_code, size, ssh_str};
+use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::slog::{log, Slog};
 use crate::channel::Channel;
 use crate::channel_scp::ChannelScp;
 use crate::kex::Kex;
-use crate::{channel, ChannelExec, ChannelShell, client, config, Config, util};
+use crate::{channel, ChannelExec, ChannelShell, client, config, util};
 use crate::window_size::WindowSize;
 
 

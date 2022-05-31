@@ -3,11 +3,13 @@ use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::Ordering::Relaxed;
-use constant::size;
-use encryption::{ChaCha20Poly1305, IS_ENCRYPT};
-use packet::{Data, Packet};
-use error::{SshError, SshErrorKind, SshResult};
-use slog::log;
+use crate::constant::size;
+use crate::encryption::{ChaCha20Poly1305, IS_ENCRYPT};
+use crate::data::Data;
+use crate::encryption;
+use crate::packet::Packet;
+use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::slog::log;
 
 use crate::window_size::WindowSize;
 

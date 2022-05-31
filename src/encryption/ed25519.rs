@@ -1,6 +1,6 @@
 use ring::signature;
-use packet::Data;
-use crate::{PublicKey, SshError};
+use crate::data::Data;
+use crate::encryption::{PublicKey, SshError};
 
 pub struct Ed25519;
 

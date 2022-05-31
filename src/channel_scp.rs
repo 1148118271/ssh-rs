@@ -1,8 +1,8 @@
 use std::borrow::BorrowMut;
 use std::path::{Path, PathBuf};
-use constant::{scp, ssh_msg_code, ssh_str};
-use packet::Data;
-use error::{SshErrorKind, SshResult, SshError};
+use crate::constant::{scp, ssh_msg_code, ssh_str};
+use crate::data::Data;
+use crate::error::{SshErrorKind, SshResult, SshError};
 use crate::{Channel, client};
 
 

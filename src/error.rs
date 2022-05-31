@@ -3,7 +3,7 @@ use std::{fmt, io};
 use std::error::Error;
 
 
-pub type SshResult<I> = std::result::Result<I, SshError>;
+pub type SshResult<I> = Result<I, SshError>;
 
 pub struct SshError {
     inner: SshErrorKind

@@ -1,7 +1,7 @@
-use constant::size::LOCAL_WINDOW_SIZE;
-use constant::ssh_msg_code;
-use error::SshResult;
-use packet::Data;
+use crate::constant::size::LOCAL_WINDOW_SIZE;
+use crate::constant::ssh_msg_code;
+use crate::error::SshResult;
+use crate::data::Data;
 use crate::client;
 
 pub struct WindowSize {

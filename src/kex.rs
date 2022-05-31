@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
-use constant::ssh_msg_code;
-use encryption::{
+use crate::constant::ssh_msg_code;
+use crate::encryption::{
     ChaCha20Poly1305,
     CURVE25519,
     DH,
@@ -13,17 +13,17 @@ use encryption::{
     digest,
     IS_ENCRYPT
 };
-use error::{SshError, SshErrorKind, SshResult};
-use packet::Data;
-use slog::log;
+use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::data::Data;
+use crate::slog::log;
 use crate::config::{
     CompressionAlgorithm,
     EncryptionAlgorithm,
     KeyExchangeAlgorithm,
     MacAlgorithm,
-    PublicKeyAlgorithm}
-;
-use crate::{client, config, util};
+    PublicKeyAlgorithm
+};
+use crate::{client, config, encryption, util};
 
 
 pub(crate) struct Kex {

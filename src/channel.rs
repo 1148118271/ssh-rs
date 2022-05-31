@@ -1,10 +1,10 @@
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
-use constant::{ssh_msg_code};
-use error::{SshError, SshErrorKind, SshResult};
-use packet::Data;
-use slog::log;
+use crate::constant::{ssh_msg_code};
+use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::data::Data;
+use crate::slog::log;
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;

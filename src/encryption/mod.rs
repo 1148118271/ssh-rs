@@ -13,11 +13,11 @@ pub use {
     ed25519::Ed25519,
     chacha20_poly1305_openssh::ChaCha20Poly1305,
     ecdh_sha2_nistp256::EcdhP256,
-    crate::rsa::RSA,
+    self::rsa::RSA,
     hash::HASH
 };
-use error::{SshError, SshErrorKind};
-use packet::Data;
+use crate::error::{SshError, SshErrorKind};
+use crate::data::Data;
 
 
 

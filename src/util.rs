@@ -2,8 +2,8 @@ use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use rand::Rng;
 use rand::rngs::OsRng;
-use error::{SshError, SshErrorKind, SshResult};
-use slog::log;
+use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::slog::log;
 
 
 pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {

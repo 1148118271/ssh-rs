@@ -56,6 +56,7 @@ impl Packet {
         data
     }
 
+    #[allow(dead_code)]
     pub fn refresh(&mut self) {
         self.value.clear();
         self.data = Data::new()
@@ -88,7 +89,7 @@ impl Packet {
         self.value = packet_len_u8s;
     }
 
-
+    #[allow(dead_code)]
     pub fn as_slice(&self) -> &[u8] {
         self.value.as_slice()
     }
