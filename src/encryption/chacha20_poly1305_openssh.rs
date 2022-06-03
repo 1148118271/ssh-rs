@@ -10,18 +10,16 @@ pub struct ChaCha20Poly1305 {
 
 impl ChaCha20Poly1305 {
     #[allow(dead_code)]
-    pub fn size() -> u32 {
+    pub fn bsize() -> u32 {
         64
     }
 
     pub fn new(hash: HASH) -> ChaCha20Poly1305 {
-        let sealing_key_data = hash.ek_c_s;
-        let opening_key_data = hash.ek_s_c;
-
+        let (ck, sk) = hash.extend_key(ChaCha20Poly1305::bsize());
         let mut sealing_key = [0_u8; 64];
         let mut opening_key = [0_u8; 64];
-        sealing_key.copy_from_slice(&sealing_key_data);
-        opening_key.copy_from_slice(&opening_key_data);
+        sealing_key.copy_from_slice(&ck);
+        opening_key.copy_from_slice(&sk);
 
         ChaCha20Poly1305 {
             client_key: chacha20_poly1305_openssh::SealingKey::new(&sealing_key),
