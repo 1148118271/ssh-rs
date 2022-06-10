@@ -3,8 +3,9 @@ use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::Ordering::Relaxed;
+use ring::digest;
 use crate::constant::size;
-use crate::encryption::{ChaCha20Poly1305, IS_ENCRYPT};
+use crate::encryption::{AesCtr, ChaCha20Poly1305, IS_ENCRYPT};
 use crate::data::Data;
 use crate::encryption;
 use crate::packet::Packet;
@@ -144,24 +145,25 @@ impl Client {
                 self.check_result_len(&mut result)?;
             }
             let key = encryption::encryption_key()?;
-            let packet_len = self.get_encrypt_packet_length(&result[..4], key);
-            let data_len = (packet_len + 4 + 16) as usize;
-            if result.len() < data_len {
-                self.get_encrypt_data(&mut result, data_len)?;
-            }
-            let (this, remaining) = result.split_at_mut(data_len);
+            // let packet_len = self.get_encrypt_packet_length(&result[..4], key);
+            // let data_len = (packet_len + 4 + 16) as usize;
+            // if result.len() < data_len {
+            //     self.get_encrypt_data(&mut result, data_len)?;
+            // }
+            // let (this, remaining) = result.split_at_mut(data_len);
             let decryption_result =
-                key.decryption(self.sequence.server_sequence_num, &mut this.to_vec())?;
+                key.decryption(&mut result.to_vec())?;
             let data = Packet::from(decryption_result).unpacking();
             // 判断是否需要修改窗口大小
             if let Some(v) = &mut lws {
                 v.process_local_window_size(data.as_slice())?
             }
             results.push(data);
-            if remaining.len() <= 0 {
-                break;
-            }
-            result = remaining.to_vec();
+            break
+            // if remaining.len() <= 0 {
+            //     break;
+            // }
+            // result = remaining.to_vec();
         }
         Ok(())
     }
@@ -189,15 +191,26 @@ impl Client {
         }
     }
 
-    fn get_encrypt_packet_length(&self, len: &[u8], key: &mut ChaCha20Poly1305) -> u32 {
-        let mut packet_len_slice = [0_u8; 4];
-        packet_len_slice.copy_from_slice(len);
-        let packet_len_slice = key.server_key
-            .decrypt_packet_length(
-                self.sequence.server_sequence_num,
-                packet_len_slice);
-        u32::from_be_bytes(packet_len_slice)
-    }
+    // fn get_encrypt_packet_length(&self, len: &[u8], key: &mut ChaCha20Poly1305) -> u32 {
+    //     let mut packet_len_slice = [0_u8; 4];
+    //     packet_len_slice.copy_from_slice(len);
+    //     let packet_len_slice = key.server_key
+    //         .decrypt_packet_length(
+    //             self.sequence.server_sequence_num,
+    //             packet_len_slice);
+    //     u32::from_be_bytes(packet_len_slice)
+    // }
+
+    // fn get_encrypt_packet_length(&self, len: &[u8], key: &mut AesCtr) -> u32 {
+    //     // let mut packet_len_slice = [0_u8; 4];
+    //     // key.decryption()
+    //     // packet_len_slice.copy_from_slice(len);
+    //     // let packet_len_slice = key.server_key
+    //     //     .decrypt_packet_length(
+    //     //         self.sequence.server_sequence_num,
+    //     //         packet_len_slice);
+    //     // u32::from_be_bytes(packet_len_slice)
+    // }
 
     fn check_result_len(&mut self, result: &mut Vec<u8>) -> SshResult<usize> {
         loop {
@@ -230,7 +243,10 @@ impl Client {
             if let Some(rws) = rws {
                 rws.process_remote_window_size(data.as_slice())?;
             }
-            self.get_encryption_data(data)?
+            let mut vec = self.get_encryption_data(data)?;
+            println!("vec {}", vec.len());
+            vec.extend(&[0;20]);
+            vec
         } else {
             let mut packet = Packet::from(data);
             packet.build(false);

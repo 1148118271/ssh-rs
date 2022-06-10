@@ -22,10 +22,16 @@ impl HASH {
        HASH {
             k: k.to_vec(),
             h: h.to_vec(),
+
+            // iv
             iv_c_s: keys[0].clone(),
             iv_s_c: keys[1].clone(),
+
+            // key
             ek_c_s: keys[2].clone(),
             ek_s_c: keys[3].clone(),
+
+            //  MAC
             ik_c_s: keys[4].clone(),
             ik_s_c: keys[5].clone()
         }

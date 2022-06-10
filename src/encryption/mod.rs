@@ -4,6 +4,7 @@ mod chacha20_poly1305_openssh;
 mod ecdh_sha2_nistp256;
 mod rsa;
 mod hash;
+mod aes_ctr;
 
 use std::sync::atomic::AtomicBool;
 pub use ring::digest;
@@ -14,24 +15,23 @@ pub use {
     chacha20_poly1305_openssh::ChaCha20Poly1305,
     ecdh_sha2_nistp256::EcdhP256,
     self::rsa::RSA,
-    hash::HASH
+    hash::HASH,
+    aes_ctr::AesCtr
 };
 use crate::error::{SshError, SshErrorKind};
 use crate::data::Data;
-
-
 
 
 // 密钥是否交换完成 true 是  false 否
 pub static IS_ENCRYPT: AtomicBool = AtomicBool::new(false);
 
 // 加密密钥
-pub(crate) static mut ENCRYPTION_KEY: Option<ChaCha20Poly1305> = None;
+pub(crate) static mut ENCRYPTION_KEY: Option<AesCtr> = None;
 
 
 
 
-pub fn encryption_key() -> Result<&'static mut ChaCha20Poly1305, SshError>  {
+pub fn encryption_key() -> Result<&'static mut AesCtr, SshError>  {
     unsafe {
         match &mut ENCRYPTION_KEY {
             None => {
@@ -41,7 +41,7 @@ pub fn encryption_key() -> Result<&'static mut ChaCha20Poly1305, SshError>  {
         }
     }
 }
-pub fn update_encryption_key(v: Option<ChaCha20Poly1305>) {
+pub fn update_encryption_key(v: Option<AesCtr>) {
     unsafe {
         ENCRYPTION_KEY = v
     }

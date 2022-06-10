@@ -11,11 +11,14 @@ repository = "https://github.com/1148118271/ssh-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = ["tests"]
 
 [dependencies]
 log = "0.4"
 rand = "0.8"
 rsa = "0.5"
+aes = { version = "0.7", features = ["ctr"] }
 ring = "0.16.20"
 filetime = "0.2"
 

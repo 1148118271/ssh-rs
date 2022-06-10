@@ -1,18 +1,6 @@
 use std::sync::atomic::Ordering;
 use crate::constant::ssh_msg_code;
-use crate::encryption::{
-    ChaCha20Poly1305,
-    CURVE25519,
-    DH,
-    H,
-    KeyExchange,
-    PublicKey,
-    SIGN,
-    RSA,
-    HASH,
-    digest,
-    IS_ENCRYPT
-};
+use crate::encryption::{ChaCha20Poly1305, CURVE25519, DH, H, KeyExchange, PublicKey, SIGN, RSA, HASH, digest, IS_ENCRYPT, AesCtr};
 use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::data::Data;
 use crate::slog::log;
@@ -118,6 +106,7 @@ impl Kex {
                     }
                     ssh_msg_code::SSH_MSG_NEWKEYS => {
                         self.new_keys()?;
+                        log::info!("send new keys");
                         return Ok(())
                     }
                     _ => {}
@@ -133,9 +122,10 @@ impl Kex {
         client.write(data)?;
 
         let hash: HASH = HASH::new(&self.h.k, &self.session_id, &self.session_id);
-        let poly1305 = ChaCha20Poly1305::new(hash);
+        // let poly1305 = ChaCha20Poly1305::new(hash);
+        let ctr = AesCtr::new(hash);
         IS_ENCRYPT.store(true, Ordering::Relaxed);
-        encryption::update_encryption_key(Some(poly1305));
+        encryption::update_encryption_key(Some(ctr));
         Ok(())
     }
 

@@ -159,10 +159,11 @@ pub mod algorithms {
     pub const PUBLIC_KEY_RSA                                    :&'static str = "ssh-rsa";
 
     /// 对称加密算法
-    pub const ENCRYPTION_CHACHA20_POLY1305_OPENSSH              :&'static str = "chacha20-poly1305@openssh.com";
+    pub const ENCRYPTION_CHACHA20_POLY1305_OPENSSH              :&'static str = "aes128-ctr";
+    // pub const ENCRYPTION_CHACHA20_POLY1305_OPENSSH              :&'static str = "chacha20-poly1305@openssh.com";
 
     /// MAC（消息验证码）算法
-    pub const MAC_ALGORITHMS                                    :&'static str = "none";
+    pub const MAC_ALGORITHMS                                    :&'static str = "hmac-sha1";
 
     /// 压缩算法
     pub const COMPRESSION_ALGORITHMS                            :&'static str = "none";
