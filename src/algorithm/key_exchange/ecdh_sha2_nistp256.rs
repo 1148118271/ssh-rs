@@ -2,6 +2,7 @@ use ring::agreement::{ECDH_P256, EphemeralPrivateKey, PublicKey, UnparsedPublicK
 use crate::algorithm::key_exchange::KeyExchange;
 use crate::error::SshErrorKind;
 use crate::{SshError, SshResult};
+use crate::constant::{HASH, HashType};
 
 pub struct EcdhP256 {
     pub private_key: EphemeralPrivateKey,
@@ -39,4 +40,7 @@ impl KeyExchange for EcdhP256 {
         crate::algorithm::key_exchange::agree_ephemeral(private_key, &server_pub)
     }
 
+    fn get_hash_type(&self) -> HashType {
+        HashType::SHA256
+    }
 }

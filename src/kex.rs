@@ -12,7 +12,7 @@ use crate::config::{
     PublicKeyAlgorithm
 };
 use crate::{client, config, encryption, util};
-use crate::algorithm::key_exchange;
+use crate::algorithm::{hash, key_exchange};
 
 
 pub(crate) struct Kex {
@@ -138,7 +138,8 @@ impl Kex {
         let vec = key_exchange::get().get_shared_secret(qs)?;
         self.h.set_k(&vec);
         let hb = self.h.as_bytes();
-        self.session_id = digest::digest(&digest::SHA256, &hb).as_ref().to_vec();
+        let hash_type = key_exchange::get().get_hash_type();
+        self.session_id = hash::digest(hash_type, &hb).to_vec();
         let h = data.get_u8s();
         let mut hd = Data::from(h);
         hd.get_u8s();

@@ -1,6 +1,7 @@
 use ring::agreement;
 use ring::agreement::{EphemeralPrivateKey, UnparsedPublicKey};
 use crate::{SshError, SshResult};
+use crate::constant::HashType;
 use crate::error::SshErrorKind;
 
 /// # 密钥交换方法
@@ -34,6 +35,7 @@ pub trait KeyExchange: Send + Sync {
     fn new() -> SshResult<Self> where Self: Sized;
     fn get_public_key(&self) -> &[u8];
     fn get_shared_secret(&self, puk: Vec<u8>) -> SshResult<Vec<u8>>;
+    fn get_hash_type(&self) -> HashType;
 }
 
 

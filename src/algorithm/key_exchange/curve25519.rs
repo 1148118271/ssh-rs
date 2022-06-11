@@ -1,5 +1,6 @@
 use ring::agreement::{EphemeralPrivateKey, PublicKey, UnparsedPublicKey, X25519};
 use crate::algorithm::key_exchange::KeyExchange;
+use crate::constant::HashType;
 use crate::error::{SshError, SshErrorKind};
 use crate::SshResult;
 
@@ -7,7 +8,6 @@ pub struct CURVE25519 {
     pub private_key: EphemeralPrivateKey,
     pub public_key: PublicKey
 }
-
 
 impl KeyExchange for CURVE25519 {
 
@@ -39,5 +39,9 @@ impl KeyExchange for CURVE25519 {
         let server_pub = UnparsedPublicKey::new(&X25519, public_key);
         let private_key = unsafe { (&self.private_key as *const EphemeralPrivateKey).read() };
         crate::algorithm::key_exchange::agree_ephemeral(private_key, &server_pub)
+    }
+
+    fn get_hash_type(&self) -> HashType {
+        HashType::SHA256
     }
 }
