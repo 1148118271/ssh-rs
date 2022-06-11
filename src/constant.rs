@@ -151,8 +151,8 @@ pub mod ssh_msg_code {
 #[allow(dead_code)]
 pub mod algorithms {
     /// 密钥交换算法
-    pub const DH_CURVE25519_SHA256                              :&'static str = "curve25519-sha256";
-    pub const DH_ECDH_SHA2_NISTP256                             :&'static str = "ecdh-sha2-nistp256";
+    pub const DH_CURVE25519_SHA256                              :&'static str = "curve25519-sha256";  // sha-256
+    pub const DH_ECDH_SHA2_NISTP256                             :&'static str = "ecdh-sha2-nistp256"; // sha-256
 
     /// 非对称签名算法
     pub const PUBLIC_KEY_ED25519                                :&'static str = "ssh-ed25519";

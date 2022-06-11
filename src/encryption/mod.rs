@@ -1,7 +1,5 @@
-mod curve25519;
 mod ed25519;
 mod chacha20_poly1305_openssh;
-mod ecdh_sha2_nistp256;
 mod rsa;
 mod hash;
 mod aes_ctr;
@@ -10,10 +8,8 @@ use std::sync::atomic::AtomicBool;
 pub use ring::digest;
 
 pub use {
-    curve25519::CURVE25519,
     ed25519::Ed25519,
     chacha20_poly1305_openssh::ChaCha20Poly1305,
-    ecdh_sha2_nistp256::EcdhP256,
     self::rsa::RSA,
     hash::HASH,
     aes_ctr::AesCtr
@@ -49,13 +45,13 @@ pub fn update_encryption_key(v: Option<AesCtr>) {
 
 
 
-pub type DH = dyn KeyExchange;
-
-pub trait KeyExchange: Send + Sync {
-    fn new() -> Result<Self, SshError> where Self: Sized;
-    fn get_public_key(&self) -> &[u8];
-    fn get_shared_secret(&self, puk: Vec<u8>) -> Result<Vec<u8>, SshError>;
-}
+// pub type DH = dyn KeyExchange;
+//
+// pub trait KeyExchange: Send + Sync {
+//     fn new() -> Result<Self, SshError> where Self: Sized;
+//     fn get_public_key(&self) -> &[u8];
+//     fn get_shared_secret(&self, puk: Vec<u8>) -> Result<Vec<u8>, SshError>;
+// }
 
 pub type SIGN = dyn PublicKey;
 

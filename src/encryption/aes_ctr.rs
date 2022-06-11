@@ -5,20 +5,20 @@ use crate::encryption::HASH;
 use crate::SshError;
 
 pub struct AesCtr {
-    pub client_key: Aes128Ctr,
-    pub server_key: Aes128Ctr,
-    pub hash      : HASH
+    pub(crate) client_key: Aes128Ctr,
+    pub(crate) server_key: Aes128Ctr,
+    pub(crate) hash      : HASH
 }
 
 impl AesCtr {
-    pub fn bsize() -> u32 {
+    pub(crate) fn bsize() -> u32 {
         16
     }
-    pub fn iv_size() -> u32 {
+    pub(crate) fn iv_size() -> u32 {
         16
     }
 
-    pub fn new(hash: HASH) -> AesCtr {
+    pub(crate) fn new(hash: HASH) -> AesCtr {
         let (ck, sk) = hash.extend_key(AesCtr::bsize());
         let mut ckey = [0u8; 16];
         let mut skey = [0u8; 16];
@@ -43,7 +43,7 @@ impl AesCtr {
         }
     }
 
-    pub fn encryption(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>) {
+    pub(crate) fn encryption(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>) {
         let vec = buf.clone();
         let mut hk = [0_u8; 20];
         hk.clone_from_slice(&(self.hash.ik_c_s[..20]));
@@ -57,24 +57,19 @@ impl AesCtr {
         buf.extend(tag.as_ref())
     }
 
-    pub fn decryption(&mut self, buf: &mut Vec<u8>) -> Result<Vec<u8>, SshError> {
-
+    pub(crate) fn decryption(&mut self, buf: &mut Vec<u8>) -> Result<Vec<u8>, SshError> {
         self.server_key.apply_keystream(buf);
-
         return Ok(buf.clone())
-
-        // let mut packet_len_slice = [0_u8; 4];
-        // let len = &buf[..4];
-        // packet_len_slice.copy_from_slice(len);
-        // let packet_len_slice = self.server_key.decrypt_packet_length(sequence_number, packet_len_slice);
-        // let packet_len = u32::from_be_bytes(packet_len_slice);
-        // let (buf, tag_) = buf.split_at_mut((packet_len + 4) as usize);
-        // let mut tag = [0_u8; 16];
-        // tag.copy_from_slice(tag_);
-        // match self.server_key.open_in_place(sequence_number, buf, &tag) {
-        //     Ok(result) =>  Ok([&packet_len_slice[..], result].concat()),
-        //     Err(_) => Err(SshError::from(SshErrorKind::EncryptionError))
-        // }
-
     }
+
+    pub(crate) fn packet_and_data_len(&mut self, buf: &[u8]) -> (u32, u32) {
+        let mut r = vec![0_u8; AesCtr::bsize() as usize];
+        r.clone_from_slice(&buf[..AesCtr::bsize() as usize]);
+        self.server_key.apply_keystream(&mut r);
+        let mut u32_bytes = [0_u8; 4];
+        u32_bytes.clone_from_slice(&r[..4]);
+        let packet_len = u32::from_be_bytes(u32_bytes);
+        (packet_len, packet_len + AesCtr::bsize())
+    }
+
 }

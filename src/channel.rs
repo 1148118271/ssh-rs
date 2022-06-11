@@ -10,6 +10,7 @@ use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
 use crate::kex::{Kex, processing_server_algorithm};
 use crate::{client, config};
+use crate::algorithm::key_exchange;
 use crate::window_size::WindowSize;
 
 
@@ -64,8 +65,8 @@ impl Channel {
                 self.kex.send_algorithm()?;
                 let config = config::config();
 
-                let (dh, sign) = config.algorithm.matching_algorithm()?;
-                self.kex.dh = dh;
+                let (ke, sign) = config.algorithm.matching_algorithm()?;
+                key_exchange::put(ke);
                 self.kex.signature = sign;
 
                 self.kex.h.set_v_c(config.version.client_version.as_str());

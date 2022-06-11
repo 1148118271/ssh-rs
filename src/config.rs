@@ -1,10 +1,12 @@
 use crate::constant::{algorithms, CLIENT_VERSION};
 use crate::data::Data;
 use crate::error::SshErrorKind;
-use crate::encryption::{CURVE25519, KeyExchange, PublicKey, RSA, DH, EcdhP256, SIGN, Ed25519};
+use crate::encryption::{PublicKey, RSA, SIGN, Ed25519};
 use crate::slog::log;
 use crate::{SshError, SshResult};
-
+use crate::algorithm::key_exchange::curve25519::CURVE25519;
+use crate::algorithm::key_exchange::ecdh_sha2_nistp256::EcdhP256;
+use crate::algorithm::key_exchange::KeyExchange;
 
 
 pub(crate) static mut CONFIG: Option<Config> = None;
@@ -92,25 +94,8 @@ impl AlgorithmConfig {
         }
     }
 
-    pub(crate) fn matching_algorithm(&self) -> SshResult<(Box<DH>, Box<SIGN>)> {
-        let dh_str: String = get_algorithm(
-            &self.client_algorithm.key_exchange_algorithm.0,
-            &self.server_algorithm.key_exchange_algorithm.0
-        );
-
-        let dh: Box<DH> = match dh_str.as_str() {
-            algorithms::DH_CURVE25519_SHA256 => Box::new(CURVE25519::new()?),
-            algorithms::DH_ECDH_SHA2_NISTP256 => Box::new(EcdhP256::new()?),
-            _ => {
-                log::error!("description The DH algorithm fails to match, \
-                algorithms supported by the server: {},\
-                algorithms supported by the client: {}",
-                    self.server_algorithm.key_exchange_algorithm.to_string(),
-                    self.client_algorithm.key_exchange_algorithm.to_string()
-                );
-                return Err(SshError::from(SshErrorKind::KeyExchangeError))
-            }
-        };
+    pub(crate) fn matching_algorithm(&self) -> SshResult<(Box<dyn KeyExchange>, Box<SIGN>)> {
+        let key_exchange_algorithm = self.matching_key_exchange_algorithm()?;
 
         let sign_str: String = get_algorithm(
             &self.client_algorithm.public_key_algorithm.0,
@@ -143,7 +128,31 @@ impl AlgorithmConfig {
                 );
             return Err(SshError::from(SshErrorKind::KeyExchangeError))
         }
-        Ok((dh, signature))
+        Ok((key_exchange_algorithm, signature))
+    }
+
+    /// 匹配合适的密钥交换算法
+    /// 目前支持:
+    ///     1. curve25519-sha256
+    ///     2. ecdh-sha2-nistp256
+    pub(crate) fn matching_key_exchange_algorithm(&self) -> SshResult<Box<dyn KeyExchange>> {
+        let key_exchange_algorithm: String = get_algorithm(
+            &self.client_algorithm.key_exchange_algorithm.0,
+            &self.server_algorithm.key_exchange_algorithm.0
+        );
+        match key_exchange_algorithm.as_str() {
+            algorithms::DH_CURVE25519_SHA256 => Ok(Box::new(CURVE25519::new()?)),
+            algorithms::DH_ECDH_SHA2_NISTP256 => Ok(Box::new(EcdhP256::new()?)),
+            _ => {
+                log::error!("description The DH algorithm fails to match, \
+                algorithms supported by the server: {},\
+                algorithms supported by the client: {}",
+                    self.server_algorithm.key_exchange_algorithm.to_string(),
+                    self.client_algorithm.key_exchange_algorithm.to_string()
+                );
+                Err(SshError::from(SshErrorKind::KeyExchangeError))
+            }
+        }
     }
 
 }

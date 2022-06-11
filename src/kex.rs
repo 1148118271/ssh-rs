@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 use crate::constant::ssh_msg_code;
-use crate::encryption::{ChaCha20Poly1305, CURVE25519, DH, H, KeyExchange, PublicKey, SIGN, RSA, HASH, digest, IS_ENCRYPT, AesCtr};
+use crate::encryption::{ChaCha20Poly1305, H, PublicKey, SIGN, RSA, HASH, digest, IS_ENCRYPT, AesCtr};
 use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::data::Data;
 use crate::slog::log;
@@ -12,12 +12,12 @@ use crate::config::{
     PublicKeyAlgorithm
 };
 use crate::{client, config, encryption, util};
+use crate::algorithm::key_exchange;
 
 
 pub(crate) struct Kex {
     pub(crate) session_id: Vec<u8>,
     pub(crate) h: H,
-    pub(crate) dh: Box<DH>,
     pub(crate) signature: Box<SIGN>
 }
 
@@ -27,7 +27,6 @@ impl Kex {
         Ok(Kex {
             session_id: vec![],
             h: H::new(),
-            dh: Box::new(CURVE25519::new()?),
             signature: Box::new(RSA::new())
         })
     }
@@ -78,7 +77,7 @@ impl Kex {
     pub(crate) fn send_qc(&self) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEX_ECDH_INIT);
-        data.put_u8s(self.dh.get_public_key());
+        data.put_u8s(key_exchange::get().get_public_key());
         let client = client::default()?;
         client.write(data)
     }
@@ -134,9 +133,9 @@ impl Kex {
         self.h.set_k_s(&ks);
         // TODO 未进行密钥指纹验证！！
         let qs = data.get_u8s();
-        self.h.set_q_c(self.dh.get_public_key());
+        self.h.set_q_c(key_exchange::get().get_public_key());
         self.h.set_q_s(&qs);
-        let vec = self.dh.get_shared_secret(qs)?;
+        let vec = key_exchange::get().get_shared_secret(qs)?;
         self.h.set_k(&vec);
         let hb = self.h.as_bytes();
         self.session_id = digest::digest(&digest::SHA256, &hb).as_ref().to_vec();
