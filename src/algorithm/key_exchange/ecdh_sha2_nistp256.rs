@@ -1,5 +1,4 @@
-use ring::agreement;
-use ring::agreement::{EphemeralPrivateKey, PublicKey};
+use ring::agreement::{ECDH_P256, EphemeralPrivateKey, PublicKey, UnparsedPublicKey};
 use crate::algorithm::key_exchange::KeyExchange;
 use crate::error::SshErrorKind;
 use crate::{SshError, SshResult};
@@ -13,7 +12,7 @@ impl KeyExchange for EcdhP256 {
     fn new() -> SshResult<Self> {
         let rng = ring::rand::SystemRandom::new();
         let private_key =
-            match agreement::EphemeralPrivateKey::generate(&agreement::ECDH_P256, &rng) {
+            match EphemeralPrivateKey::generate(&ECDH_P256, &rng) {
             Ok(v) => v,
             Err(_) => return Err(SshError::from(SshErrorKind::EncryptionError))
         };
@@ -35,7 +34,7 @@ impl KeyExchange for EcdhP256 {
     fn get_shared_secret(&self, puk: Vec<u8>) -> SshResult<Vec<u8>> {
         let mut public_key = [0u8; 65];
         public_key.copy_from_slice(&puk);
-        let server_pub = agreement::UnparsedPublicKey::new(&agreement::ECDH_P256, puk);
+        let server_pub = UnparsedPublicKey::new(&ECDH_P256, puk);
         let private_key = unsafe { (&self.private_key as *const EphemeralPrivateKey).read() };
         crate::algorithm::key_exchange::agree_ephemeral(private_key, &server_pub)
     }

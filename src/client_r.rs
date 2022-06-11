@@ -77,7 +77,8 @@ impl Client {
     fn process_data_encrypt(&mut self,
                             mut result: Vec<u8>,
                             results: &mut Vec<Data>,
-                            mut lws: Option<&mut WindowSize>) -> SshResult<()>
+                            mut lws: Option<&mut WindowSize>)
+        -> SshResult<()>
     {
         loop {
             self.sequence.server_auto_increment();

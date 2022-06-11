@@ -1,7 +1,6 @@
 use ring::agreement;
 use ring::agreement::{EphemeralPrivateKey, UnparsedPublicKey};
 use crate::{SshError, SshResult};
-use crate::algorithm::key_exchange::curve25519::CURVE25519;
 use crate::error::SshErrorKind;
 
 /// # 密钥交换方法
