@@ -1,13 +1,12 @@
 use aes::Aes128Ctr;
 use aes::cipher::{NewCipher, StreamCipher};
 use ring::hmac;
-use crate::encryption::HASH;
+use crate::algorithm::hash;
 use crate::SshError;
 
 pub struct AesCtr {
     pub(crate) client_key: Aes128Ctr,
     pub(crate) server_key: Aes128Ctr,
-    pub(crate) hash      : HASH
 }
 
 impl AesCtr {
@@ -18,7 +17,8 @@ impl AesCtr {
         16
     }
 
-    pub(crate) fn new(hash: HASH) -> AesCtr {
+    pub(crate) fn new() -> AesCtr {
+        let hash = hash::get();
         let (ck, sk) = hash.extend_key(AesCtr::bsize());
         let mut ckey = [0u8; 16];
         let mut skey = [0u8; 16];
@@ -29,24 +29,24 @@ impl AesCtr {
         ckey.clone_from_slice(&ck[..16]);
         skey.clone_from_slice(&sk[..16]);
 
+        // TODO IV 需要计算长度
         civ.clone_from_slice(&hash.iv_c_s[..16]);
         siv.clone_from_slice(&hash.iv_s_c[..16]);
 
-
-        let mut c = Aes128Ctr::new_from_slices(&ckey, &civ).unwrap();
-        let mut r = Aes128Ctr::new_from_slices(&skey, &siv).unwrap();
+        // TODO unwrap 未处理
+        let c = Aes128Ctr::new_from_slices(&ckey, &civ).unwrap();
+        let r = Aes128Ctr::new_from_slices(&skey, &siv).unwrap();
 
         AesCtr {
             client_key: c,
             server_key: r,
-            hash
         }
     }
 
     pub(crate) fn encryption(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>) {
         let vec = buf.clone();
         let mut hk = [0_u8; 20];
-        hk.clone_from_slice(&(self.hash.ik_c_s[..20]));
+        hk.clone_from_slice(&(hash::get().ik_c_s[..20]));
 
         let s_key = hmac::Key::new(hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY, &hk);
         let mut s_ctx = hmac::Context::with_key(&s_key);

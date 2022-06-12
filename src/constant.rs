@@ -169,13 +169,5 @@ pub mod algorithms {
     pub const COMPRESSION_ALGORITHMS                            :&'static str = "none";
 }
 
-
-/// 密钥交换对应的hash算法
-#[allow(dead_code)]
-pub enum HashType {
-    SHA1,
-    SHA256
-}
-
 /// 密钥交换后进行HASH时候需要的常量值
-pub(crate) const ALPHABET: [char; 6] = ['A', 'B', 'C', 'D', 'E', 'F'];
+pub(crate) const ALPHABET: [u8; 6] = [b'A', b'B', b'C', b'D', b'E', b'F'];

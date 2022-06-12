@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 use crate::constant::ssh_msg_code;
-use crate::encryption::{ChaCha20Poly1305, PublicKey, SIGN, RSA, HASH, digest, IS_ENCRYPT, AesCtr};
+use crate::encryption::{ChaCha20Poly1305, PublicKey, SIGN, RSA, digest, IS_ENCRYPT, AesCtr};
 use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::data::Data;
 use crate::slog::log;
@@ -17,7 +17,7 @@ use crate::algorithm::hash::h;
 
 
 pub(crate) struct Kex {
-    pub(crate) session_id: Vec<u8>,
+    // pub(crate) session_id: Vec<u8>,
     pub(crate) signature: Box<SIGN>
 }
 
@@ -25,7 +25,7 @@ impl Kex {
 
     pub(crate) fn new() -> SshResult<Kex> {
         Ok(Kex {
-            session_id: vec![],
+            // session_id: vec![],
             signature: Box::new(RSA::new())
         })
     }
@@ -94,9 +94,10 @@ impl Kex {
                         // 生成session_id并且获取signature
                         let sig = self.generate_session_id_and_get_signature(result)?;
                         // 验签
+                        let session_id = h::get().digest();
                         let r = self
                             .signature
-                            .verify_signature(h::get().k_s.as_ref(), &self.session_id, &sig)?;
+                            .verify_signature(h::get().k_s.as_ref(), &session_id, &sig)?;
                         log::info!("signature verification result: [{}]", r);
                         if !r {
                             return Err(SshError::from(SshErrorKind::SignatureError))
@@ -118,12 +119,9 @@ impl Kex {
         data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
         let client = client::default()?;
         client.write(data)?;
-
-        let hash: HASH = HASH::new(h::get().k.as_ref(), &self.session_id, &self.session_id);
         // let poly1305 = ChaCha20Poly1305::new(hash);
-        let ctr = AesCtr::new(hash);
         IS_ENCRYPT.store(true, Ordering::Relaxed);
-        encryption::update_encryption_key(Some(ctr));
+        encryption::update_encryption_key(Some(AesCtr::new()));
         Ok(())
     }
 
@@ -137,9 +135,6 @@ impl Kex {
         h_val.set_q_s(&qs);
         let vec = key_exchange::get().get_shared_secret(qs)?;
         h_val.set_k(&vec);
-        let hb = h_val.as_bytes();
-        let hash_type = key_exchange::get().get_hash_type();
-        self.session_id = hash::digest(hash_type, hb.clone().as_slice()).to_vec();
         let h = data.get_u8s();
         let mut hd = Data::from(h);
         hd.get_u8s();

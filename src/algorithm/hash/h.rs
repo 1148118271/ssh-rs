@@ -1,4 +1,5 @@
 use std::borrow::BorrowMut;
+use crate::algorithm::{hash, key_exchange};
 use crate::data::Data;
 
 /// 密钥交换产生两个值：一个共享秘密 K，以及一个交换哈希 H。加密和验证密钥来自它们。第一
@@ -119,7 +120,7 @@ impl H {
     }
 
 
-    pub(crate) fn as_bytes(&mut self) -> Vec<u8> {
+    pub(crate) fn as_bytes(&self) -> Vec<u8> {
         let mut v = vec![];
         v.extend(& self.v_c);
         v.extend(& self.v_s);
@@ -130,6 +131,10 @@ impl H {
         v.extend(& self.q_s);
         v.extend(& self.k);
         v
+    }
+
+    pub(crate) fn digest(&self) -> Vec<u8> {
+        hash::digest(self.as_bytes().as_slice())
     }
 
 }

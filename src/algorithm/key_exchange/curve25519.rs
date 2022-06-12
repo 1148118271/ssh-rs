@@ -1,6 +1,6 @@
 use ring::agreement::{EphemeralPrivateKey, PublicKey, UnparsedPublicKey, X25519};
+use crate::algorithm::hash::HashType;
 use crate::algorithm::key_exchange::KeyExchange;
-use crate::constant::HashType;
 use crate::error::{SshError, SshErrorKind};
 use crate::SshResult;
 

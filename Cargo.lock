@@ -442,7 +442,6 @@ version = "0.1.4"
 dependencies = [
  "aes",
  "filetime",
- "lazy_static",
  "log",
  "rand",
  "ring",

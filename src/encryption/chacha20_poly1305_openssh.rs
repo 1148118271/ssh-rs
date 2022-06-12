@@ -1,7 +1,7 @@
 use ring::aead::chacha20_poly1305_openssh;
 use ring::aead::chacha20_poly1305_openssh::{OpeningKey, SealingKey};
+use crate::algorithm::hash;
 use crate::error::{SshError, SshErrorKind};
-use crate::encryption::hash::HASH;
 
 pub struct ChaCha20Poly1305 {
     pub client_key: SealingKey,
@@ -14,7 +14,8 @@ impl ChaCha20Poly1305 {
         64
     }
 
-    pub fn new(hash: HASH) -> ChaCha20Poly1305 {
+    pub fn new() -> ChaCha20Poly1305 {
+        let hash = hash::get();
         let (ck, sk) = hash.extend_key(ChaCha20Poly1305::bsize());
         let mut sealing_key = [0_u8; 64];
         let mut opening_key = [0_u8; 64];

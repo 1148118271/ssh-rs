@@ -1,7 +1,6 @@
 mod ed25519;
 mod chacha20_poly1305_openssh;
 mod rsa;
-mod hash;
 mod aes_ctr;
 
 use std::sync::atomic::AtomicBool;
@@ -11,7 +10,6 @@ pub use {
     ed25519::Ed25519,
     chacha20_poly1305_openssh::ChaCha20Poly1305,
     self::rsa::RSA,
-    hash::HASH,
     aes_ctr::AesCtr
 };
 use crate::error::{SshError, SshErrorKind};
