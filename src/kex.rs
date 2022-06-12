@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 use crate::constant::ssh_msg_code;
-use crate::encryption::{ChaCha20Poly1305, H, PublicKey, SIGN, RSA, HASH, digest, IS_ENCRYPT, AesCtr};
+use crate::encryption::{ChaCha20Poly1305, PublicKey, SIGN, RSA, HASH, digest, IS_ENCRYPT, AesCtr};
 use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::data::Data;
 use crate::slog::log;
@@ -13,11 +13,11 @@ use crate::config::{
 };
 use crate::{client, config, encryption, util};
 use crate::algorithm::{hash, key_exchange};
+use crate::algorithm::hash::h;
 
 
 pub(crate) struct Kex {
     pub(crate) session_id: Vec<u8>,
-    pub(crate) h: H,
     pub(crate) signature: Box<SIGN>
 }
 
@@ -26,7 +26,6 @@ impl Kex {
     pub(crate) fn new() -> SshResult<Kex> {
         Ok(Kex {
             session_id: vec![],
-            h: H::new(),
             signature: Box::new(RSA::new())
         })
     }
@@ -48,7 +47,7 @@ impl Kex {
             .put_u8(false as u8)
             .put_u32(0_u32);
 
-        self.h.set_i_c(data.as_slice());
+        h::get().set_i_c(data.as_slice());
 
         let client = client::default()?;
         client.write(data)
@@ -64,7 +63,7 @@ impl Kex {
                 let message_code = result[0];
                 match message_code {
                     ssh_msg_code::SSH_MSG_KEXINIT => {
-                        self.h.set_i_s(result.as_slice());
+                        h::get().set_i_s(result.as_slice());
                         return processing_server_algorithm(result)
                     }
                     _ => { }
@@ -97,7 +96,7 @@ impl Kex {
                         // 验签
                         let r = self
                             .signature
-                            .verify_signature(&self.h.k_s, &self.session_id, &sig)?;
+                            .verify_signature(h::get().k_s.as_ref(), &self.session_id, &sig)?;
                         log::info!("signature verification result: [{}]", r);
                         if !r {
                             return Err(SshError::from(SshErrorKind::SignatureError))
@@ -120,7 +119,7 @@ impl Kex {
         let client = client::default()?;
         client.write(data)?;
 
-        let hash: HASH = HASH::new(&self.h.k, &self.session_id, &self.session_id);
+        let hash: HASH = HASH::new(h::get().k.as_ref(), &self.session_id, &self.session_id);
         // let poly1305 = ChaCha20Poly1305::new(hash);
         let ctr = AesCtr::new(hash);
         IS_ENCRYPT.store(true, Ordering::Relaxed);
@@ -130,16 +129,17 @@ impl Kex {
 
     pub(crate) fn generate_session_id_and_get_signature(&mut self, mut data: Data) -> Result<Vec<u8>, SshError> {
         let ks = data.get_u8s();
-        self.h.set_k_s(&ks);
+        let h_val = h::get();
+        h_val.set_k_s(&ks);
         // TODO 未进行密钥指纹验证！！
         let qs = data.get_u8s();
-        self.h.set_q_c(key_exchange::get().get_public_key());
-        self.h.set_q_s(&qs);
+        h_val.set_q_c(key_exchange::get().get_public_key());
+        h_val.set_q_s(&qs);
         let vec = key_exchange::get().get_shared_secret(qs)?;
-        self.h.set_k(&vec);
-        let hb = self.h.as_bytes();
+        h_val.set_k(&vec);
+        let hb = h_val.as_bytes();
         let hash_type = key_exchange::get().get_hash_type();
-        self.session_id = hash::digest(hash_type, &hb).to_vec();
+        self.session_id = hash::digest(hash_type, hb.clone().as_slice()).to_vec();
         let h = data.get_u8s();
         let mut hd = Data::from(h);
         hd.get_u8s();

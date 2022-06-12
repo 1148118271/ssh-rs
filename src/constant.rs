@@ -176,3 +176,6 @@ pub enum HashType {
     SHA1,
     SHA256
 }
+
+/// 密钥交换后进行HASH时候需要的常量值
+pub(crate) const ALPHABET: [char; 6] = ['A', 'B', 'C', 'D', 'E', 'F'];

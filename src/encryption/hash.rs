@@ -1,37 +1,50 @@
 use ring::digest;
+use crate::constant;
 
-const ALPHABET: [char; 6] = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 pub struct HASH {
-    pub k     : Vec<u8>,
-    pub h     : Vec<u8>,
-    pub iv_c_s: Vec<u8>,
-    pub iv_s_c: Vec<u8>,
-    pub ek_c_s: Vec<u8>,
-    pub ek_s_c: Vec<u8>,
-    pub ik_c_s: Vec<u8>,
-    pub ik_s_c: Vec<u8>
+
+    /// 密钥交换时候产生的共享秘密
+    pub k               : Vec<u8>,
+
+    /// 第一次密钥交换的交换哈希H
+    pub h               : Vec<u8>,
+
+    /// 第一次密钥交换的交换哈希H
+    pub session_id      : Vec<u8>,
+
+    /// IV
+    pub iv_c_s          : Vec<u8>,
+    pub iv_s_c          : Vec<u8>,
+
+    /// 数据加密的 key
+    pub ek_c_s          : Vec<u8>,
+    pub ek_s_c          : Vec<u8>,
+
+    /// Hmac时候用到的 key
+    pub ik_c_s          : Vec<u8>,
+    pub ik_s_c          : Vec<u8>
 }
 
 impl HASH {
     pub fn new(k: &[u8], h: &[u8], session_id: &[u8]) -> Self {
         let mut keys = vec![];
-        for v in ALPHABET {
+        for v in constant::ALPHABET {
             keys.push(HASH::derive_key(k.clone(), h.clone(), v as u8, session_id));
         }
        HASH {
             k: k.to_vec(),
+
             h: h.to_vec(),
 
-            // iv
+            session_id: session_id.to_vec(),
+
             iv_c_s: keys[0].clone(),
             iv_s_c: keys[1].clone(),
 
-            // key
             ek_c_s: keys[2].clone(),
             ek_s_c: keys[3].clone(),
 
-            //  MAC
             ik_c_s: keys[4].clone(),
             ik_s_c: keys[5].clone()
         }

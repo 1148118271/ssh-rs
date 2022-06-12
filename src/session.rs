@@ -7,6 +7,7 @@ use crate::channel::Channel;
 use crate::channel_scp::ChannelScp;
 use crate::kex::Kex;
 use crate::{channel, ChannelExec, ChannelShell, client, config, util};
+use crate::algorithm::hash::h;
 use crate::algorithm::key_exchange;
 use crate::window_size::WindowSize;
 
@@ -73,8 +74,8 @@ impl Session {
 
         kex.signature = sign;
 
-        kex.h.set_v_c(config.version.client_version.as_str());
-        kex.h.set_v_s(config.version.server_version.as_str());
+        h::get().set_v_c(config.version.client_version.as_str());
+        h::get().set_v_s(config.version.server_version.as_str());
 
         kex.send_qc()?;
         kex.verify_signature_and_new_keys()?;

@@ -57,38 +57,38 @@ impl Channel {
                 client.write(data)?;
             }
             ssh_msg_code::SSH_MSG_KEXINIT => {
-                let vec = result.to_vec();
-                let mut data = Data::from(vec![message_code]);
-                data.extend(vec);
-                self.kex.h.set_i_s(data.as_slice());
-                processing_server_algorithm(data)?;
-                self.kex.send_algorithm()?;
-                let config = config::config();
-
-                let (ke, sign) = config.algorithm.matching_algorithm()?;
-                key_exchange::put(ke);
-                self.kex.signature = sign;
-
-                self.kex.h.set_v_c(config.version.client_version.as_str());
-                self.kex.h.set_v_s(config.version.server_version.as_str());
-
-
-                self.kex.send_qc()?;
+                // let vec = result.to_vec();
+                // let mut data = Data::from(vec![message_code]);
+                // data.extend(vec);
+                // self.kex.h.set_i_s(data.as_slice());
+                // processing_server_algorithm(data)?;
+                // self.kex.send_algorithm()?;
+                // let config = config::config();
+                //
+                // let (ke, sign) = config.algorithm.matching_algorithm()?;
+                // key_exchange::put(ke);
+                // self.kex.signature = sign;
+                //
+                // self.kex.h.set_v_c(config.version.client_version.as_str());
+                // self.kex.h.set_v_s(config.version.server_version.as_str());
+                //
+                //
+                // self.kex.send_qc()?;
             }
             ssh_msg_code::SSH_MSG_KEX_ECDH_REPLY => {
-                // 生成session_id并且获取signature
-                let sig = self
-                    .kex
-                    .generate_session_id_and_get_signature(result)?;
-                // 验签
-                let r = self
-                    .kex
-                    .signature
-                    .verify_signature(&self.kex.h.k_s, &self.kex.session_id, &sig)?;
-                log::info!("signature Verification Result => {}", r);
-                if !r {
-                    return Err(SshError::from(SshErrorKind::SignatureError))
-                }
+                // // 生成session_id并且获取signature
+                // let sig = self
+                //     .kex
+                //     .generate_session_id_and_get_signature(result)?;
+                // // 验签
+                // let r = self
+                //     .kex
+                //     .signature
+                //     .verify_signature(&self.kex.h.k_s, &self.kex.session_id, &sig)?;
+                // log::info!("signature Verification Result => {}", r);
+                // if !r {
+                //     return Err(SshError::from(SshErrorKind::SignatureError))
+                // }
             }
             ssh_msg_code::SSH_MSG_NEWKEYS => self.kex.new_keys()?,
             // 通道大小 暂不处理
