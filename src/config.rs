@@ -7,6 +7,7 @@ use crate::{SshError, SshResult};
 use crate::algorithm::key_exchange::curve25519::CURVE25519;
 use crate::algorithm::key_exchange::ecdh_sha2_nistp256::EcdhP256;
 use crate::algorithm::key_exchange::KeyExchange;
+use crate::algorithm::public_key::PublicKey;
 
 
 pub(crate) static mut CONFIG: Option<Config> = None;
@@ -94,27 +95,10 @@ impl AlgorithmConfig {
         }
     }
 
-    pub(crate) fn matching_algorithm(&self) -> SshResult<(Box<dyn KeyExchange>, Box<SIGN>)> {
+    pub(crate) fn matching_algorithm(&self) -> SshResult<(Box<dyn KeyExchange>, Box<dyn PublicKey>)> {
         let key_exchange_algorithm = self.matching_key_exchange_algorithm()?;
 
-        let sign_str: String = get_algorithm(
-            &self.client_algorithm.public_key_algorithm.0,
-            &self.server_algorithm.public_key_algorithm.0
-        );
-
-        let signature: Box<SIGN> = match sign_str.as_str() {
-            algorithms::PUBLIC_KEY_ED25519 => Box::new(Ed25519::new()),
-            algorithms::PUBLIC_KEY_RSA => Box::new(RSA::new()),
-            _ => {
-                log::error!("description the signature algorithm fails to match, \
-                algorithms supported by the server: {},\
-                algorithms supported by the client: {}",
-                    self.server_algorithm.public_key_algorithm.to_string(),
-                    self.client_algorithm.public_key_algorithm.to_string()
-                );
-                return Err(SshError::from(SshErrorKind::KeyExchangeError))
-            }
-        };
+        let public_key_algorithm = self.matching_public_key_algorithm()?;
 
         if !self.server_algorithm.c_encryption_algorithm
             .0
@@ -128,7 +112,31 @@ impl AlgorithmConfig {
                 );
             return Err(SshError::from(SshErrorKind::KeyExchangeError))
         }
-        Ok((key_exchange_algorithm, signature))
+        Ok((key_exchange_algorithm, public_key_algorithm))
+    }
+
+    /// 匹配合适的公钥签名算法
+    /// 目前支持:
+    ///     1. ed25519.rs
+    ///     2. ssh-rsa
+    pub(crate) fn matching_public_key_algorithm(&self) -> SshResult<Box<dyn PublicKey>> {
+        let public_key_algorithm: String = get_algorithm(
+            &self.client_algorithm.public_key_algorithm.0,
+            &self.server_algorithm.public_key_algorithm.0
+        );
+        match public_key_algorithm.as_str() {
+            algorithms::PUBLIC_KEY_ED25519 => Ok(Box::new(Ed25519::new())),
+            algorithms::PUBLIC_KEY_RSA => Ok(Box::new(RSA::new())),
+            _ => {
+                log::error!("description the signature algorithm fails to match, \
+                algorithms supported by the server: {},\
+                algorithms supported by the client: {}",
+                    self.server_algorithm.public_key_algorithm.to_string(),
+                    self.client_algorithm.public_key_algorithm.to_string()
+                );
+                return Err(SshError::from(SshErrorKind::KeyExchangeError))
+            }
+        }
     }
 
     /// 匹配合适的密钥交换算法

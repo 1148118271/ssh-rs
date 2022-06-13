@@ -72,7 +72,7 @@ impl Session {
         // 缓存密钥交换算法
         key_exchange::put(ke);
 
-        kex.signature = sign;
+        // kex.signature = sign;
 
         h::get().set_v_c(config.version.client_version.as_str());
         h::get().set_v_s(config.version.server_version.as_str());

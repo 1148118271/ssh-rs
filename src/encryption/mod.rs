@@ -7,9 +7,7 @@ use std::sync::atomic::AtomicBool;
 pub use ring::digest;
 
 pub use {
-    ed25519::Ed25519,
     chacha20_poly1305_openssh::ChaCha20Poly1305,
-    self::rsa::RSA,
     aes_ctr::AesCtr
 };
 use crate::error::{SshError, SshErrorKind};
@@ -51,12 +49,12 @@ pub fn update_encryption_key(v: Option<AesCtr>) {
 //     fn get_shared_secret(&self, puk: Vec<u8>) -> Result<Vec<u8>, SshError>;
 // }
 
-pub type SIGN = dyn PublicKey;
-
-pub trait PublicKey: Send + Sync {
-    fn new() -> Self where Self: Sized;
-    fn verify_signature(&self, ks: &[u8], message: &[u8], sig: &[u8]) -> Result<bool, SshError>;
-}
+// pub type SIGN = dyn PublicKey;
+//
+// pub trait PublicKey: Send + Sync {
+//     fn new() -> Self where Self: Sized;
+//     fn verify_signature(&self, ks: &[u8], message: &[u8], sig: &[u8]) -> Result<bool, SshError>;
+// }
 
 
 // /// 交换哈希 H , 也被用作会话标识

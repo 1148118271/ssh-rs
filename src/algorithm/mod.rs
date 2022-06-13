@@ -1,2 +1,3 @@
-pub mod key_exchange;
-pub mod hash;
+pub(crate) mod key_exchange;
+pub(crate) mod hash;
+pub(crate) mod public_key;
