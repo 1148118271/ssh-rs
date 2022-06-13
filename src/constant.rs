@@ -100,8 +100,8 @@ pub mod ssh_msg_code {
     pub const SSH_MSG_SERVICE_ACCEPT                            :u8 = 6;
     pub const SSH_MSG_KEXINIT                                   :u8 = 20;
     pub const SSH_MSG_NEWKEYS                                   :u8 = 21;
-    pub const SSH_MSG_KEX_ECDH_INIT                             :u8 = 30;
-    pub const SSH_MSG_KEX_ECDH_REPLY                            :u8 = 31;
+    pub const SSH_MSG_KEXDH_INIT                                :u8 = 30;
+    pub const SSH_MSG_KEXDH_REPLY                               :u8 = 31;
     pub const SSH_MSG_USERAUTH_REQUEST                          :u8 = 50;
     pub const SSH_MSG_USERAUTH_FAILURE                          :u8 = 51;
     pub const SSH_MSG_USERAUTH_SUCCESS                          :u8 = 52;

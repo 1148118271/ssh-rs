@@ -8,9 +8,7 @@ use crate::slog::log;
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
-use crate::kex::{Kex, processing_server_algorithm};
-use crate::{client, config};
-use crate::algorithm::key_exchange;
+use crate::{client, kex};
 use crate::window_size::WindowSize;
 
 
@@ -27,7 +25,6 @@ pub fn current_client_channel_no() -> u32 {
 
 
 pub struct Channel {
-    pub(crate) kex: Kex,
     pub(crate) remote_close: bool,
     pub(crate) local_close: bool,
     pub(crate) window_size: WindowSize
@@ -56,6 +53,7 @@ impl Channel {
                 let client = client::default()?;
                 client.write(data)?;
             }
+            // TODO 密钥重新交换
             ssh_msg_code::SSH_MSG_KEXINIT => {
                 // let vec = result.to_vec();
                 // let mut data = Data::from(vec![message_code]);
@@ -75,7 +73,7 @@ impl Channel {
                 //
                 // self.kex.send_qc()?;
             }
-            ssh_msg_code::SSH_MSG_KEX_ECDH_REPLY => {
+            ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
                 // // 生成session_id并且获取signature
                 // let sig = self
                 //     .kex
@@ -90,7 +88,7 @@ impl Channel {
                 //     return Err(SshError::from(SshErrorKind::SignatureError))
                 // }
             }
-            ssh_msg_code::SSH_MSG_NEWKEYS => self.kex.new_keys()?,
+            ssh_msg_code::SSH_MSG_NEWKEYS => kex::new_keys()?,
             // 通道大小 暂不处理
             ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
                 // 接收方通道号， 暂时不需要

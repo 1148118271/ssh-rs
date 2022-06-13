@@ -1,13 +1,12 @@
 use crate::constant::{algorithms, CLIENT_VERSION};
 use crate::data::Data;
 use crate::error::SshErrorKind;
-use crate::encryption::{PublicKey, RSA, SIGN, Ed25519};
 use crate::slog::log;
 use crate::{SshError, SshResult};
 use crate::algorithm::key_exchange::curve25519::CURVE25519;
 use crate::algorithm::key_exchange::ecdh_sha2_nistp256::EcdhP256;
 use crate::algorithm::key_exchange::KeyExchange;
-use crate::algorithm::public_key::PublicKey;
+use crate::algorithm::public_key::{Ed25519, PublicKey, RSA};
 
 
 pub(crate) static mut CONFIG: Option<Config> = None;
