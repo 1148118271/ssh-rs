@@ -9,7 +9,7 @@
 //! use ssh_rs::ssh;
 //! use ssh_rs::{ChannelExec, Session};
 //! use std::thread;
-//! use std::thread::sleep;          
+//! use std::thread::sleep;
 //! use std::io::{stdin, stdout, Write};
 //! use std::time::Duration;
 //!
@@ -98,6 +98,7 @@ pub use session::Session;
 pub use channel::Channel;
 pub use channel_shell::ChannelShell;
 pub use channel_exec::ChannelExec;
+pub use channel_scp::ChannelScp;
 
 use crate::error::{SshError, SshResult};
 use crate::config::Config;
