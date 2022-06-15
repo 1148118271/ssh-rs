@@ -88,7 +88,6 @@ impl Client {
             }
             let key = encryption::get();
             let data_len = key.data_len(self.sequence.server_sequence_num, result.as_slice());
-
             // let packet_len = self.get_encrypt_packet_length(&result[..4], key);
             // let data_len = (packet_len + 4 + 16) as usize;
 

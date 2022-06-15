@@ -1,61 +1,27 @@
 
 mod tests {
     use aes::Aes128Ctr;
-    use aes::cipher::{NewCipher, StreamCipher};
+    use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
     use aes::cipher::generic_array::GenericArray;
 
     #[test]
     fn f() {
-        let bs = b"abcdefjhrjkmsdfe";
+        let ckey = [32_u8, 59, 160, 246, 139, 196, 208, 4, 112, 195, 76, 74, 254, 173, 172, 57];
+        let civ  = [132_u8, 174, 184, 176, 168, 56, 129, 240, 56, 234, 129, 183, 8, 244, 32, 169];
 
-        let mut k = [0u8; 16];
-        let mut iv = [0u8; 16];
-        k.clone_from_slice(bs);
-        iv.clone_from_slice(bs);
 
-        let slice = GenericArray::from(k);
-        let n = GenericArray::from(iv);
+        let mut buf = vec![0_u8, 0, 0, 92, 31, 50, 0, 0, 0, 4, 114, 111, 111, 116, 0, 0, 0, 14, 115, 115, 104, 45, 99, 111, 110, 110, 101, 99, 116, 105, 111, 110, 0, 0, 0, 8, 112, 97, 115, 115, 119, 111, 114, 100, 0, 0, 0, 0, 16, 71, 97, 111, 120, 105, 97, 110, 103, 107, 97, 110, 103, 64, 49, 50, 51, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        let buf1 = [128_u8, 65, 115, 31, 142, 184, 153, 56, 41, 44, 69, 81, 33, 224, 22, 232, 212, 0, 23, 34, 104, 91, 193, 223, 60, 178, 115, 219, 134, 50, 35, 213, 201, 199, 227, 141, 179, 6, 164, 124, 52, 227, 48, 190, 130, 210, 112, 25, 89, 175, 211, 182, 170, 109, 18, 154, 51, 235, 20, 72, 36, 3, 31, 164, 23, 163, 186, 77, 213, 220, 15, 195, 222, 95, 64, 49, 134, 236, 42, 83, 149, 94, 68, 84, 187, 220, 159, 168, 181, 241, 49, 39, 83, 212, 31, 14];
+        let buf2 = [128_u8, 65, 115, 31, 142, 184, 153, 56, 41, 44, 69, 81, 33, 224, 22, 232, 212, 0, 23, 34, 104, 91, 193, 223, 60, 178, 115, 219, 134, 50, 35, 213, 201, 199, 227, 141, 179, 6, 164, 124, 52, 227, 48, 190, 130, 210, 112, 25, 89, 175, 211, 182, 170, 109, 18, 154, 51, 235, 20, 72, 36, 3, 31, 164, 23, 163, 186, 77, 213, 220, 15, 195, 222, 95, 64, 49, 134, 236, 42, 83, 149, 94, 68, 84, 187, 220, 159, 168, 181, 241, 49, 39, 83, 212, 31, 14]
+
+        let slice = GenericArray::from(ckey);
+        let n = GenericArray::from(civ);
         let mut result = Aes128Ctr::new_from_slices(&slice, &n).unwrap();
-        let mut data = "abcdefjhrjkmsdfe".as_bytes().to_vec();
-        result.apply_keystream(&mut data);
 
-        // 57db78e0dabc1c0bb87cca69fa041b1e
-        // 57db78e0dabc1c0bb87cca69fa041b1e
-        //
+        result.apply_keystream(&mut buf);
 
-        // let e = hex::encode(data);
-        //
-
-        println!("{:?}", base64::encode(data));
-
-
-        // let string = hex::encode("0000000000000000");
-        // println!("{}", string);
-
-        // c96c4f5b291b128fcecd2b47a903cbcc
-        // c96c4f5b291b128fcecd2b47a903cbcc
-        // c96c4f5b291b128fcecd2b47a903cbcc
-
-
-
-        // let slice = GenericArray::from([0u8; 16]);
-        // let mut ctr = Aes128Ctr::new(&key, &slice);
-        // let mut data = b"0000000000000000".to_vec();
-        // let vec = data.clone();
-        // // let mut data = String::from("123456").as_bytes();
-        // // let mut result1 = hex::decode("c96c4f5b291b128fcecd2b47a903cbcc".as_bytes()).unwrap();
-        // //println!("data: {:?}", data);
-        // let array = Block::from([0u8; 16]);
-        // ctr.apply_keystream(&mut data);
-        //
-        // ctr.apply_keystream(&mut data);
-        //
-        // println!("data: {:?}", data);
-        // println!("data: {:?}", vec);
-       // println!("data: {:?}", String::from_utf8(data));
-        //let result = hex::encode(data);
-
-        //println!("result: {:?}", result);
+        println!("buf => {:?}", buf)
     }
 }
 

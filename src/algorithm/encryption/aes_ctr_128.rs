@@ -1,5 +1,5 @@
 use aes::Aes128Ctr;
-use aes::cipher::{NewCipher, StreamCipher};
+use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
 use ring::hmac;
 use crate::algorithm::hash;
 use crate::{SshError, SshResult};
@@ -40,6 +40,10 @@ impl Encryption for AesCtr128 {
         civ.clone_from_slice(&hash.iv_c_s[..16]);
         siv.clone_from_slice(&hash.iv_s_c[..16]);
 
+
+        println!("ckey => {:?}", ckey);
+        println!("civ  => {:?}", civ);
+
         // TODO unwrap 未处理
         let c = Aes128Ctr::new_from_slices(&ckey, &civ).unwrap();
         let r = Aes128Ctr::new_from_slices(&skey, &siv).unwrap();
@@ -51,35 +55,34 @@ impl Encryption for AesCtr128 {
     }
 
     fn encrypt(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>) {
-        unsafe {
-            println!("buf str => {}", String::from_utf8_unchecked(buf.clone()));
-            println!("buf  => {:?}", buf)
-        }
-        println!(">>>>>>>");
+        println!("client_sequence_num => {}", client_sequence_num);
+        let x: usize = self.client_key.current_pos();
+        println!("pos => {}", x);
         let vec = buf.clone();
         let mut hk = [0_u8; 20];
-        println!("hk {:?}", hk);
         let ik_c_s = &hash::get().ik_c_s[..20];
-        println!("ik_c_s {:?}", ik_c_s);
         hk.clone_from_slice(ik_c_s);
-        println!("hk {:?}", hk);
+        println!("hk -> {:?}", hk);
         let s_key = hmac::Key::new(hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY, &hk);
         let mut s_ctx = hmac::Context::with_key(&s_key);
         s_ctx.update(client_sequence_num.to_be_bytes().as_slice());
+        println!("vec -> {:?}", vec);
         s_ctx.update(vec.as_slice());
         let tag = s_ctx.sign();
         self.client_key.apply_keystream(buf);
+        self.client_key.seek(0);
         buf.extend(tag.as_ref())
     }
 
     fn decrypt(&mut self, sequence_number: u32, buf: &mut [u8]) -> SshResult<Vec<u8>> {
         let pl = self.packet_len(sequence_number, buf);
-        println!("pl => {}", pl);
         let data = &mut buf[..(pl + 20) as usize];
         let (d, m) = data.split_at_mut(pl as usize);
         self.server_key.apply_keystream(d);
+        self.server_key.seek(0);
         let mut hk = [0_u8; 20];
-        hk.clone_from_slice(&(hash::get().ik_c_s[..20]));
+        let ik_s_c = &hash::get().ik_s_c[..20];
+        hk.clone_from_slice(ik_s_c);
         let s_key = hmac::Key::new(hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY, &hk);
         let mut s_ctx = hmac::Context::with_key(&s_key);
         s_ctx.update(sequence_number.to_be_bytes().as_slice());
@@ -96,12 +99,11 @@ impl Encryption for AesCtr128 {
         let mut r = vec![0_u8; self.bsize() as usize];
         r.clone_from_slice(&buf[..self.bsize() as usize]);
         self.server_key.apply_keystream(&mut r);
+        self.server_key.seek(0);
         let mut u32_bytes = [0_u8; 4];
         u32_bytes.clone_from_slice(&r[..4]);
-        println!("u32_bytes => {:?}", u32_bytes);
         let packet_len = u32::from_be_bytes(u32_bytes);
-        println!("packet_len => {}", packet_len);
-        packet_len
+        packet_len + 4
     }
 
     fn data_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize {
