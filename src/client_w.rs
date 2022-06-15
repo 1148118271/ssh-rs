@@ -2,9 +2,10 @@ use std::io::Write;
 use std::sync::atomic::Ordering::Relaxed;
 use crate::client::Client;
 use crate::data::Data;
-use crate::encryption::IS_ENCRYPT;
+use crate::algorithm::encryption::{Encryption, IS_ENCRYPT};
 use crate::packet::Packet;
-use crate::{encryption, SshError, SshResult};
+use crate::{SshError, SshResult};
+use crate::algorithm::encryption;
 use crate::window_size::WindowSize;
 
 impl Client {
@@ -26,9 +27,7 @@ impl Client {
             if let Some(rws) = rws {
                 rws.process_remote_window_size(data.as_slice())?;
             }
-            let mut vec = self.get_encryption_data(data)?;
-            vec.extend(&[0;20]);
-            vec
+            self.get_encryption_data(data)?
         } else {
             let mut packet = Packet::from(data);
             packet.build(false);
@@ -52,13 +51,11 @@ impl Client {
     }
 
 
-
     fn get_encryption_data(&self, data: Data) -> SshResult<Vec<u8>> {
         let mut packet = Packet::from(data);
         packet.build(true);
         let mut buf = packet.to_vec();
-        let key = encryption::encryption_key()?;
-        key.encryption(self.sequence.client_sequence_num, &mut buf);
+        encryption::get().encrypt(self.sequence.client_sequence_num, &mut buf);
         Ok(buf)
     }
 }

@@ -73,6 +73,8 @@
 
 
 
+extern crate core;
+
 mod client;
 mod client_r;
 mod client_w;
@@ -92,7 +94,6 @@ mod slog;
 mod constant;
 mod data;
 mod packet;
-mod encryption;
 mod algorithm;
 
 pub use session::Session;

@@ -7,7 +7,7 @@ use crate::channel::Channel;
 use crate::channel_scp::ChannelScp;
 use crate::{channel, ChannelExec, ChannelShell, client, config, kex, util};
 use crate::algorithm::hash::h;
-use crate::algorithm::{key_exchange, public_key};
+use crate::algorithm::{encryption, key_exchange, public_key};
 use crate::window_size::WindowSize;
 
 
@@ -66,17 +66,19 @@ impl Session {
         kex::send_algorithm()?;
         kex::receive_algorithm()?;
 
-        let (ke, pk) = config.algorithm.matching_algorithm()?;
         // 缓存密钥交换算法
-        key_exchange::put(ke);
+        key_exchange::put(config.algorithm.matching_key_exchange_algorithm()?);
         // 公钥算法
-        public_key::put(pk);
+        public_key::put(config.algorithm.matching_public_key_algorithm()?);
 
         h::get().set_v_c(config.version.client_version.as_str());
         h::get().set_v_s(config.version.server_version.as_str());
 
         kex::send_qc()?;
         kex::verify_signature_and_new_keys()?;
+
+        // 加密算法
+        encryption::put(config.algorithm.matching_encryption_algorithm()?);
 
         log::info!("key negotiation successful.");
 

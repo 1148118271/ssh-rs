@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 use crate::constant::ssh_msg_code;
-use crate::encryption::{ChaCha20Poly1305, digest, IS_ENCRYPT, AesCtr};
+use crate::algorithm::encryption::{ChaCha20Poly1305, IS_ENCRYPT};
 use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::data::Data;
 use crate::slog::log;
@@ -11,8 +11,8 @@ use crate::config::{
     MacAlgorithm,
     PublicKeyAlgorithm
 };
-use crate::{client, config, encryption, util};
-use crate::algorithm::{key_exchange, public_key};
+use crate::{client, config, util};
+use crate::algorithm::{encryption, key_exchange, public_key};
 use crate::algorithm::hash::h;
 
 
@@ -22,7 +22,6 @@ pub(crate) fn send_algorithm() -> SshResult<()> {
     log::info!("client algorithms: [{}]", config.algorithm.client_algorithm.to_string());
     if IS_ENCRYPT.load(Ordering::Relaxed) {
         IS_ENCRYPT.store(false, Ordering::Relaxed);
-        encryption::update_encryption_key(None);
     }
     let mut data = Data::new();
     data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
@@ -85,10 +84,10 @@ pub(crate) fn verify_signature_and_new_keys() -> SshResult<()> {
                     let sig = generate_signature(result)?;
                     // 验签
                     let session_id = h::get().digest();
-                    if !public_key::get()
+                    let flag = public_key::get()
                         .verify_signature(h::get().k_s.as_ref(),
-                                          &session_id, &sig)?
-                    {
+                                          &session_id, &sig)?;
+                    if !flag {
                         log::error!("signature verification failure.");
                         return Err(SshError::from(SshErrorKind::SignatureError))
                     }
@@ -111,9 +110,7 @@ pub(crate) fn new_keys() -> Result<(), SshError> {
     data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
     let client = client::default()?;
     client.write(data)?;
-    // let poly1305 = ChaCha20Poly1305::new(hash);
     IS_ENCRYPT.store(true, Ordering::Relaxed);
-    encryption::update_encryption_key(Some(AesCtr::new()));
     Ok(())
 }
 

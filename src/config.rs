@@ -3,6 +3,8 @@ use crate::data::Data;
 use crate::error::SshErrorKind;
 use crate::slog::log;
 use crate::{SshError, SshResult};
+use crate::algorithm::encryption::{AesCtr128, ChaCha20Poly1305, Encryption};
+use crate::algorithm::{encryption, key_exchange, public_key};
 use crate::algorithm::key_exchange::curve25519::CURVE25519;
 use crate::algorithm::key_exchange::ecdh_sha2_nistp256::EcdhP256;
 use crate::algorithm::key_exchange::KeyExchange;
@@ -94,24 +96,32 @@ impl AlgorithmConfig {
         }
     }
 
-    pub(crate) fn matching_algorithm(&self) -> SshResult<(Box<dyn KeyExchange>, Box<dyn PublicKey>)> {
-        let key_exchange_algorithm = self.matching_key_exchange_algorithm()?;
 
-        let public_key_algorithm = self.matching_public_key_algorithm()?;
-
-        if !self.server_algorithm.c_encryption_algorithm
-            .0
-            .contains(&(algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH.to_string()))
-        {
-            log::error!("description the encryption algorithm fails to match, \
+    /// 匹配合适的加密算法
+    /// 目前支持:
+    ///     1. chacha20-poly1305@openssh.com
+    ///     2. aes128-ctr
+    pub(crate) fn matching_encryption_algorithm(&self) -> SshResult<Box<dyn Encryption>> {
+        // 目前是加密和解密使用一个算法
+        // 所以直接取一个算法为准
+        let encryption_algorithm: String = get_algorithm(
+            &self.client_algorithm.c_encryption_algorithm.0,
+            &self.server_algorithm.c_encryption_algorithm.0
+        );
+        match encryption_algorithm.as_str() {
+            algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH => Ok(Box::new(ChaCha20Poly1305::new())),
+            algorithms::ENCRYPTION_AES128_CTR => Ok(Box::new(AesCtr128::new())),
+            _ => {
+                log::error!("description the encryption algorithm fails to match, \
                 algorithms supported by the server: {},\
                 algorithms supported by the client: {}",
                     self.server_algorithm.c_encryption_algorithm.to_string(),
                     self.client_algorithm.c_encryption_algorithm.to_string()
                 );
-            return Err(SshError::from(SshErrorKind::KeyExchangeError))
+                Err(SshError::from(SshErrorKind::KeyExchangeError))
+            }
         }
-        Ok((key_exchange_algorithm, public_key_algorithm))
+
     }
 
     /// 匹配合适的公钥签名算法
@@ -133,7 +143,7 @@ impl AlgorithmConfig {
                     self.server_algorithm.public_key_algorithm.to_string(),
                     self.client_algorithm.public_key_algorithm.to_string()
                 );
-                return Err(SshError::from(SshErrorKind::KeyExchangeError))
+                Err(SshError::from(SshErrorKind::KeyExchangeError))
             }
         }
     }
@@ -286,6 +296,7 @@ impl EncryptionAlgorithm {
     pub(crate) fn get_client() -> Self {
         EncryptionAlgorithm(
             vec![
+                algorithms::ENCRYPTION_AES128_CTR.to_string(),
                 algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH.to_string(),
             ]
         )

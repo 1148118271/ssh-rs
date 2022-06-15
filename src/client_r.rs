@@ -4,8 +4,9 @@ use std::sync::atomic::Ordering::Relaxed;
 use crate::client::Client;
 use crate::constant::size;
 use crate::data::Data;
-use crate::encryption::IS_ENCRYPT;
-use crate::{encryption, SshError, SshResult};
+use crate::algorithm::encryption::{Encryption, IS_ENCRYPT};
+use crate::{SshError, SshResult};
+use crate::algorithm::encryption;
 use crate::packet::Packet;
 use crate::window_size::WindowSize;
 
@@ -85,17 +86,18 @@ impl Client {
             if result.len() < 4 {
                 self.check_result_len(&mut result)?;
             }
-            let key = encryption::encryption_key()?;
-            let (packet_len, data_len) = key.packet_and_data_len(result.as_slice());
+            let key = encryption::get();
+            let data_len = key.data_len(self.sequence.server_sequence_num, result.as_slice());
 
             // let packet_len = self.get_encrypt_packet_length(&result[..4], key);
             // let data_len = (packet_len + 4 + 16) as usize;
-            if result.len() < data_len as usize {
-                self.get_encrypt_data(&mut result, data_len as usize)?;
+
+            if result.len() < data_len {
+                self.get_encrypt_data(&mut result, data_len)?;
             }
-            let (this, remaining) = result.split_at_mut(data_len as usize);
+            let (this, remaining) = result.split_at_mut(data_len);
             let decryption_result =
-                key.decryption(&mut this.to_vec())?;
+                key.decrypt(self.sequence.server_sequence_num, &mut this.to_vec())?;
             let data = Packet::from(decryption_result).unpacking();
             // 判断是否需要修改窗口大小
             if let Some(v) = &mut lws {
