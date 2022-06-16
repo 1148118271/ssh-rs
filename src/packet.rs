@@ -66,28 +66,18 @@ impl Packet {
     // 封包
     pub fn build(&mut self, is_encrypt: bool) {
         let data_len =  self.data.len() as u32;
-        let padding_len = match is_encrypt {
-                true => {
-                    let bsize = encryption::get().bsize() as i32;
-                    let mut pad = (-((data_len + 5) as i32)) & (bsize - 1) as i32;
-                    // let mut pad = bsize - (data_len + 5) % bsize;
-                    // if pad < 4 { pad += bsize }
-                    if pad < bsize {
-                        pad += bsize;
-                    }
-                    pad as u32
-                }
-
+        let bsize = match is_encrypt {
+                true => encryption::get().bsize() as i32,
                 // 未加密的填充: 整个包的总长度是8的倍数，并且填充长度不能小于4
-                false => {
-                    let mut pad = 16 - (data_len + 5) % 16;
-                    if pad < 4 { pad += 8 }
-                    pad
-                }
+                false => 8,
             };
-
-
-        println!("padding_len ->> {}, is_encrypt {} ", padding_len, is_encrypt);
+        let padding_len = {
+            let mut pad = (-((data_len + 5) as i32)) & (bsize - 1) as i32;
+            if pad < bsize {
+                pad += bsize;
+            }
+            pad as u32
+        };
 
         // 组装数据 []
         let mut buf = vec![];
@@ -100,7 +90,6 @@ impl Packet {
         buf.extend(vec![0; padding_len as usize]);
         // 获取总长度
         let packet_len = buf.len() as u32;
-        println!("packet_len => {}", packet_len + 4);
         let mut packet_len_u8s= packet_len.to_be_bytes().to_vec();
         // [packet_length, padding_length, payload, randomPadding]
         packet_len_u8s.extend(buf);

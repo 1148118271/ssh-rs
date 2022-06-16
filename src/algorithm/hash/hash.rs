@@ -86,10 +86,10 @@ impl HASH {
         hash::digest(key.as_slice())
     }
 
-    pub(crate) fn extend_key(&self, key_size: u32) -> (Vec<u8>, Vec<u8>) {
+    pub(crate) fn extend_key(&self, key_size: usize) -> (Vec<u8>, Vec<u8>) {
         let mut ck = self.ek_c_s.to_vec();
         let mut sk = self.ek_s_c.to_vec();
-        while key_size as usize > ck.len() {
+        while key_size > ck.len() {
             ck.extend(self.extend(ck.as_slice()));
             sk.extend(self.extend(sk.as_slice()));
         }

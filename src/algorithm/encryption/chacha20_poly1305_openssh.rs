@@ -4,7 +4,7 @@ use crate::algorithm::hash;
 use crate::error::{SshError, SshErrorKind};
 
 
-const BSIZE: u32 = 64;
+const BSIZE: usize = 64;
 
 pub struct ChaCha20Poly1305 {
     client_key: SealingKey,
@@ -12,11 +12,11 @@ pub struct ChaCha20Poly1305 {
 }
 
 impl Encryption for ChaCha20Poly1305 {
-    fn bsize(&self) -> u32 {
+    fn bsize(&self) -> usize {
         BSIZE
     }
 
-    fn iv_size(&self) -> u32 {
+    fn iv_size(&self) -> usize {
        0
     }
 
@@ -24,8 +24,8 @@ impl Encryption for ChaCha20Poly1305 {
     fn new() -> ChaCha20Poly1305 {
         let hash = hash::get();
         let (ck, sk) = hash.extend_key(BSIZE);
-        let mut sealing_key = [0_u8; 64];
-        let mut opening_key = [0_u8; 64];
+        let mut sealing_key = [0_u8; BSIZE];
+        let mut opening_key = [0_u8; BSIZE];
         sealing_key.copy_from_slice(&ck);
         opening_key.copy_from_slice(&sk);
 
@@ -54,7 +54,6 @@ impl Encryption for ChaCha20Poly1305 {
             Ok(result) =>  Ok([&packet_len_slice[..], result].concat()),
             Err(_) => Err(SshError::from(SshErrorKind::EncryptionError))
         }
-
     }
 
     fn packet_len(&mut self, sequence_number: u32, buf: &[u8]) -> u32 {

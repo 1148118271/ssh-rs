@@ -45,8 +45,8 @@ pub(crate) fn get() -> &'static mut Box<dyn Encryption> {
 
 
 pub(crate) trait Encryption {
-    fn bsize(&self) -> u32;
-    fn iv_size(&self) -> u32;
+    fn bsize(&self) -> usize;
+    fn iv_size(&self) -> usize;
     fn new() -> Self where Self: Sized;
     fn encrypt(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>);
     fn decrypt(&mut self, sequence_number: u32, buf: &mut [u8]) -> SshResult<Vec<u8>>;
