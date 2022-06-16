@@ -55,6 +55,8 @@ impl Encryption for AesCtr128 {
     }
 
     fn encrypt(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>) {
+        //let mut ctr128 = AesCtr128::new();
+       // self.client_key = ctr128.client_key;
         println!("client_sequence_num => {}", client_sequence_num);
         let x: usize = self.client_key.current_pos();
         println!("pos => {}", x);
@@ -70,7 +72,7 @@ impl Encryption for AesCtr128 {
         s_ctx.update(vec.as_slice());
         let tag = s_ctx.sign();
         self.client_key.apply_keystream(buf);
-        self.client_key.seek(0);
+        // self.client_key.seek(0);
         buf.extend(tag.as_ref())
     }
 
@@ -79,7 +81,7 @@ impl Encryption for AesCtr128 {
         let data = &mut buf[..(pl + 20) as usize];
         let (d, m) = data.split_at_mut(pl as usize);
         self.server_key.apply_keystream(d);
-        self.server_key.seek(0);
+        //self.server_key.seek(0);
         let mut hk = [0_u8; 20];
         let ik_s_c = &hash::get().ik_s_c[..20];
         hk.clone_from_slice(ik_s_c);
@@ -96,10 +98,12 @@ impl Encryption for AesCtr128 {
     }
 
     fn packet_len(&mut self, sequence_number: u32, buf: &[u8]) -> u32 {
-        let mut r = vec![0_u8; self.bsize() as usize];
-        r.clone_from_slice(&buf[..self.bsize() as usize]);
+        let bsize = self.bsize() as usize;
+        let mut r = vec![0_u8; bsize];
+        r.clone_from_slice(&buf[..bsize]);
         self.server_key.apply_keystream(&mut r);
-        self.server_key.seek(0);
+        let pos: usize = self.server_key.current_pos();
+        self.server_key.seek(pos - bsize);
         let mut u32_bytes = [0_u8; 4];
         u32_bytes.clone_from_slice(&r[..4]);
         let packet_len = u32::from_be_bytes(u32_bytes);
