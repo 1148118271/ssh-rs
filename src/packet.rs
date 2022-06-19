@@ -67,17 +67,26 @@ impl Packet {
     pub fn build(&mut self, is_encrypt: bool) {
         let data_len =  self.data.len() as u32;
         let bsize = match is_encrypt {
-                true => encryption::get().bsize() as i32,
+                true => 8 /*encryption::get().bsize() as u32*/,
                 // 未加密的填充: 整个包的总长度是8的倍数，并且填充长度不能小于4
                 false => 8,
             };
+        // TODO 需要一个更优的算法
         let padding_len = {
-            let mut pad = (-((data_len + 5) as i32)) & (bsize - 1) as i32;
-            if pad < bsize {
-                pad += bsize;
+            let len = data_len + 5;
+            let mut pad = 4;
+            loop {
+                if (len + pad) % bsize == 0 {
+                    break;
+                }
+                pad = pad + 1;
             }
-            pad as u32
+            pad
         };
+
+        println!("data_len -> {}", data_len);
+        println!("padding_len -> {}", padding_len);
+        println!("data_len    -> {}", data_len + 5 + padding_len);
 
         // 组装数据 []
         let mut buf = vec![];

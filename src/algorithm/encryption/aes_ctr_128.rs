@@ -1,7 +1,7 @@
 use aes::Aes128Ctr;
 use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
 use ring::hmac;
-use crate::algorithm::hash;
+use crate::algorithm::{hash, mac};
 use crate::{SshError, SshResult};
 use crate::algorithm::encryption::Encryption;
 use crate::error::SshErrorKind;
@@ -51,31 +51,19 @@ impl Encryption for AesCtr128 {
 
     fn encrypt(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>) {
         let vec = buf.clone();
-        let mut hk = [0_u8; 20];
-        let ik_c_s = &hash::get().ik_c_s[..20];
-        hk.clone_from_slice(ik_c_s);
-        let s_key = hmac::Key::new(hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY, &hk);
-        let mut s_ctx = hmac::Context::with_key(&s_key);
-        s_ctx.update(client_sequence_num.to_be_bytes().as_slice());
-        s_ctx.update(vec.as_slice());
-        let tag = s_ctx.sign();
+        let mac = mac::get();
+        let tag = mac.sign(&hash::get().ik_c_s[..mac::get().bsize()], client_sequence_num, vec.as_slice());
         self.client_key.apply_keystream(buf);
         buf.extend(tag.as_ref())
     }
 
-    fn decrypt(&mut self, sequence_number: u32, buf: &mut [u8]) -> SshResult<Vec<u8>> {
-        let pl = self.packet_len(sequence_number, buf);
-        let data = &mut buf[..(pl + 20) as usize];
-        let (d, m) = data.split_at_mut(pl as usize);
+    fn decrypt(&mut self, server_sequence_number: u32, buf: &mut [u8]) -> SshResult<Vec<u8>> {
+        let pl = self.packet_len(server_sequence_number, buf);
+        let data = &mut buf[..(pl + 20)];
+        let (d, m) = data.split_at_mut(pl);
         self.server_key.apply_keystream(d);
-        let mut hk = [0_u8; 20];
-        let ik_s_c = &hash::get().ik_s_c[..20];
-        hk.clone_from_slice(ik_s_c);
-        let s_key = hmac::Key::new(hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY, &hk);
-        let mut s_ctx = hmac::Context::with_key(&s_key);
-        s_ctx.update(sequence_number.to_be_bytes().as_slice());
-        s_ctx.update(d);
-        let tag = s_ctx.sign();
+        let mac = mac::get();
+        let tag = mac.sign(&hash::get().ik_s_c[..mac::get().bsize()], server_sequence_number, d);
         let t = tag.as_ref();
         if m != t {
             return Err(SshError::from(SshErrorKind::EncryptionError))
@@ -83,8 +71,8 @@ impl Encryption for AesCtr128 {
         Ok(d.to_vec())
     }
 
-    fn packet_len(&mut self, _: u32, buf: &[u8]) -> u32 {
-        let bsize = self.bsize() as usize;
+    fn packet_len(&mut self, _: u32, buf: &[u8]) -> usize {
+        let bsize = self.bsize();
         let mut r = vec![0_u8; bsize];
         r.clone_from_slice(&buf[..bsize]);
         self.server_key.apply_keystream(&mut r);
@@ -93,13 +81,13 @@ impl Encryption for AesCtr128 {
         let mut u32_bytes = [0_u8; 4];
         u32_bytes.clone_from_slice(&r[..4]);
         let packet_len = u32::from_be_bytes(u32_bytes);
-        packet_len + 4
+        (packet_len + 4) as usize
     }
 
-    fn data_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize {
-        // TODO 20 是 hmac 长度
-        (self.packet_len(sequence_number, buf) + 20) as usize
-
+    fn data_len(&mut self, server_sequence_number: u32, buf: &[u8]) -> usize {
+        let pl = self.packet_len(server_sequence_number, buf);
+        let bsize = mac::get().bsize();
+        pl + bsize
     }
 
 }

@@ -8,6 +8,8 @@ use crate::algorithm::{encryption, key_exchange, public_key};
 use crate::algorithm::key_exchange::curve25519::CURVE25519;
 use crate::algorithm::key_exchange::ecdh_sha2_nistp256::EcdhP256;
 use crate::algorithm::key_exchange::KeyExchange;
+use crate::algorithm::mac::hmac_sha1::HMacSha1;
+use crate::algorithm::mac::Mac;
 use crate::algorithm::public_key::{Ed25519, PublicKey, RSA};
 
 
@@ -97,6 +99,32 @@ impl AlgorithmConfig {
     }
 
 
+    /// 匹配合适的mac算法
+    /// 目前支持：
+    ///     1. hmac-sha1
+    pub(crate) fn matching_mac_algorithm(&self) -> SshResult<Box<dyn Mac>> {
+        // 目前是加密和解密使用一个算法
+        // 所以直接取一个算法为准
+        let mac_algorithm: String = get_algorithm(
+            &self.client_algorithm.c_mac_algorithm.0,
+            &self.server_algorithm.c_mac_algorithm.0
+        );
+
+        match mac_algorithm.as_str() {
+            algorithms::MAC_HMAC_SHA1 => Ok(Box::new(HMacSha1::new())),
+            _ => {
+                log::error!("description the mac algorithm fails to match, \
+                algorithms supported by the server: {},\
+                algorithms supported by the client: {}",
+                    self.server_algorithm.c_mac_algorithm.to_string(),
+                    self.client_algorithm.c_mac_algorithm.to_string()
+                );
+                Err(SshError::from(SshErrorKind::KeyExchangeError))
+            }
+        }
+    }
+
+
     /// 匹配合适的加密算法
     /// 目前支持:
     ///     1. chacha20-poly1305@openssh.com
@@ -161,7 +189,7 @@ impl AlgorithmConfig {
             algorithms::DH_CURVE25519_SHA256 => Ok(Box::new(CURVE25519::new()?)),
             algorithms::DH_ECDH_SHA2_NISTP256 => Ok(Box::new(EcdhP256::new()?)),
             _ => {
-                log::error!("description The DH algorithm fails to match, \
+                log::error!("description the DH algorithm fails to match, \
                 algorithms supported by the server: {},\
                 algorithms supported by the client: {}",
                     self.server_algorithm.key_exchange_algorithm.to_string(),
@@ -314,7 +342,7 @@ impl MacAlgorithm {
     pub(crate) fn get_client() -> Self {
         MacAlgorithm(
             vec![
-                algorithms::MAC_ALGORITHMS.to_string(),
+                algorithms::MAC_HMAC_SHA1.to_string(),
             ]
         )
     }

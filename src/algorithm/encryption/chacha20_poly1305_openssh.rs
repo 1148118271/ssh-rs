@@ -22,6 +22,7 @@ impl Encryption for ChaCha20Poly1305 {
 
 
     fn new() -> ChaCha20Poly1305 {
+        println!("ChaCha20Poly1305");
         let hash = hash::get();
         let (ck, sk) = hash.extend_key(BSIZE);
         let mut sealing_key = [0_u8; BSIZE];
@@ -56,18 +57,18 @@ impl Encryption for ChaCha20Poly1305 {
         }
     }
 
-    fn packet_len(&mut self, sequence_number: u32, buf: &[u8]) -> u32 {
+    fn packet_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize {
         let mut packet_len_slice = [0_u8; 4];
         packet_len_slice.copy_from_slice(&buf[..4]);
         let packet_len_slice = self.server_key
             .decrypt_packet_length(
                 sequence_number,
                 packet_len_slice);
-        u32::from_be_bytes(packet_len_slice)
+        u32::from_be_bytes(packet_len_slice) as usize
     }
 
     fn data_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize {
         let packet_len = self.packet_len(sequence_number, buf);
-        (packet_len + 4 + 16) as usize
+        packet_len + 4 + 16
     }
 }

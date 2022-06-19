@@ -7,7 +7,7 @@ use crate::channel::Channel;
 use crate::channel_scp::ChannelScp;
 use crate::{channel, ChannelExec, ChannelShell, client, config, kex, util};
 use crate::algorithm::hash::h;
-use crate::algorithm::{encryption, key_exchange, public_key};
+use crate::algorithm::{encryption, key_exchange, mac, public_key};
 use crate::window_size::WindowSize;
 
 
@@ -79,6 +79,8 @@ impl Session {
 
         // 加密算法
         encryption::put(config.algorithm.matching_encryption_algorithm()?);
+        // mac 算法
+        // mac::put(config.algorithm.matching_mac_algorithm()?);
 
         log::info!("key negotiation successful.");
 

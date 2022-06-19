@@ -3,7 +3,6 @@ mod tests {
     use aes::Aes128Ctr;
     use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
     use aes::cipher::generic_array::GenericArray;
-    use ssh_rs::{ChannelExec, Session, ssh};
 
     #[test]
     fn f() {
@@ -37,6 +36,27 @@ mod tests {
         println!("加密后 => {:?}", buf);
         d.apply_keystream(&mut buf);
         println!("解密后 => {:?}", buf);
+    }
+
+
+    #[test]
+    fn test2() {
+        let bsize = 64;
+        let data_len = 556;
+
+
+        let len = data_len + 5;
+        let mut pad = 4;
+        loop {
+            if (len + pad) % bsize == 0 {
+                break;
+            }
+            pad = pad + 1;
+        }
+
+
+        println!("{}",  len + pad)
+
     }
 }
 

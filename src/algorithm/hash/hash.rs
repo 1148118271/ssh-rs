@@ -63,7 +63,7 @@ impl HASH {
         let session_id = h.clone();
         let mut keys = vec![];
         for v in constant::ALPHABET {
-            keys.push(HASH::derive_key(&k, &h, v, &session_id));
+            keys.push(HASH::mix(&k, &h, v, &session_id));
         }
         HASH {
             iv_c_s: keys[0].clone(),
@@ -77,7 +77,7 @@ impl HASH {
         }
     }
 
-    fn derive_key(k: &[u8], h: &[u8], key_char: u8, session_id: &[u8]) -> Vec<u8> {
+    fn mix(k: &[u8], h: &[u8], key_char: u8, session_id: &[u8]) -> Vec<u8> {
         let mut key: Vec<u8> = Vec::new();
         key.extend(k);
         key.extend(h);

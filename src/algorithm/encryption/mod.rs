@@ -50,6 +50,6 @@ pub(crate) trait Encryption {
     fn new() -> Self where Self: Sized;
     fn encrypt(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>);
     fn decrypt(&mut self, sequence_number: u32, buf: &mut [u8]) -> SshResult<Vec<u8>>;
-    fn packet_len(&mut self, sequence_number: u32, buf: &[u8]) -> u32;
+    fn packet_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize;
     fn data_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize;
 }
