@@ -8,7 +8,9 @@ use crate::slog::log;
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
-use crate::{client, kex};
+use crate::{client, config, kex};
+use crate::algorithm::hash::h;
+use crate::algorithm::{key_exchange, public_key};
 use crate::window_size::WindowSize;
 
 
@@ -53,40 +55,41 @@ impl Channel {
                 let client = client::default()?;
                 client.write(data)?;
             }
-            // TODO 密钥重新交换
             ssh_msg_code::SSH_MSG_KEXINIT => {
-                // let vec = result.to_vec();
-                // let mut data = Data::from(vec![message_code]);
-                // data.extend(vec);
-                // self.kex.h.set_i_s(data.as_slice());
-                // processing_server_algorithm(data)?;
-                // self.kex.send_algorithm()?;
-                // let config = config::config();
-                //
-                // let (ke, sign) = config.algorithm.matching_algorithm()?;
-                // key_exchange::put(ke);
-                // self.kex.signature = sign;
-                //
-                // self.kex.h.set_v_c(config.version.client_version.as_str());
-                // self.kex.h.set_v_s(config.version.server_version.as_str());
-                //
-                //
-                // self.kex.send_qc()?;
+                let vec = result.to_vec();
+                let mut data = Data::from(vec![message_code]);
+                data.extend(vec);
+                let h = h::get();
+                h.set_i_s(data.as_slice());
+                kex::processing_server_algorithm(data)?;
+                kex::send_algorithm()?;
+                let config = config::config();
+
+                // 缓存密钥交换算法
+                key_exchange::put(config.algorithm.matching_key_exchange_algorithm()?);
+                // 公钥算法
+                public_key::put(config.algorithm.matching_public_key_algorithm()?);
+
+                h.set_v_c(config.version.client_version.as_str());
+                h.set_v_s(config.version.server_version.as_str());
+
+                kex::send_qc()?;
+
+                kex::verify_signature_and_new_keys()?
             }
             ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
-                // // 生成session_id并且获取signature
-                // let sig = self
-                //     .kex
-                //     .generate_session_id_and_get_signature(result)?;
-                // // 验签
-                // let r = self
-                //     .kex
-                //     .signature
-                //     .verify_signature(&self.kex.h.k_s, &self.kex.session_id, &sig)?;
-                // log::info!("signature Verification Result => {}", r);
-                // if !r {
-                //     return Err(SshError::from(SshErrorKind::SignatureError))
-                // }
+                // 生成session_id并且获取signature
+                let sig = kex::generate_signature(result)?;
+                // 验签
+                let session_id = h::get().digest();
+                let flag = public_key::get()
+                    .verify_signature(h::get().k_s.as_ref(),
+                                      &session_id, &sig)?;
+                if !flag {
+                    log::error!("signature verification failure.");
+                    return Err(SshError::from(SshErrorKind::SignatureError))
+                }
+                log::info!("signature verification success.");
             }
             ssh_msg_code::SSH_MSG_NEWKEYS => kex::new_keys()?,
             // 通道大小 暂不处理

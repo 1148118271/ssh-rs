@@ -34,7 +34,7 @@ impl Log for Slog {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            println!("[SSH-{}]: {}", record.level(), record.args());
+            println!("[SSH]-[{}]: {}", record.level(), record.args());
         }
     }
 
