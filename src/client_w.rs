@@ -2,7 +2,7 @@ use std::io::Write;
 use std::sync::atomic::Ordering::Relaxed;
 use crate::client::Client;
 use crate::data::Data;
-use crate::algorithm::encryption::{Encryption, IS_ENCRYPT};
+use crate::algorithm::encryption::IS_ENCRYPT;
 use crate::packet::Packet;
 use crate::{SshError, SshResult};
 use crate::algorithm::encryption;

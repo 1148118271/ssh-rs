@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 use crate::constant::ssh_msg_code;
-use crate::algorithm::encryption::{ChaCha20Poly1305, IS_ENCRYPT};
+use crate::algorithm::encryption::IS_ENCRYPT;
 use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::data::Data;
 use crate::slog::log;
@@ -12,7 +12,7 @@ use crate::config::{
     PublicKeyAlgorithm
 };
 use crate::{client, config, util};
-use crate::algorithm::{encryption, key_exchange, public_key};
+use crate::algorithm::{key_exchange, public_key};
 use crate::algorithm::hash::h;
 
 

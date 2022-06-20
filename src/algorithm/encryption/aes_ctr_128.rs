@@ -1,6 +1,5 @@
 use aes::Aes128Ctr;
 use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
-use ring::hmac;
 use crate::algorithm::{hash, mac};
 use crate::{SshError, SshResult};
 use crate::algorithm::encryption::Encryption;
@@ -90,4 +89,7 @@ impl Encryption for AesCtr128 {
         pl + bsize
     }
 
+    fn is_cp(&self) -> bool {
+        false
+    }
 }

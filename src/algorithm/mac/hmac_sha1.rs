@@ -1,7 +1,5 @@
-use std::borrow::BorrowMut;
 use ring::hmac;
 use ring::hmac::{Context, Tag};
-use crate::algorithm::hash;
 use crate::algorithm::mac::Mac;
 
 const BSIZE: usize = 20;

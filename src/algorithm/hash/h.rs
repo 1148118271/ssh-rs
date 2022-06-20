@@ -1,5 +1,5 @@
 use std::borrow::BorrowMut;
-use crate::algorithm::{hash, key_exchange};
+use crate::algorithm::hash;
 use crate::data::Data;
 
 /// 密钥交换产生两个值：一个共享秘密 K，以及一个交换哈希 H。加密和验证密钥来自它们。第一

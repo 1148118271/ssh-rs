@@ -4,7 +4,6 @@ use crate::error::SshErrorKind;
 use crate::slog::log;
 use crate::{SshError, SshResult};
 use crate::algorithm::encryption::{AesCtr128, ChaCha20Poly1305, Encryption};
-use crate::algorithm::{encryption, key_exchange, public_key};
 use crate::algorithm::key_exchange::curve25519::CURVE25519;
 use crate::algorithm::key_exchange::ecdh_sha2_nistp256::EcdhP256;
 use crate::algorithm::key_exchange::KeyExchange;
@@ -324,8 +323,8 @@ impl EncryptionAlgorithm {
     pub(crate) fn get_client() -> Self {
         EncryptionAlgorithm(
             vec![
-                algorithms::ENCRYPTION_AES128_CTR.to_string(),
                 algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH.to_string(),
+                algorithms::ENCRYPTION_AES128_CTR.to_string(),
             ]
         )
     }

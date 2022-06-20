@@ -1,4 +1,4 @@
-use ring::hmac::{Context, Tag};
+use ring::hmac::Tag;
 
 pub(crate) mod hmac_sha1;
 

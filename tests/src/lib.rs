@@ -45,17 +45,21 @@ mod tests {
         let data_len = 556;
 
 
-        let len = data_len + 5;
-        let mut pad = 4;
-        loop {
-            if (len + pad) % bsize == 0 {
-                break;
-            }
-            pad = pad + 1;
-        }
+        let mut padding_len = 8 - (data_len + 1) % 8;
+        if padding_len < 4 { padding_len += 8 }
+
+        //
+        // let len = data_len + 5;
+        // let mut pad = 4;
+        // loop {
+        //     if (len + pad) % bsize == 0 {
+        //         break;
+        //     }
+        //     pad = pad + 1;
+        // }
 
 
-        println!("{}",  len + pad)
+        println!("{}",  padding_len + 1 + 5 + 3)
 
     }
 }

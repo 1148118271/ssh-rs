@@ -160,10 +160,10 @@ pub mod algorithms {
 
     /// 对称加密算法
     pub const ENCRYPTION_CHACHA20_POLY1305_OPENSSH              :&'static str = "chacha20-poly1305@openssh.com";
-    pub const ENCRYPTION_AES128_CTR                             :&'static str = "aes128-";
+    pub const ENCRYPTION_AES128_CTR                             :&'static str = "aes128-ctr";
 
     /// MAC（消息验证码）算法
-    pub const MAC_HMAC_SHA1                                     :&'static str = "none";
+    pub const MAC_HMAC_SHA1                                     :&'static str = "hmac-sha1";
 
     /// 压缩算法
     pub const COMPRESSION_ALGORITHMS                            :&'static str = "none";

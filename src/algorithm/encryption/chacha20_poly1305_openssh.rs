@@ -71,4 +71,8 @@ impl Encryption for ChaCha20Poly1305 {
         let packet_len = self.packet_len(sequence_number, buf);
         packet_len + 4 + 16
     }
+
+    fn is_cp(&self) -> bool {
+        true
+    }
 }

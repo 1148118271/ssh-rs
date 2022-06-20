@@ -80,7 +80,7 @@ impl Session {
         // 加密算法
         encryption::put(config.algorithm.matching_encryption_algorithm()?);
         // mac 算法
-        // mac::put(config.algorithm.matching_mac_algorithm()?);
+        mac::put(config.algorithm.matching_mac_algorithm()?);
 
         log::info!("key negotiation successful.");
 

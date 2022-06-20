@@ -8,7 +8,6 @@ pub(crate) use {
     chacha20_poly1305_openssh::ChaCha20Poly1305,
     aes_ctr_128::AesCtr128
 };
-use crate::error::{SshError, SshErrorKind};
 use crate::SshResult;
 
 
@@ -52,4 +51,5 @@ pub(crate) trait Encryption {
     fn decrypt(&mut self, sequence_number: u32, buf: &mut [u8]) -> SshResult<Vec<u8>>;
     fn packet_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize;
     fn data_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize;
+    fn is_cp(&self) -> bool;
 }
