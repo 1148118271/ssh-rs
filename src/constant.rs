@@ -100,8 +100,8 @@ pub mod ssh_msg_code {
     pub const SSH_MSG_SERVICE_ACCEPT                            :u8 = 6;
     pub const SSH_MSG_KEXINIT                                   :u8 = 20;
     pub const SSH_MSG_NEWKEYS                                   :u8 = 21;
-    pub const SSH_MSG_KEX_ECDH_INIT                             :u8 = 30;
-    pub const SSH_MSG_KEX_ECDH_REPLY                            :u8 = 31;
+    pub const SSH_MSG_KEXDH_INIT                                :u8 = 30;
+    pub const SSH_MSG_KEXDH_REPLY                               :u8 = 31;
     pub const SSH_MSG_USERAUTH_REQUEST                          :u8 = 50;
     pub const SSH_MSG_USERAUTH_FAILURE                          :u8 = 51;
     pub const SSH_MSG_USERAUTH_SUCCESS                          :u8 = 52;
@@ -160,10 +160,14 @@ pub mod algorithms {
 
     /// 对称加密算法
     pub const ENCRYPTION_CHACHA20_POLY1305_OPENSSH              :&'static str = "chacha20-poly1305@openssh.com";
+    pub const ENCRYPTION_AES128_CTR                             :&'static str = "aes128-ctr";
 
     /// MAC（消息验证码）算法
-    pub const MAC_ALGORITHMS                                    :&'static str = "none";
+    pub const MAC_HMAC_SHA1                                     :&'static str = "hmac-sha1";
 
     /// 压缩算法
     pub const COMPRESSION_ALGORITHMS                            :&'static str = "none";
 }
+
+/// 密钥交换后进行HASH时候需要的常量值
+pub(crate) const ALPHABET: [u8; 6] = [b'A', b'B', b'C', b'D', b'E', b'F'];

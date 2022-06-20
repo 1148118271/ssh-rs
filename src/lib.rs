@@ -76,6 +76,8 @@
 extern crate core;
 
 mod client;
+mod client_r;
+mod client_w;
 mod session;
 mod channel;
 mod kex;
@@ -92,7 +94,7 @@ mod slog;
 mod constant;
 mod data;
 mod packet;
-mod encryption;
+mod algorithm;
 
 pub use session::Session;
 pub use channel::Channel;

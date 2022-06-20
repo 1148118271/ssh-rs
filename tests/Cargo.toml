@@ -1,0 +1,12 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ring = "0.16.20"
+aes = { version = "0.7", features = ["ctr"] }
+hex = "0.4"
+base64 = "0.13.0"

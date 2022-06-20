@@ -1,5 +1,5 @@
 use rsa::PublicKey;
-use super::PublicKey as PubK;
+use crate::algorithm::public_key::PublicKey as PubK;
 use crate::data::Data;
 use crate::SshError;
 

@@ -5,8 +5,9 @@ use crate::error::{SshError, SshErrorKind, SshResult};
 use crate::slog::{log, Slog};
 use crate::channel::Channel;
 use crate::channel_scp::ChannelScp;
-use crate::kex::Kex;
-use crate::{channel, ChannelExec, ChannelShell, client, config, util};
+use crate::{channel, ChannelExec, ChannelShell, client, config, kex, util};
+use crate::algorithm::hash::h;
+use crate::algorithm::{encryption, key_exchange, mac, public_key};
 use crate::window_size::WindowSize;
 
 
@@ -62,19 +63,24 @@ impl Session {
         log::info!("prepare for key negotiation.");
 
         // 密钥协商
-        let mut kex = Kex::new()?;
-        kex.send_algorithm()?;
-        kex.receive_algorithm()?;
+        kex::send_algorithm()?;
+        kex::receive_algorithm()?;
 
-        let (dh, sign) = config.algorithm.matching_algorithm()?;
-        kex.dh = dh;
-        kex.signature = sign;
+        // 缓存密钥交换算法
+        key_exchange::put(config.algorithm.matching_key_exchange_algorithm()?);
+        // 公钥算法
+        public_key::put(config.algorithm.matching_public_key_algorithm()?);
 
-        kex.h.set_v_c(config.version.client_version.as_str());
-        kex.h.set_v_s(config.version.server_version.as_str());
+        h::get().set_v_c(config.version.client_version.as_str());
+        h::get().set_v_s(config.version.server_version.as_str());
 
-        kex.send_qc()?;
-        kex.verify_signature_and_new_keys()?;
+        kex::send_qc()?;
+        kex::verify_signature_and_new_keys()?;
+
+        // 加密算法
+        encryption::put(config.algorithm.matching_encryption_algorithm()?);
+        // mac 算法
+        mac::put(config.algorithm.matching_mac_algorithm()?);
 
         log::info!("key negotiation successful.");
 
@@ -93,7 +99,6 @@ impl Session {
         win_size.add_remote_window_size(rws);
         win_size.add_remote_max_window_size(rws);
         Ok(Channel {
-            kex: Kex::new()?,
             remote_close: false,
             local_close: false,
             window_size: win_size
