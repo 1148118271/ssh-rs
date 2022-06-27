@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use std::io::Write;
 use std::sync::atomic::Ordering::Relaxed;
 use crate::client::Client;
@@ -25,7 +26,7 @@ impl Client {
     pub fn write_data(&mut self, data: Data, rws: Option<&mut WindowSize>) -> Result<(), SshError> {
         let buf = if IS_ENCRYPT.load(Relaxed) {
             if let Some(rws) = rws {
-                rws.process_remote_window_size(data.as_slice())?;
+                rws.process_remote_window_size(data.as_slice(), self)?;
             }
             self.get_encryption_data(data)?
         } else {
@@ -51,7 +52,7 @@ impl Client {
     }
 
 
-    fn get_encryption_data(&self, data: Data) -> SshResult<Vec<u8>> {
+    pub(crate) fn get_encryption_data(&self, data: Data) -> SshResult<Vec<u8>> {
         let mut packet = Packet::from(data);
         packet.build(true);
         let mut buf = packet.to_vec();

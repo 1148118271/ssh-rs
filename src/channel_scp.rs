@@ -46,7 +46,6 @@ impl ChannelScp {
             if !vec.is_empty() { break }
             let client = client::default()?;
             let results = client.read_data(Some(self.channel.window_size.borrow_mut()))?;
-
             for mut result in results {
                 let message_code = result.get_u8();
                 match message_code {

@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use std::io;
 use std::io::Read;
 use std::sync::atomic::Ordering::Relaxed;
@@ -100,7 +101,7 @@ impl Client {
             let data = Packet::from(decryption_result).unpacking();
             // 判断是否需要修改窗口大小
             if let Some(v) = &mut lws {
-                v.process_local_window_size(data.as_slice())?
+                v.process_local_window_size(data.as_slice(), self)?
             }
             results.push(data);
             if remaining.len() <= 0 {

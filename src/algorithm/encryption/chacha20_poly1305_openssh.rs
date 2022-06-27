@@ -22,7 +22,6 @@ impl Encryption for ChaCha20Poly1305 {
 
 
     fn new() -> ChaCha20Poly1305 {
-        println!("ChaCha20Poly1305");
         let hash = hash::get();
         let (ck, sk) = hash.extend_key(BSIZE);
         let mut sealing_key = [0_u8; BSIZE];

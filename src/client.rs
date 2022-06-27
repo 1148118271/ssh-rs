@@ -36,7 +36,9 @@ impl Sequence {
 impl Client {
     pub(crate) fn connect<A: ToSocketAddrs>(addr: A) -> Result<Client, SshError> {
         match TcpStream::connect(addr) {
-            Ok(stream) =>
+            Ok(stream) => {
+                // default nonblocking
+                stream.set_nonblocking(true).unwrap();
                 Ok(
                     Client{
                         stream,
@@ -45,7 +47,8 @@ impl Client {
                             server_sequence_num: 0
                         },
                     }
-                ),
+                )
+            }
             Err(e) => Err(SshError::from(e))
         }
     }
