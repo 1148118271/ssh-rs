@@ -95,6 +95,7 @@ mod constant;
 mod data;
 mod packet;
 mod algorithm;
+mod config_auth;
 
 pub use session::Session;
 pub use channel::Channel;

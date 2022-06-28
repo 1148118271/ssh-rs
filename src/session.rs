@@ -8,6 +8,7 @@ use crate::channel_scp::ChannelScp;
 use crate::{channel, ChannelExec, ChannelShell, client, config, kex, util};
 use crate::algorithm::hash::h;
 use crate::algorithm::{encryption, key_exchange, mac, public_key};
+use crate::config_auth::AuthType;
 use crate::window_size::WindowSize;
 
 
@@ -28,8 +29,19 @@ impl Session {
         where S: Into<String>
     {
         let config = config::config();
-        config.user.username = user.into();
-        config.user.password = password.into();
+        config.auth.auth_type = AuthType::Password;
+        config.auth.username = user.into();
+        config.auth.password = password.into();
+    }
+
+
+    pub fn set_user_and_public_key<S>(&mut self, user: S, public_key: S)
+        where S: Into<String>
+    {
+        let config = config::config();
+        config.auth.auth_type = AuthType::PublicKey;
+        config.auth.username = user.into();
+        config.auth.public_key = public_key.into();
     }
 
 }
@@ -220,9 +232,13 @@ impl Session {
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
-                        log::info!("密码验证");
-                        // 开始密码验证 TODO 目前只支持密码验证
-                        self.password_authentication()?;
+                        let config = config::config();
+                        match config.auth.auth_type {
+                            // 开始密码验证
+                            AuthType::Password => self.password_authentication()?,
+                            AuthType::PublicKey => {}
+                        }
+
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
                         log::error!("user auth failure.");
@@ -262,24 +278,30 @@ impl Session {
         Ok(())
     }
 
-    fn password_authentication(&mut self) -> SshResult<()> {
+    fn password_authentication(&self) -> SshResult<()> {
+        log::info!("password authentication.");
+
         let config = config::config();
-        if config.user.username.is_empty() {
+        if config.auth.username.is_empty() {
             return Err(SshError::from(SshErrorKind::UserNullError))
         }
-        if config.user.password.is_empty() {
+        if config.auth.password.is_empty() {
             return Err(SshError::from(SshErrorKind::PasswordNullError))
         }
 
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
-            .put_str(config.user.username.as_str())
+            .put_str(config.auth.username.as_str())
             .put_str(ssh_str::SSH_CONNECTION)
             .put_str(ssh_str::PASSWORD)
             .put_u8(false as u8)
-            .put_str(config.user.password.as_str());
+            .put_str(config.auth.password.as_str());
         let client = client::default()?;
         client.write(data)
+    }
+
+    fn public_key_authentication(&self) {
+
     }
 
 }
