@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::io::Write;
 use std::sync::atomic::Ordering::Relaxed;
 use crate::client::Client;
