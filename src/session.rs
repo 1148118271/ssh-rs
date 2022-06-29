@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::net::ToSocketAddrs;
 use crate::data::Data;
 use crate::constant::{ssh_msg_code, size, ssh_str};
@@ -25,7 +26,7 @@ impl Session {
 
 impl Session {
 
-    pub fn set_user_and_password<S>(&mut self, user: S, password: S)
+    pub fn auth_password<S>(&self, user: S, password: S)
         where S: Into<String>
     {
         let config = config::config();
@@ -35,13 +36,14 @@ impl Session {
     }
 
 
-    pub fn set_user_and_public_key<S>(&mut self, user: S, public_key: S)
+    pub fn auth_public_key<S>(&self, user: S, private_key_algorithm_name: S, private_key: S)
         where S: Into<String>
     {
         let config = config::config();
         config.auth.auth_type = AuthType::PublicKey;
         config.auth.username = user.into();
-        config.auth.public_key = public_key.into();
+        config.auth.private_key = private_key.into();
+        config.auth.private_key_algorithm_name = private_key_algorithm_name.into();
     }
 
 }
@@ -236,12 +238,13 @@ impl Session {
                         match config.auth.auth_type {
                             // 开始密码验证
                             AuthType::Password => self.password_authentication()?,
-                            AuthType::PublicKey => {}
+                            AuthType::PublicKey => self.public_key_authentication()?
                         }
 
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
                         log::error!("user auth failure.");
+                        println!("{:?}", String::from_utf8(result.get_u8s()).unwrap());
                         return Err(SshError::from(SshErrorKind::PasswordError))
                     },
                     ssh_msg_code::SSH_MSG_USERAUTH_SUCCESS => {
@@ -300,7 +303,33 @@ impl Session {
         client.write(data)
     }
 
-    fn public_key_authentication(&self) {
+    fn public_key_authentication(&self) -> SshResult<()> {
+        log::info!("public key authentication.");
+
+        let config = config::config();
+        let mut data = Data::new();
+        data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
+            .put_str(config.auth.username.as_str())
+            .put_str(ssh_str::SSH_CONNECTION)
+            .put_str(ssh_str::PUBLIC_KEY)
+            .put_u8(false as u8)
+            .put_str(config.auth.private_key_algorithm_name.as_str())
+            .put_str(config.auth.private_key.as_str());
+        let client = client::default()?;
+        client.write(data)
+
+        // loop {
+        //     let vec = client.read()?;
+        //
+        //     println!("{:?}", vec);
+        //
+        // }
+
+        // let vec = client.read()?;
+        //
+        // println!("{:?}", vec);
+        //
+        // Ok(())
 
     }
 

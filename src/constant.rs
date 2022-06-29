@@ -1,15 +1,17 @@
 
 /// 客户端版本
-pub const CLIENT_VERSION            :&'static str = "SSH-2.0-SSH_RS-0.1.4";
+pub const CLIENT_VERSION                :&'static str = "SSH-2.0-SSH_RS-0.1.4";
 
 
 /// ssh通讯时用到的常量字符串
 #[allow(dead_code)]
 pub mod ssh_str {
     /// 准备认证
-    pub const SSH_USERAUTH             :&'static str = "ssh-userauth";
+    pub const SSH_USERAUTH              :&'static str = "ssh-userauth";
     /// 开始认证
     pub const SSH_CONNECTION            :&'static str = "ssh-connection";
+    /// 公钥验证方式
+    pub const PUBLIC_KEY                :&'static str = "publickey";
     /// 密码认证方式
     pub const PASSWORD                  :&'static str = "password";
     /// 打开一个会话
