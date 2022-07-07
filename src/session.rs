@@ -249,19 +249,21 @@ impl Session {
                         log::error!("user auth failure.");
                         println!("{:?}", String::from_utf8(result.get_u8s()).unwrap());
                         return Err(SshError::from(SshErrorKind::PasswordError))
-                    },
+                    }
+                    ssh_msg_code::SSH_MSG_USERAUTH_PK_OK => {
+                        log::info!("user auth support this algorithm.");
+                        // return Ok(())
+                    }
                     ssh_msg_code::SSH_MSG_USERAUTH_SUCCESS => {
                         log::info!("user auth successful.");
                         return Ok(())
-                    },
+                    }
                     ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                         let mut data = Data::new();
                         data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
                         client.write(data)?
                     }
-                    _ => {
-                        println!("其他..............")
-                    }
+                    _ => {}
                 }
             }
         }

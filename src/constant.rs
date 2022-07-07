@@ -107,6 +107,7 @@ pub mod ssh_msg_code {
     pub const SSH_MSG_USERAUTH_REQUEST                          :u8 = 50;
     pub const SSH_MSG_USERAUTH_FAILURE                          :u8 = 51;
     pub const SSH_MSG_USERAUTH_SUCCESS                          :u8 = 52;
+    pub const SSH_MSG_USERAUTH_PK_OK                            :u8 = 60;
     pub const SSH_MSG_GLOBAL_REQUEST                            :u8 = 80;
     pub const SSH_MSG_REQUEST_SUCCESS                           :u8 = 81;
     pub const SSH_MSG_REQUEST_FAILURE                           :u8 = 82;
