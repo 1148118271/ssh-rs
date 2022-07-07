@@ -10,3 +10,5 @@ ring = "0.16.20"
 aes = { version = "0.7", features = ["ctr"] }
 hex = "0.4"
 base64 = "0.13.0"
+rsa = "0.5"
+ssh-key = "0.4.2"

@@ -9,7 +9,7 @@
 //! use ssh_rs::ssh;
 //! use ssh_rs::{ChannelExec, Session};
 //! use std::thread;
-//! use std::thread::sleep;          
+//! use std::thread::sleep;
 //! use std::io::{stdin, stdout, Write};
 //! use std::time::Duration;
 //!
@@ -71,9 +71,6 @@
 //! }
 //!```
 
-
-
-extern crate core;
 
 mod client;
 mod client_r;

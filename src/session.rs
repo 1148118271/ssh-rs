@@ -1,5 +1,8 @@
 use std::io::Read;
 use std::net::ToSocketAddrs;
+use log::log;
+use rsa::pkcs1::FromRsaPrivateKey;
+use rsa::PublicKeyParts;
 use crate::data::Data;
 use crate::constant::{ssh_msg_code, size, ssh_str};
 use crate::error::{SshError, SshErrorKind, SshResult};
@@ -256,7 +259,9 @@ impl Session {
                         data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
                         client.write(data)?
                     }
-                    _ => {}
+                    _ => {
+                        println!("其他..............")
+                    }
                 }
             }
         }
@@ -307,6 +312,17 @@ impl Session {
         log::info!("public key authentication.");
 
         let config = config::config();
+        let rprk = rsa::RsaPrivateKey::from_pkcs1_pem(config.auth.private_key.as_str()).unwrap();
+        let rpuk = rprk.to_public_key();
+        let es = rpuk.e().to_bytes_be();
+        let ns = rpuk.n().to_bytes_be();
+
+        let mut blob = Data::new();
+        blob.put_str("ssh-rsa");
+        blob.put_mpint(&es);
+        blob.put_mpint(&ns);
+        let blob = blob.as_slice();
+        println!("blob length : {}", blob.len());
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
             .put_str(config.auth.username.as_str())
@@ -314,23 +330,9 @@ impl Session {
             .put_str(ssh_str::PUBLIC_KEY)
             .put_u8(false as u8)
             .put_str(config.auth.private_key_algorithm_name.as_str())
-            .put_str(config.auth.private_key.as_str());
+            .put_u8s(blob);
         let client = client::default()?;
         client.write(data)
-
-        // loop {
-        //     let vec = client.read()?;
-        //
-        //     println!("{:?}", vec);
-        //
-        // }
-
-        // let vec = client.read()?;
-        //
-        // println!("{:?}", vec);
-        //
-        // Ok(())
-
     }
 
 }
