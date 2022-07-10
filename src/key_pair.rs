@@ -65,7 +65,7 @@ impl KeyPair {
     }
 
 
-    pub(crate) fn signature<'a>(&self, buf: &[u8]) -> &'a [u8] {
+    pub(crate) fn signature(&self, buf: &[u8]) -> Vec<u8> {
         let session_id = h::get().digest();
         let mut sd = Data::new();
         sd.put_u8s(session_id.as_slice());
@@ -83,7 +83,7 @@ impl KeyPair {
         let mut ss = Data::new();
         ss.put_str(self.key_type.as_str());
         ss.put_u8s(sign.as_slice());
-        ss.as_slice()
+        ss.to_vec()
     }
 }
 
