@@ -11,6 +11,7 @@ use crate::algorithm::mac::hmac_sha1::HMacSha1;
 use crate::algorithm::mac::Mac;
 use crate::algorithm::public_key::{Ed25519, PublicKey, RSA};
 use crate::config_auth::AuthConfig;
+use crate::user_info::UserInfo;
 
 
 pub(crate) static mut CONFIG: Option<Config> = None;
@@ -32,16 +33,15 @@ pub(crate) fn config() -> &'static mut Config {
 }
 
 
-#[derive(Clone)]
 pub(crate) struct Config {
-    pub(crate) auth: AuthConfig,
+    pub(crate) auth: UserInfo,
     pub(crate) version: VersionConfig,
     pub(crate) algorithm: AlgorithmConfig,
 }
 impl Config {
     pub(crate) fn new() -> Self {
         Config {
-            auth: AuthConfig::new(),
+            auth: UserInfo::new(),
             version: VersionConfig::new(),
             algorithm: AlgorithmConfig::new()
         }

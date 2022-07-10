@@ -76,6 +76,7 @@ mod client;
 mod client_r;
 mod client_w;
 mod session;
+mod session_auth;
 mod channel;
 mod kex;
 mod channel_shell;
@@ -93,11 +94,18 @@ mod data;
 mod packet;
 mod algorithm;
 mod config_auth;
+mod user_info;
+mod key_pair;
+mod key_pair_type;
 
 pub use session::Session;
 pub use channel::Channel;
 pub use channel_shell::ChannelShell;
 pub use channel_exec::ChannelExec;
+
+pub use user_info::UserInfo;
+pub use key_pair::KeyPair;
+pub use key_pair_type::KeyPairType;
 
 use crate::error::{SshError, SshResult};
 use crate::config::Config;

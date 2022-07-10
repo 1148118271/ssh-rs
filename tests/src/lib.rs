@@ -6,6 +6,7 @@ mod tests {
     use aes::cipher::generic_array::GenericArray;
     use rsa::pkcs1::FromRsaPrivateKey;
     use rsa::{BigUint, PublicKeyParts};
+    use rsa::pkcs8::ToPublicKey;
 
     #[test]
     fn f() {
@@ -117,12 +118,14 @@ J3M2vGRLKQVgrrXi9oAyvjqo9YaczS7QKjjzfZvp2udcw/z11BYWYg==
         // ssh_key::PrivateKey::from()
         let rprk = rsa::RsaPrivateKey::from_pkcs1_pem(res_base64).unwrap();
         let key = rprk.to_public_key();
-        let e = key.e();
-        let vec = e.to_bytes_be();
-        println!("{}", vec[0] & 0x80);
-        //println!("e => {:?}", e.to_bytes_le());
-        let n = key.n();
-        let vec = n.to_bytes_be();
+        let string = key.to_public_key_pem().unwrap();
+        println!("{:?}", string)
+        // let e = key.e();
+        // let vec = e.to_bytes_be();
+        // println!("{}", vec[0] & 0x80);
+        // //println!("e => {:?}", e.to_bytes_le());
+        // let n = key.n();
+        // let vec = n.to_bytes_be();
         // i32::from_be_bytes(v)
         // let uint = BigUint::from_bytes_be(vec.as_slice());
         // println!("{:?}", uint)

@@ -20,6 +20,20 @@ impl AuthConfig {
             private_key_algorithm_name: String::new()
         }
     }
+
+    pub(crate) fn from_password<S: ToString>(user_name: S, password: S) {
+
+        
+
+        // let string = user_name.into();
+        // AuthConfig {
+        //     auth_type: AuthType::Password,
+        //     username: "".to_string(),
+        //     password: "".to_string(),
+        //     private_key: "".to_string(),
+        //     private_key_algorithm_name: "".to_string()
+        // }
+    }
 }
 
 
