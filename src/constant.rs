@@ -7,9 +7,11 @@ pub const CLIENT_VERSION            :&'static str = "SSH-2.0-SSH_RS-0.1.5";
 #[allow(dead_code)]
 pub mod ssh_str {
     /// 准备认证
-    pub const SSH_USERAUTH             :&'static str = "ssh-userauth";
+    pub const SSH_USERAUTH              :&'static str = "ssh-userauth";
     /// 开始认证
     pub const SSH_CONNECTION            :&'static str = "ssh-connection";
+    /// 公钥验证方式
+    pub const PUBLIC_KEY                :&'static str = "publickey";
     /// 密码认证方式
     pub const PASSWORD                  :&'static str = "password";
     /// 打开一个会话
@@ -105,6 +107,7 @@ pub mod ssh_msg_code {
     pub const SSH_MSG_USERAUTH_REQUEST                          :u8 = 50;
     pub const SSH_MSG_USERAUTH_FAILURE                          :u8 = 51;
     pub const SSH_MSG_USERAUTH_SUCCESS                          :u8 = 52;
+    pub const SSH_MSG_USERAUTH_PK_OK                            :u8 = 60;
     pub const SSH_MSG_GLOBAL_REQUEST                            :u8 = 80;
     pub const SSH_MSG_REQUEST_SUCCESS                           :u8 = 81;
     pub const SSH_MSG_REQUEST_FAILURE                           :u8 = 82;

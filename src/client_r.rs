@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::io;
 use std::io::Read;
 use std::sync::atomic::Ordering::Relaxed;

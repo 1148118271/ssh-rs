@@ -21,3 +21,4 @@ rsa = "0.5"
 aes = { version = "0.7", features = ["ctr"] }
 ring = "0.16.20"
 filetime = "0.2"
+ssh-key = "0.4.2"

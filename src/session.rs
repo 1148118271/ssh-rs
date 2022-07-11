@@ -8,6 +8,7 @@ use crate::channel_scp::ChannelScp;
 use crate::{channel, ChannelExec, ChannelShell, client, config, kex, util};
 use crate::algorithm::hash::h;
 use crate::algorithm::{encryption, key_exchange, mac, public_key};
+use crate::user_info::AuthType;
 use crate::window_size::WindowSize;
 
 
@@ -20,18 +21,6 @@ impl Session {
             Slog::default()
         }
     }
-}
-
-impl Session {
-
-    pub fn set_user_and_password<S>(&mut self, user: S, password: S)
-        where S: Into<String>
-    {
-        let config = config::config();
-        config.user.username = user.into();
-        config.user.password = password.into();
-    }
-
 }
 
 impl Session {
@@ -220,18 +209,28 @@ impl Session {
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
-                        log::info!("密码验证");
-                        // 开始密码验证 TODO 目前只支持密码验证
-                        self.password_authentication()?;
+                        let config = config::config();
+                        match config.auth.auth_type {
+                            // 开始密码验证
+                            AuthType::Password => self.password_authentication()?,
+                            AuthType::PublicKey => self.public_key_authentication()?
+                        }
+
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
                         log::error!("user auth failure.");
+                        println!("{:?}", String::from_utf8(result.get_u8s()).unwrap());
                         return Err(SshError::from(SshErrorKind::PasswordError))
-                    },
+                    }
+                    ssh_msg_code::SSH_MSG_USERAUTH_PK_OK => {
+                        log::info!("user auth support this algorithm.");
+                        self.public_key_signature()?
+                        // return Ok(())
+                    }
                     ssh_msg_code::SSH_MSG_USERAUTH_SUCCESS => {
                         log::info!("user auth successful.");
                         return Ok(())
-                    },
+                    }
                     ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                         let mut data = Data::new();
                         data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
@@ -261,26 +260,5 @@ impl Session {
         config.version.server_version = sv.to_string();
         Ok(())
     }
-
-    fn password_authentication(&mut self) -> SshResult<()> {
-        let config = config::config();
-        if config.user.username.is_empty() {
-            return Err(SshError::from(SshErrorKind::UserNullError))
-        }
-        if config.user.password.is_empty() {
-            return Err(SshError::from(SshErrorKind::PasswordNullError))
-        }
-
-        let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
-            .put_str(config.user.username.as_str())
-            .put_str(ssh_str::SSH_CONNECTION)
-            .put_str(ssh_str::PASSWORD)
-            .put_u8(false as u8)
-            .put_str(config.user.password.as_str());
-        let client = client::default()?;
-        client.write(data)
-    }
-
 }
 

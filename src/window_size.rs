@@ -1,5 +1,4 @@
 use std::io::{Read, Write};
-use std::net::TcpStream;
 use crate::algorithm::encryption;
 use crate::client::Client;
 use crate::constant::size::LOCAL_WINDOW_SIZE;
