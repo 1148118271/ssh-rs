@@ -10,7 +10,6 @@ use crate::algorithm::key_exchange::KeyExchange;
 use crate::algorithm::mac::hmac_sha1::HMacSha1;
 use crate::algorithm::mac::Mac;
 use crate::algorithm::public_key::{Ed25519, PublicKey, RSA};
-use crate::config_auth::AuthConfig;
 use crate::user_info::UserInfo;
 
 

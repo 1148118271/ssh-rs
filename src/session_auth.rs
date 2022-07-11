@@ -1,11 +1,6 @@
-use rsa::pkcs1::FromRsaPrivateKey;
-use rsa::PublicKeyParts;
-use crate::{client, config, Session, SshError, SshResult};
-use crate::algorithm::hash::h;
-use crate::config_auth::AuthType;
+use crate::{client, config, Session, SshResult};
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
-use crate::error::SshErrorKind;
 use crate::user_info::UserInfo;
 
 impl Session {

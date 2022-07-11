@@ -1,7 +1,3 @@
-use std::fs::File;
-use std::io::Read;
-use std::path::Path;
-use crate::config_auth::AuthType;
 use crate::key_pair::KeyPair;
 
 pub struct UserInfo {
@@ -42,4 +38,10 @@ impl UserInfo {
             key_pair: KeyPair::new()
         }
     }
+}
+
+
+pub enum AuthType {
+    Password,
+    PublicKey
 }

@@ -93,7 +93,6 @@ mod constant;
 mod data;
 mod packet;
 mod algorithm;
-mod config_auth;
 mod user_info;
 mod key_pair;
 mod key_pair_type;

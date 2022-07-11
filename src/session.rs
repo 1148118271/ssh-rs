@@ -8,7 +8,7 @@ use crate::channel_scp::ChannelScp;
 use crate::{channel, ChannelExec, ChannelShell, client, config, kex, util};
 use crate::algorithm::hash::h;
 use crate::algorithm::{encryption, key_exchange, mac, public_key};
-use crate::config_auth::AuthType;
+use crate::user_info::AuthType;
 use crate::window_size::WindowSize;
 
 

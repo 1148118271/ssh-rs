@@ -2,10 +2,8 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use rsa::pkcs1::FromRsaPrivateKey;
-use rsa::{BigUint, PublicKeyParts};
+use rsa::PublicKeyParts;
 use crate::algorithm::hash::h;
-use crate::config;
-use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::key_pair_type::KeyPairType;
 
@@ -13,8 +11,6 @@ pub struct KeyPair {
     pub(crate) private_key: String,
     pub(crate) key_type: String,
     pub(crate) blob: Vec<u8>,
-    pub(crate) es: Vec<u8>,
-    pub(crate) ns: Vec<u8>,
 }
 
 
@@ -25,9 +21,7 @@ impl KeyPair {
         KeyPair {
             private_key: "".to_string(),
             key_type: "".to_string(),
-            blob: vec![],
-            es: vec![],
-            ns: vec![]
+            blob: vec![]
         }
     }
 
@@ -54,9 +48,7 @@ impl KeyPair {
         KeyPair {
             private_key: key_str.to_string(),
             key_type: key_type_str.to_string(),
-            blob,
-            es,
-            ns
+            blob
         }
     }
 
@@ -77,7 +69,7 @@ impl KeyPair {
         let msg = digest.as_ref();
 
 
-        let mut rprk = rsa::RsaPrivateKey::from_pkcs1_pem(self.private_key.as_str()).unwrap();
+        let rprk = rsa::RsaPrivateKey::from_pkcs1_pem(self.private_key.as_str()).unwrap();
 
         let sign = rprk.sign(scheme, msg).unwrap();
         let mut ss = Data::new();
