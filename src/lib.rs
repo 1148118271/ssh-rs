@@ -101,6 +101,7 @@ pub use session::Session;
 pub use channel::Channel;
 pub use channel_shell::ChannelShell;
 pub use channel_exec::ChannelExec;
+pub use channel_scp::ChannelScp;
 
 pub use user_info::UserInfo;
 pub use key_pair::KeyPair;
