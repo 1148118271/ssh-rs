@@ -2,7 +2,7 @@ use ring::agreement;
 use ring::agreement::{EphemeralPrivateKey, UnparsedPublicKey};
 use crate::{SshError, SshResult};
 use crate::algorithm::hash::HashType;
-use crate::error::SshErrorKind;
+
 
 /// # 密钥交换方法
 ///
@@ -53,6 +53,6 @@ pub(crate) fn agree_ephemeral<B: AsRef<[u8]>>(
         },
     ) {
         Ok(o) => Ok(o),
-        Err(_) => Err(SshError::from(SshErrorKind::EncryptionError))
+        Err(_) => Err(SshError::from("encryption error."))
     }
 }

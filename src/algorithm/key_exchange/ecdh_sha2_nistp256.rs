@@ -1,6 +1,6 @@
 use ring::agreement::{ECDH_P256, EphemeralPrivateKey, PublicKey, UnparsedPublicKey};
 use crate::algorithm::key_exchange::KeyExchange;
-use crate::error::SshErrorKind;
+
 use crate::{SshError, SshResult};
 use crate::algorithm::hash::HashType;
 
@@ -15,7 +15,7 @@ impl KeyExchange for EcdhP256 {
         let private_key =
             match EphemeralPrivateKey::generate(&ECDH_P256, &rng) {
             Ok(v) => v,
-            Err(_) => return Err(SshError::from(SshErrorKind::EncryptionError))
+            Err(_) => return Err(SshError::from("encryption error."))
         };
         match private_key.compute_public_key() {
             Ok(public_key) =>
@@ -23,7 +23,7 @@ impl KeyExchange for EcdhP256 {
                     private_key,
                     public_key
                 }),
-            Err(_) => Err(SshError::from(SshErrorKind::EncryptionError))
+            Err(_) => Err(SshError::from("encryption error."))
         }
     }
 

@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use rand::Rng;
 use rand::rngs::OsRng;
-use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::error::{SshError, SshResult};
 use crate::slog::log;
 
 
@@ -10,8 +10,9 @@ pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
     match String::from_utf8(v) {
         Ok(v) => Ok(v),
         Err(e) => {
-            log::error!("Byte to utf8 string error, error info: {:?}", e);
-            Err(SshError::from(SshErrorKind::FromUtf8Error))
+            let err_msg = format!("Byte to utf8 string error, error info: {:?}", e);
+            log::error!("{}", err_msg);
+            Err(SshError::from(err_msg))
         }
     }
 }
@@ -21,9 +22,7 @@ pub(crate) fn sys_time_to_secs(time: SystemTime) -> SshResult<u64> {
      match time.duration_since(UNIX_EPOCH) {
         Ok(t) => Ok(t.as_secs()),
         Err(e) => {
-            Err(SshError::from(
-                SshErrorKind::UnknownError(
-                    format!("SystemTimeError difference: {:?}", e.duration()))))
+            Err(SshError::from(format!("SystemTimeError difference: {:?}", e.duration())))
         }
     }
 }
@@ -53,7 +52,7 @@ pub(crate) fn str_to_u32(v: &str) -> SshResult<u32> {
     match u32::from_str(v) {
         Ok(v) => Ok(v),
         Err(_) => {
-            Err(SshError::from(SshErrorKind::UnknownError("str to u32 error".to_string())))
+            Err(SshError::from("str to u32 error"))
         }
     }
 }
@@ -64,7 +63,7 @@ pub(crate) fn str_to_i64(v: &str) -> SshResult<i64> {
     match i64::from_str(v) {
         Ok(v) => Ok(v),
         Err(_) => {
-            Err(SshError::from(SshErrorKind::UnknownError("str to i64 error".to_string())))
+            Err(SshError::from("str to i64 error"))
         }
     }
 }

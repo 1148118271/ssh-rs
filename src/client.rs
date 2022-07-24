@@ -1,7 +1,7 @@
 use std::io;
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
-use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::error::{SshError, SshResult};
 use crate::slog::log;
 
 
@@ -34,7 +34,7 @@ impl Sequence {
 }
 
 impl Client {
-    pub(crate) fn connect<A: ToSocketAddrs>(addr: A) -> Result<Client, SshError> {
+    pub(crate) fn connect<A: ToSocketAddrs>(addr: A) -> SshResult<Client> {
         match TcpStream::connect(addr) {
             Ok(stream) => {
                 // default nonblocking
@@ -98,7 +98,7 @@ pub(crate) fn default() -> SshResult<&'static mut Client> {
         match &mut CLIENT {
             None => {
                 log::error!("Client null pointer");
-                Err(SshError::from(SshErrorKind::ClientNullError))
+                Err(SshError::from("Client null pointer"))
             }
             Some(v) => {
                 Ok(v)

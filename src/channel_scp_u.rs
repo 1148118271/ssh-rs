@@ -4,7 +4,7 @@ use std::io::Read;
 use std::path::Path;
 use std::time::SystemTime;
 use crate::constant::{permission, scp};
-use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::error::{SshError, SshResult};
 use crate::slog::log;
 use crate::channel_scp::{ChannelScp, check_path, ScpFile};
 use crate::util;
@@ -164,10 +164,9 @@ impl ChannelScp {
             scp::END => Ok(()),
             // error
             scp::ERR | scp::FATAL_ERR => {
-                let s = util::from_utf8(vec)?;
-                Err(SshError::from(SshErrorKind::ScpError(s)))
+                Err(SshError::from(util::from_utf8(vec)?))
             },
-            _ => Err(SshError::from(SshErrorKind::ScpError("unknown error.".to_string())))
+            _ => Err(SshError::from("unknown error."))
         }
     }
 }

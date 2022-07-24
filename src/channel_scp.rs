@@ -2,7 +2,7 @@ use std::borrow::BorrowMut;
 use std::path::{Path, PathBuf};
 use crate::constant::{scp, ssh_msg_code, ssh_str};
 use crate::data::Data;
-use crate::error::{SshErrorKind, SshResult, SshError};
+use crate::error::{SshResult, SshError};
 use crate::{Channel, client};
 
 
@@ -97,7 +97,7 @@ impl ChannelScp {
 
 pub(crate) fn check_path(path: &Path) -> SshResult<()> {
     if let None = path.to_str() {
-        return Err(SshError::from(SshErrorKind::PathNullError))
+        return Err(SshError::from("path is null."))
     }
     Ok(())
 }

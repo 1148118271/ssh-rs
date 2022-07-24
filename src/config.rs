@@ -1,6 +1,5 @@
 use crate::constant::{algorithms, CLIENT_VERSION};
 use crate::data::Data;
-use crate::error::SshErrorKind;
 use crate::slog::log;
 use crate::{SshError, SshResult};
 use crate::algorithm::encryption::{AesCtr128, ChaCha20Poly1305, Encryption};
@@ -64,7 +63,7 @@ impl VersionConfig {
     pub(crate) fn validation(&self) -> SshResult<()> {
         if !self.server_version.contains("SSH-2.0") {
             log::error!("error in version negotiation, version mismatch.");
-            return Err(SshError::from(SshErrorKind::VersionError))
+            return Err(SshError::from("error in version negotiation, version mismatch."))
         }
        Ok(())
     }
@@ -105,7 +104,7 @@ impl AlgorithmConfig {
                     self.server_algorithm.c_mac_algorithm.to_string(),
                     self.client_algorithm.c_mac_algorithm.to_string()
                 );
-                Err(SshError::from(SshErrorKind::KeyExchangeError))
+                Err(SshError::from("key exchange error."))
             }
         }
     }
@@ -132,7 +131,7 @@ impl AlgorithmConfig {
                     self.server_algorithm.c_encryption_algorithm.to_string(),
                     self.client_algorithm.c_encryption_algorithm.to_string()
                 );
-                Err(SshError::from(SshErrorKind::KeyExchangeError))
+                Err(SshError::from("key exchange error."))
             }
         }
 
@@ -157,7 +156,7 @@ impl AlgorithmConfig {
                     self.server_algorithm.public_key_algorithm.to_string(),
                     self.client_algorithm.public_key_algorithm.to_string()
                 );
-                Err(SshError::from(SshErrorKind::KeyExchangeError))
+                Err(SshError::from("key exchange error."))
             }
         }
     }
@@ -181,7 +180,7 @@ impl AlgorithmConfig {
                     self.server_algorithm.key_exchange_algorithm.to_string(),
                     self.client_algorithm.key_exchange_algorithm.to_string()
                 );
-                Err(SshError::from(SshErrorKind::KeyExchangeError))
+                Err(SshError::from("key exchange error."))
             }
         }
     }

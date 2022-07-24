@@ -3,7 +3,7 @@ use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
 use crate::algorithm::{hash, mac};
 use crate::{SshError, SshResult};
 use crate::algorithm::encryption::Encryption;
-use crate::error::SshErrorKind;
+
 
 
 const BSIZE: usize = 16;
@@ -65,7 +65,7 @@ impl Encryption for AesCtr128 {
         let tag = mac.sign(&hash::get().ik_s_c[..mac::get().bsize()], server_sequence_number, d);
         let t = tag.as_ref();
         if m != t {
-            return Err(SshError::from(SshErrorKind::EncryptionError))
+            return Err(SshError::from("encryption error."))
         }
         Ok(d.to_vec())
     }

@@ -4,7 +4,7 @@ use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
 use crate::constant::{permission, scp};
-use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::error::{SshError, SshResult};
 use crate::slog::log;
 use crate::channel_scp::{ChannelScp, ScpFile, check_path};
 use crate::util;
@@ -63,8 +63,8 @@ impl ChannelScp {
                 }
                 // error
                 scp::ERR | scp::FATAL_ERR =>
-                    return Err(SshError::from(SshErrorKind::ScpError(util::from_utf8(data)?))),
-                _ => return Err(SshError::from(SshErrorKind::ScpError("unknown error.".to_string())))
+                    return Err(SshError::from(util::from_utf8(data)?)),
+                _ => return Err(SshError::from("unknown error."))
             }
         }
         log::info!("files download successful.");
@@ -97,7 +97,7 @@ impl ChannelScp {
             it is possible that the path does not exist, \
             which does not affect subsequent operations. \
             error info: {:?}", e);
-                return Err(SshError::from(SshErrorKind::ScpError(format!("file open error: {}", e.to_string()))))
+                return Err(SshError::from(format!("file open error: {}", e.to_string())))
             }
         };
         log::debug!("dir: [{}] download completed.", scp_file.name);
@@ -134,7 +134,7 @@ impl ChannelScp {
             Ok(v) => v,
             Err(e) => {
                 log::error!("file processing error, error info: {}", e);
-                return Err(SshError::from(SshErrorKind::ScpError(format!("{:?} file processing exception", path))))
+                return Err(SshError::from(format!("{:?} file processing exception", path)))
             }
         };
         self.send_end()?;

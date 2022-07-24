@@ -1,7 +1,7 @@
 use ring::agreement::{EphemeralPrivateKey, PublicKey, UnparsedPublicKey, X25519};
 use crate::algorithm::hash::HashType;
 use crate::algorithm::key_exchange::KeyExchange;
-use crate::error::{SshError, SshErrorKind};
+use crate::error::SshError;
 use crate::SshResult;
 
 pub struct CURVE25519 {
@@ -15,7 +15,7 @@ impl KeyExchange for CURVE25519 {
         let rng = ring::rand::SystemRandom::new();
         let private_key = match EphemeralPrivateKey::generate(&X25519, &rng) {
             Ok(v) => v,
-            Err(_) => return Err(SshError::from(SshErrorKind::EncryptionError))
+            Err(_) => return Err(SshError::from("encryption error."))
         };
         match private_key.compute_public_key() {
             Ok(public_key) =>
@@ -23,7 +23,7 @@ impl KeyExchange for CURVE25519 {
                 private_key,
                 public_key
             }),
-            Err(_) => Err(SshError::from(SshErrorKind::EncryptionError))
+            Err(_) => Err(SshError::from("encryption error."))
         }
 
     }

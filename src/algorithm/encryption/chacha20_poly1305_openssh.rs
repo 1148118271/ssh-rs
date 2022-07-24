@@ -1,7 +1,7 @@
 use ring::aead::chacha20_poly1305_openssh::{OpeningKey, SealingKey};
 use crate::algorithm::encryption::Encryption;
 use crate::algorithm::hash;
-use crate::error::{SshError, SshErrorKind};
+use crate::error::SshError;
 
 
 const BSIZE: usize = 64;
@@ -52,7 +52,7 @@ impl Encryption for ChaCha20Poly1305 {
         tag.copy_from_slice(tag_);
         match self.server_key.open_in_place(sequence_number, buf, &tag) {
             Ok(result) =>  Ok([&packet_len_slice[..], result].concat()),
-            Err(_) => Err(SshError::from(SshErrorKind::EncryptionError))
+            Err(_) => Err(SshError::from("encryption error."))
         }
     }
 

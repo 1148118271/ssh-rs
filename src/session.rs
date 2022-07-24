@@ -1,7 +1,7 @@
 use std::net::ToSocketAddrs;
 use crate::data::Data;
 use crate::constant::{ssh_msg_code, size, ssh_str};
-use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::error::{SshError, SshResult};
 use crate::slog::{log, Slog};
 use crate::channel::Channel;
 use crate::channel_scp::ChannelScp;
@@ -184,7 +184,7 @@ impl Session {
                             },
                             _ => description
                         };
-                        return Err(SshError::from(SshErrorKind::SshConnectionError(err_msg)))
+                        return Err(SshError::from(err_msg))
                     },
                     _ => {}
                 }
@@ -219,13 +219,11 @@ impl Session {
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
                         log::error!("user auth failure.");
-                        println!("{:?}", String::from_utf8(result.get_u8s()).unwrap());
-                        return Err(SshError::from(SshErrorKind::PasswordError))
+                        return Err(SshError::from("user auth failure, auth type is password."))
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_PK_OK => {
                         log::info!("user auth support this algorithm.");
                         self.public_key_signature()?
-                        // return Ok(())
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_SUCCESS => {
                         log::info!("user auth successful.");

@@ -10,15 +10,8 @@ pub struct SshError {
 }
 
 impl SshError {
-    pub fn kind(&self) -> SshErrorKind {
-        match &self.inner {
-            SshErrorKind::IoError(ie) => {
-                SshErrorKind::IoError(io::Error::from(ie.kind()))
-            }
-            _ => {
-                unsafe {std::ptr::read(&self.inner as *const SshErrorKind)}
-            }
-        }
+    pub fn kind(&self) -> &SshErrorKind {
+        &self.inner
     }
 }
 
@@ -29,10 +22,7 @@ impl Debug for SshError {
             SshErrorKind::IoError(ie) => {
                 write!(f, r"IoError: {{ Kind({:?}), Message({}) }}", ie.kind(), ie.to_string())
             }
-            SshErrorKind::ScpError(v) => {
-                write!(f, r"ScpError({})", v.as_str())
-            }
-            _ => { write!(f, r"Error: {{ Kind({:?}), Message({}) }}", self.inner, self.inner.as_str()) }
+            _ => { write!(f, r"Error: {{ Kind({:?}), Message({}) }}", self.inner, self.inner.to_string()) }
         }
     }
 }
@@ -43,9 +33,6 @@ impl Display for SshError {
             SshErrorKind::IoError(ie) => {
                 write!(f, r"IoError: {{ Kind({:?}) }}", ie.kind())
             }
-            SshErrorKind::ScpError(v) => {
-                write!(f, r"ScpError({})", v)
-            }
             _ => { write!(f, r"Error: {{ Kind({:?}) }}", self.inner) }
         }
 
@@ -55,24 +42,8 @@ impl Display for SshError {
 
 #[derive(Debug)]
 pub enum SshErrorKind {
-    SshConnectionError(String),
     IoError(io::Error),
-    EncryptionNullError,
-    FromUtf8Error,
-    ChannelFailureError,
-    PasswordError,
-    UserNullError,
-    PasswordNullError,
-    SignatureError,
-    VersionError,
-    KeyExchangeError,
-    MutexError,
-    ScpError(String),
-    PathNullError,
-    LogError,
-    ClientNullError,
-    EncryptionError,
-    UnknownError(String),
+    SshError(String)
 }
 
 
@@ -80,24 +51,8 @@ pub enum SshErrorKind {
 impl PartialEq<Self> for SshErrorKind {
     fn eq(&self, other: &Self) -> bool {
         match (&self, &other) {
-            (&SshErrorKind::SshConnectionError(v1), &SshErrorKind::SshConnectionError(v2)) => v1.eq(v2),
+            (&SshErrorKind::SshError(v1), &SshErrorKind::SshError(v2)) => v1.eq(v2),
             (&SshErrorKind::IoError(io1), &SshErrorKind::IoError(io2)) => io1.kind() == io2.kind(),
-            (&SshErrorKind::EncryptionNullError, &SshErrorKind::EncryptionNullError) => true,
-            (&SshErrorKind::FromUtf8Error, &SshErrorKind::FromUtf8Error) => true,
-            (&SshErrorKind::ChannelFailureError, &SshErrorKind::ChannelFailureError) => true,
-            (&SshErrorKind::PasswordError, &SshErrorKind::PasswordError) => true,
-            (&SshErrorKind::UserNullError, &SshErrorKind::UserNullError) => true,
-            (&SshErrorKind::PasswordNullError, &SshErrorKind::PasswordNullError) => true,
-            (&SshErrorKind::SignatureError, &SshErrorKind::SignatureError) => true,
-            (&SshErrorKind::VersionError, &SshErrorKind::VersionError) => true,
-            (&SshErrorKind::KeyExchangeError, &SshErrorKind::KeyExchangeError) => true,
-            (&SshErrorKind::MutexError, &SshErrorKind::MutexError) => true,
-            (&SshErrorKind::ScpError(v1), &SshErrorKind::ScpError(v2)) => v1.eq(v2),
-            (&SshErrorKind::PathNullError, &SshErrorKind::PathNullError) => true,
-            (&SshErrorKind::LogError, &SshErrorKind::LogError) => true,
-            (&SshErrorKind::ClientNullError, &SshErrorKind::ClientNullError) => true,
-            (&SshErrorKind::EncryptionError, &SshErrorKind::EncryptionError) => true,
-            (&SshErrorKind::UnknownError(v1), &SshErrorKind::UnknownError(v2)) => v1.eq(v2),
             _ => false
         }
     }
@@ -107,39 +62,16 @@ impl PartialEq<Self> for SshErrorKind {
 
 
 impl SshErrorKind {
-    fn as_str(&self) -> &str {
-        match self {
-            SshErrorKind::SshConnectionError(v) => v.as_str(),
-            SshErrorKind::FromUtf8Error => "The UTF8 conversion is abnormal",
-            SshErrorKind::ChannelFailureError => "Connection channel failure",
-            SshErrorKind::PasswordError => "Password authentication failed",
-            SshErrorKind::UserNullError => "User null pointer",
-            SshErrorKind::PasswordNullError => "Password null pointer",
-            SshErrorKind::SignatureError => "Signature verification failure",
-            SshErrorKind::VersionError => "Version not supported",
-            SshErrorKind::KeyExchangeError => "The key exchange algorithm does not match",
-            SshErrorKind::MutexError => "Call Mutex exception",
-            SshErrorKind::PathNullError => "Path null pointer",
-            SshErrorKind::LogError => "Enabling Log Exceptions",
-            SshErrorKind::EncryptionNullError => "Encrypted null pointer",
-            SshErrorKind::ClientNullError => "Client null pointer",
-            SshErrorKind::EncryptionError => "Encrypted error",
-            SshErrorKind::UnknownError(v) => v.as_str(),
-            _ => ""
+    fn to_string(&self) -> String {
+        match &self {
+            SshErrorKind::SshError(e) => e.to_string(),
+            SshErrorKind::IoError(v) => v.to_string()
         }
     }
 }
 
+
 impl Error for SshError {
-    // fn description(&self) -> &str {
-    //     match &self.inner {
-    //         SshErrorKind::IoError(io) => {
-    //             io.to_string().to_string().as_str()
-    //         },
-    //         SshErrorKind::ScpError(v) => v.as_str(),
-    //         _ => self.inner.as_str()
-    //     }
-    // }
 }
 
 impl From<SshErrorKind> for SshError {
@@ -150,18 +82,26 @@ impl From<SshErrorKind> for SshError {
     }
 }
 
-impl From<io::Error> for SshError {
-    fn from(kind: io::Error) -> Self {
+impl From<&str> for SshError {
+    fn from(kind: &str) -> SshError {
         SshError {
-            inner: SshErrorKind::IoError(io::Error::from(kind.kind()))
+            inner: SshErrorKind::SshError(kind.to_string())
         }
     }
 }
 
 impl From<String> for SshError {
-    fn from(v: String) -> Self {
+    fn from(kind: String) -> SshError {
         SshError {
-            inner: SshErrorKind::ScpError(v)
+            inner: SshErrorKind::SshError(kind)
+        }
+    }
+}
+
+impl From<io::Error> for SshError {
+    fn from(kind: io::Error) -> Self {
+        SshError {
+            inner: SshErrorKind::IoError(io::Error::from(kind.kind()))
         }
     }
 }

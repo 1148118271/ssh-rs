@@ -1,5 +1,6 @@
 
 mod tests {
+    use std::ptr;
     use std::str::FromStr;
     use aes::Aes128Ctr;
     use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
@@ -141,6 +142,31 @@ J3M2vGRLKQVgrrXi9oAyvjqo9YaczS7QKjjzfZvp2udcw/z11BYWYg==
         // let algorithm = prk.algorithm();
         // let str = algorithm.as_str();
         // println!("{:?}", puk)
+    }
+
+    #[test] fn t4() {
+        let mut s = String::from("hhh");
+
+        unsafe {
+            let mut s2 = ptr::read(&s);
+            println!("{:?}", s.as_ptr());
+            println!("{:?}", s2.as_ptr());
+
+            println!("{:?}", s);
+            println!("{:?}", s2);
+
+
+            s2 = String::default();
+
+            s = String::from("bar");
+
+            println!("{:?}", s.as_ptr());
+            println!("{:?}", s2.as_ptr());
+
+            println!("{:?}", s);
+            println!("{:?}", s2);
+        };
+
     }
 }
 

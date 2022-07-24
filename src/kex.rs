@@ -1,7 +1,7 @@
 use std::sync::atomic::Ordering;
 use crate::constant::ssh_msg_code;
 use crate::algorithm::encryption::IS_ENCRYPT;
-use crate::error::{SshError, SshErrorKind, SshResult};
+use crate::error::{SshError, SshResult};
 use crate::data::Data;
 use crate::slog::log;
 use crate::config::{
@@ -89,7 +89,7 @@ pub(crate) fn verify_signature_and_new_keys() -> SshResult<()> {
                                           &session_id, &sig)?;
                     if !flag {
                         log::error!("signature verification failure.");
-                        return Err(SshError::from(SshErrorKind::SignatureError))
+                        return Err(SshError::from("signature verification failure."))
                     }
                     log::info!("signature verification success.");
                 }
