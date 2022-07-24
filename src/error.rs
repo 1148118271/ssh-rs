@@ -43,7 +43,8 @@ impl Display for SshError {
 #[derive(Debug)]
 pub enum SshErrorKind {
     IoError(io::Error),
-    SshError(String)
+    SshError(String),
+    Timeout
 }
 
 
@@ -53,6 +54,7 @@ impl PartialEq<Self> for SshErrorKind {
         match (&self, &other) {
             (&SshErrorKind::SshError(v1), &SshErrorKind::SshError(v2)) => v1.eq(v2),
             (&SshErrorKind::IoError(io1), &SshErrorKind::IoError(io2)) => io1.kind() == io2.kind(),
+            (&SshErrorKind::Timeout, &SshErrorKind::Timeout) => true,
             _ => false
         }
     }
@@ -65,7 +67,8 @@ impl SshErrorKind {
     fn to_string(&self) -> String {
         match &self {
             SshErrorKind::SshError(e) => e.to_string(),
-            SshErrorKind::IoError(v) => v.to_string()
+            SshErrorKind::IoError(v) => v.to_string(),
+            SshErrorKind::Timeout => "time out.".to_string()
         }
     }
 }

@@ -96,6 +96,7 @@ mod algorithm;
 mod user_info;
 mod key_pair;
 mod key_pair_type;
+mod timeout;
 
 pub use session::Session;
 pub use channel::Channel;
