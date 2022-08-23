@@ -87,7 +87,6 @@ mod channel_scp_u;
 mod config;
 mod util;
 mod window_size;
-mod error;
 mod slog;
 mod constant;
 mod data;
@@ -97,6 +96,9 @@ mod user_info;
 mod key_pair;
 mod key_pair_type;
 mod timeout;
+
+
+pub mod error;
 
 pub use session::Session;
 pub use channel::Channel;
