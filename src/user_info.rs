@@ -7,19 +7,7 @@ pub struct UserInfo {
     pub(crate) key_pair: KeyPair
 }
 
-
-// TODO 异常未处理
-// TODO 密钥填充方式未判断
 impl UserInfo {
-
-    pub fn new() -> Self {
-        UserInfo {
-            auth_type: AuthType::Password,
-            username: "".to_string(),
-            password: "".to_string(),
-            key_pair: KeyPair::new()
-        }
-    }
 
     pub fn from_key_pair<S: ToString>(user_name: S, key_pair: KeyPair) -> Self {
         UserInfo {
@@ -38,6 +26,7 @@ impl UserInfo {
             key_pair: KeyPair::new()
         }
     }
+
 }
 
 

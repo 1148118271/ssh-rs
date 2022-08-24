@@ -1,3 +1,0 @@
-pub enum KeyPairType {
-    SshRsa
-}

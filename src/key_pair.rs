@@ -5,7 +5,7 @@ use rsa::pkcs1::FromRsaPrivateKey;
 use rsa::PublicKeyParts;
 use crate::algorithm::hash::h;
 use crate::data::Data;
-use crate::key_pair_type::KeyPairType;
+use crate::SshResult;
 
 pub struct KeyPair {
     pub(crate) private_key: String,
@@ -25,17 +25,17 @@ impl KeyPair {
         }
     }
 
-    // todo 异常判断
-    pub fn from_path<P: AsRef<Path>>(key_path: P, key_type: KeyPairType) -> Self {
+
+    pub fn from_path<P: AsRef<Path>>(key_path: P, key_type: KeyPairType) -> SshResult<Self> {
         let mut file = File::open(key_path).unwrap();
         let mut prks = String::new();
-        file.read_to_string(&mut prks).unwrap();
-        KeyPair::from_str(&prks, key_type)
+        file.read_to_string(&mut prks)?;
+        Ok(KeyPair::from_str(&prks, key_type))
     }
 
 
     pub fn from_str(key_str: &str, key_type: KeyPairType) -> Self {
-        let key_type_str = key_type_to_str(key_type);
+        let key_type_str = KeyPairType::get_string(key_type);
         let rprk = rsa::RsaPrivateKey::from_pkcs1_pem(key_str).unwrap();
         let rpuk = rprk.to_public_key();
         let es = rpuk.e().to_bytes_be();
@@ -55,7 +55,6 @@ impl KeyPair {
     pub fn get_blob(&self) -> Vec<u8> {
         self.blob.to_vec()
     }
-
 
     pub(crate) fn signature(&self, buf: &[u8]) -> Vec<u8> {
         let session_id = h::get().digest();
@@ -80,13 +79,17 @@ impl KeyPair {
 }
 
 
-fn key_type_to_str<'a>(key_type: KeyPairType) -> &'a str {
-    match key_type {
-        KeyPairType::SshRsa => "ssh-rsa"
-    }
+
+pub enum KeyPairType {
+    SshRsa
 }
 
-
-
+impl KeyPairType {
+    pub(crate) fn get_string<'a>(key_type: KeyPairType) -> &'a str {
+        match key_type {
+            KeyPairType::SshRsa => "ssh-rsa"
+        }
+    }
+}
 
 
