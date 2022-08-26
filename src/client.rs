@@ -3,11 +3,13 @@ use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
 use crate::error::{SshError, SshResult};
 use crate::slog::log;
+use crate::timeout::Timeout;
 
 
 pub struct Client {
     pub(crate) stream: TcpStream,
     pub(crate) sequence: Sequence,
+    pub(crate) timeout: Timeout
 }
 
 #[derive(Clone)]
@@ -46,6 +48,7 @@ impl Client {
                             client_sequence_num: 0,
                             server_sequence_num: 0
                         },
+                        timeout: Timeout::new()
                     }
                 )
             }

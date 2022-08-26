@@ -11,6 +11,7 @@ use crate::packet::Packet;
 use crate::window_size::WindowSize;
 
 impl Client {
+
     pub(crate) fn read_version(&mut self) -> Vec<u8> {
         let mut v = [0_u8; 128];
         loop {
@@ -26,10 +27,18 @@ impl Client {
     }
 
     pub(crate) fn read_data(&mut self, lws: Option<&mut WindowSize>) -> SshResult<Vec<Data>> {
+        // 判断超时时间
+        // 如果超时,即抛出异常
+        self.timeout.is_timeout()?;
+
         let mut results = vec![];
         let mut result = vec![0; size::BUF_SIZE as usize];
         let len = match self.stream.read(&mut result) {
             Ok(len) => {
+                // 从服务段正常读取到数据的话
+                // 就刷新超时时间
+                self.timeout.renew();
+
                 if len <= 0 {
                     return Ok(results)
                 }

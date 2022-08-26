@@ -87,32 +87,32 @@ mod channel_scp_u;
 mod config;
 mod util;
 mod window_size;
-mod error;
 mod slog;
 mod constant;
 mod data;
 mod packet;
 mod algorithm;
 mod user_info;
-mod key_pair;
-mod key_pair_type;
+mod timeout;
+
+
+pub mod key_pair;
+pub mod error;
 
 pub use session::Session;
 pub use channel::Channel;
 pub use channel_shell::ChannelShell;
 pub use channel_exec::ChannelExec;
 pub use channel_scp::ChannelScp;
-
 pub use user_info::UserInfo;
-pub use key_pair::KeyPair;
-pub use key_pair_type::KeyPairType;
+
 
 use crate::error::{SshError, SshResult};
-use crate::config::Config;
 
 
 pub mod ssh {
-    use crate::{config, Config, Session};
+    use crate::{config, Session};
+    use crate::config::Config;
 
     pub fn create_session() -> Session {
         config::init(Config::new());

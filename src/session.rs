@@ -5,7 +5,7 @@ use crate::error::{SshError, SshResult};
 use crate::slog::{log, Slog};
 use crate::channel::Channel;
 use crate::channel_scp::ChannelScp;
-use crate::{channel, ChannelExec, ChannelShell, client, config, kex, util};
+use crate::{channel, ChannelExec, ChannelShell, client, config, kex, timeout, util};
 use crate::algorithm::hash::h;
 use crate::algorithm::{encryption, key_exchange, mac, public_key};
 use crate::user_info::AuthType;
@@ -21,6 +21,13 @@ impl Session {
             Slog::default()
         }
     }
+
+    pub fn set_timeout(&self, second: u64) {
+        unsafe {
+            timeout::TIMEOUT = second
+        }
+    }
+
 }
 
 impl Session {
