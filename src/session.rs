@@ -22,9 +22,9 @@ impl Session {
         }
     }
 
-    pub fn set_timeout(&self, second: u64) {
+    pub fn set_timeout(&self, secs: u64) {
         unsafe {
-            timeout::TIMEOUT = second
+            timeout::TIMEOUT = secs
         }
     }
 

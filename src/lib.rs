@@ -16,9 +16,9 @@
 //! fn main() {
 //!
 //! let mut session = ssh::create_session();
-//!     session.is_usage_log(true);
-//!     session.set_user_and_password("root", "123456");
-//!     session.connect("127.0.0.1:22").unwrap();
+//! session.is_usage_log(true);
+//! session.set_user_and_password("root", "123456");
+//! session.connect("127.0.0.1:22").unwrap();
 //!
 //!     // exec(&mut session);
 //!     // shell(&mut session);
@@ -111,11 +111,9 @@ use crate::error::{SshError, SshResult};
 
 
 pub mod ssh {
-    use crate::{config, Session};
-    use crate::config::Config;
+    use crate::Session;
 
     pub fn create_session() -> Session {
-        config::init(Config::new());
         Session
     }
 

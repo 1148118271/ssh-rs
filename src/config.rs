@@ -15,17 +15,14 @@ use crate::user_info::UserInfo;
 pub(crate) static mut CONFIG: Option<Config> = None;
 
 
-pub(crate) fn init(config: Config) {
+pub(crate) fn init(user_info: UserInfo) {
     unsafe {
-        CONFIG = Some(config);
+        CONFIG = Some(Config::new(user_info));
     }
 }
 
 pub(crate) fn config() -> &'static mut Config {
     unsafe {
-        if CONFIG.is_none() {
-            CONFIG = Some(Config::new())
-        }
         CONFIG.as_mut().unwrap()
     }
 }
@@ -37,9 +34,9 @@ pub(crate) struct Config {
     pub(crate) algorithm: AlgorithmConfig,
 }
 impl Config {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(user_info: UserInfo) -> Self {
         Config {
-            auth: UserInfo::new(),
+            auth: user_info,
             version: VersionConfig::new(),
             algorithm: AlgorithmConfig::new()
         }
