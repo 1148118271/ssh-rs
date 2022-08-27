@@ -1,15 +1,33 @@
+use std::path::Path;
 use crate::{client, config, Session, SshResult};
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
+use crate::key_pair::{KeyPair, KeyPairType};
 use crate::user_info::UserInfo;
 
 impl Session {
 
-
-
     pub fn auth_user_info(&self, user_info: UserInfo) {
-        let config = config::config();
-        config.auth = user_info
+        config::init(user_info);
+    }
+
+    pub fn set_user_and_password<U: ToString, P: ToString>(&self, username: U, password: P) {
+        let user_info = UserInfo::from_password(username.to_string(), password.to_string());
+        self.auth_user_info(user_info);
+    }
+
+    pub fn set_user_and_key_pair<U: ToString, K: ToString>(&self, username: U, key_str: K, key_type: KeyPairType) {
+        let pair = KeyPair::from_str(key_str.to_string().as_str(), key_type);
+        let user_info = UserInfo::from_key_pair(username, pair);
+        self.auth_user_info(user_info);
+    }
+
+    pub fn set_user_and_key_pair_path<U: ToString, P: AsRef<Path>>
+    (&self, username: U, key_path: P, key_type: KeyPairType) -> SshResult<()> {
+        let pair = KeyPair::from_path(key_path, key_type)?;
+        let user_info = UserInfo::from_key_pair(username.to_string(), pair);
+        self.auth_user_info(user_info);
+        Ok(())
     }
 
     pub(crate) fn password_authentication(&self) -> SshResult<()> {
