@@ -1,7 +1,5 @@
 # ssh-rs ✨
 
----
-
 [English](https://github.com/1148118271/ssh-rs/blob/main/README.md)  |  [简体中文](https://github.com/1148118271/ssh-rs/blob/main/README_ZH.md)
 
 Rust implementation of ssh2.0 client.
@@ -9,11 +7,9 @@ Rust implementation of ssh2.0 client.
 If you encounter any problems in use, welcome [issues](https://github.com/1148118271/ssh-rs/issues)
 or [PR](https://github.com/1148118271/ssh-rs/pulls) .
 
-### Connection method：
+## Connection method：
 
----
-
-#### 1. Password:
+### 1. Password:
 ```rust
 use ssh_rs::{Session, ssh};
 
@@ -24,10 +20,10 @@ fn main() {
 }
 ```
 
-#### 2. Public key:
-##### Currently, only `RSA-PKCS#1-PEM` type encrypted files with the encryption format `-----BEGIN RSA PRIVATE KEY-----` are supported.
+### 2. Public key:
+#### Currently, only `RSA-PKCS#1-PEM` type encrypted files with the encryption format `-----BEGIN RSA PRIVATE KEY-----` are supported.
 
-##### 1. Use key file path：
+#### 1. Use key file path：
 ```rust
 use ssh_rs::{Session, ssh};
 use ssh_rs::key_pair::KeyPairType;
@@ -41,7 +37,7 @@ fn main() {
 }    
 ```
 
-##### 2. Use key string：
+#### 2. Use key string：
 ```rust
 use ssh_rs::{Session, ssh};
 use ssh_rs::key_pair::KeyPairType;
@@ -58,9 +54,7 @@ fn main() {
 }
 ```
 
-### Enable global logging：
-
----
+## Enable global logging：
 
 ```rust
 use ssh_rs::{Session, ssh};
@@ -77,9 +71,7 @@ fn main() {
 ```
 
 
-### Set timeout：
-
----
+## Set timeout：
 
 ```rust
 use ssh_rs::{Session, ssh};
@@ -96,13 +88,11 @@ fn main() {
 ```
 
 
-### How to use：
+## How to use：
 
----
+### Currently only supports exec shell scp these three functions.
 
-#### Currently only supports exec shell scp these three functions.
-
-#### 1. exec
+### 1. exec
 
 ```rust
 use ssh_rs::{ChannelExec, Session, ssh};
@@ -123,7 +113,7 @@ fn main() {
 }
 ```
 
-#### 2. shell
+### 2. shell
 
 ```rust
 use std::thread::sleep;
@@ -159,7 +149,7 @@ fn run_shell(shell: &mut ChannelShell) {
 }
 ```
 
-#### 3. scp
+### 3. scp
 
 ```rust
 use ssh_rs::{Channel, ChannelScp, Session, ssh};
@@ -188,38 +178,37 @@ fn main() {
 ```
 
 
-### Algorithm support：
+## Algorithm support：
 
----
 
-#### 1. Kex algorithms
+### 1. Kex algorithms
 `curve25519-sha256`
 `ecdh-sha2-nistp256`
 
-#### 2. Server host key algorithms
+### 2. Server host key algorithms
 `ssh-ed25519`
 `ssh-rsa`
 
-#### 3. Encryption algorithms (client to server)
+### 3. Encryption algorithms (client to server)
 `chacha20-poly1305@openssh.com`
 `aes128-ctr`
 
-#### 4. Encryption algorithms (server to client)
+### 4. Encryption algorithms (server to client)
 `chacha20-poly1305@openssh.com`
 `aes128-ctr`
 
-#### 5. Mac algorithms (client to server)
+### 5. Mac algorithms (client to server)
 `hmac-sha1`
 
-#### 6. Mac algorithms (server to client)
+### 6. Mac algorithms (server to client)
 `hmac-sha1`
 
-#### 7. Compression algorithms (client to server)
+### 7. Compression algorithms (client to server)
 `none`
 
-#### 8. Compression algorithms (server to client)
+### 8. Compression algorithms (server to client)
 `none`
 
 ---
 
-#### ☃️ Additional algorithms will continue to be added.
+### ☃️ Additional algorithms will continue to be added.

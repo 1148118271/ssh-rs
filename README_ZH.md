@@ -1,7 +1,5 @@
 # ssh-rs ✨
 
----
-
 [English](https://github.com/1148118271/ssh-rs/blob/main/README.md)  |  [简体中文](https://github.com/1148118271/ssh-rs/blob/main/README_ZH.md)
 
 rust实现的ssh2.0客户端。
@@ -9,11 +7,9 @@ rust实现的ssh2.0客户端。
 如果在使用中遇到任何问题，欢迎 [issues](https://github.com/1148118271/ssh-rs/issues)
 或者 [PR](https://github.com/1148118271/ssh-rs/pulls) 。
 
-### 连接方式：
+## 连接方式：
 
----
-
-#### 1. 密码连接:
+### 1. 密码连接:
 ```rust
 use ssh_rs::{Session, ssh};
 
@@ -24,10 +20,10 @@ fn main() {
 }
 ```
 
-#### 2. 公钥连接:
-##### 目前只支持加密格式是`-----BEGIN RSA PRIVATE KEY-----`这种的`RSA-PKCS#1-PEM`类型的加密文件。
+### 2. 公钥连接:
+#### 目前只支持加密格式是`-----BEGIN RSA PRIVATE KEY-----`这种的`RSA-PKCS#1-PEM`类型的加密文件。
 
-##### 1. 使用密钥文件地址：
+#### 1. 使用密钥文件地址：
 ```rust
 use ssh_rs::{Session, ssh};
 use ssh_rs::key_pair::KeyPairType;
@@ -41,7 +37,7 @@ fn main() {
 }    
 ```
 
-##### 2. 使用密钥字符串：
+#### 2. 使用密钥字符串：
 ```rust
 use ssh_rs::{Session, ssh};
 use ssh_rs::key_pair::KeyPairType;
@@ -59,9 +55,7 @@ fn main() {
 ```
 
 
-### 启用全局日志：
-
----
+## 启用全局日志：
 
 ```rust
 use ssh_rs::{Session, ssh};
@@ -78,9 +72,7 @@ fn main() {
 ```
 
 
-### 设置超时时间：
-
----
+## 设置超时时间：
 
 ```rust
 use ssh_rs::{Session, ssh};
@@ -97,13 +89,11 @@ fn main() {
 ```
 
 
-### 使用方式：
+## 使用方式：
 
----
+### 目前只支持 exec shell scp 这三种功能
 
-#### 目前只支持 exec shell scp 这三种功能
-
-#### 1. exec
+### 1. exec
 
 ```rust
 use ssh_rs::{ChannelExec, Session, ssh};
@@ -124,7 +114,7 @@ fn main() {
 }
 ```
 
-#### 2. shell
+### 2. shell
 
 ```rust
 use std::thread::sleep;
@@ -160,7 +150,7 @@ fn run_shell(shell: &mut ChannelShell) {
 }
 ```
 
-#### 3. scp
+### 3. scp
 
 ```rust
 use ssh_rs::{Channel, ChannelScp, Session, ssh};
@@ -191,38 +181,36 @@ fn main() {
 ```
 
 
-### 算法支持：
+## 算法支持：
 
----
-
-#### 1. 密钥交换算法
+### 1. 密钥交换算法
 `curve25519-sha256`
 `ecdh-sha2-nistp256`
 
-#### 2. 主机密钥算法
+### 2. 主机密钥算法
 `ssh-ed25519`
 `ssh-rsa`
 
-#### 3. 加密算法（客户端到服务端）
+### 3. 加密算法（客户端到服务端）
 `chacha20-poly1305@openssh.com`
 `aes128-ctr`
 
-#### 4. 加密算法（服务端到客户端）
+### 4. 加密算法（服务端到客户端）
 `chacha20-poly1305@openssh.com`
 `aes128-ctr`
 
-#### 5. MAC算法（客户端到服务端）
+### 5. MAC算法（客户端到服务端）
 `hmac-sha1`
 
-#### 6. MAC算法（服务端到客户端）
+### 6. MAC算法（服务端到客户端）
 `hmac-sha1`
 
-#### 7. 压缩算法（客户端到服务端）
+### 7. 压缩算法（客户端到服务端）
 `none`
 
-#### 8. 压缩算法（服务端到客户端）
+### 8. 压缩算法（服务端到客户端）
 `none`
 
 ---
 
-#### ?? 会继续添加其它算法。
+#### ☃️ 会继续添加其它算法。
