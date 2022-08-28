@@ -1,64 +1,65 @@
-# ssh-rs âœ¨
+# ssh-rs ? 
 
 ---
 
-[English](https://github.com/1148118271/ssh-rs/blob/main/README.md)  |  [ç®€ä½“ä¸­æ–‡](https://github.com/1148118271/ssh-rs/blob/main/README_ZH.md)
+[English](https://github.com/1148118271/ssh-rs/blob/main/README.md)  |  [¼òÌåÖĞÎÄ](https://github.com/1148118271/ssh-rs/blob/main/README_ZH.md)
 
-Rust implementation of ssh2.0 client.
+rustÊµÏÖµÄssh2.0¿Í»§¶Ë¡£
 
-If you encounter any problems in use, welcome [issues](https://github.com/1148118271/ssh-rs/issues)
-or [PR](https://github.com/1148118271/ssh-rs/pulls) .
+Èç¹ûÔÚÊ¹ÓÃÖĞÓöµ½ÈÎºÎÎÊÌâ£¬»¶Ó­ [issues](https://github.com/1148118271/ssh-rs/issues) 
+»òÕß [PR](https://github.com/1148118271/ssh-rs/pulls) ¡£
 
-### Connection methodï¼š
+### Á¬½Ó·½Ê½£º
 
 ---
 
-#### 1. Password:
+#### 1. ÃÜÂëÁ¬½Ó:
 ```rust
 use ssh_rs::{Session, ssh};
 
 fn main() {
     let mut session: Session = ssh::create_session();
-    session.set_user_and_password("user", "password");
+    session.set_user_and_password("ÓÃ»§", "ÃÜÂë");
     session.connect("ip:port").unwrap();
 }
 ```
 
-#### 2. Public key:
-##### Currently, only `RSA-PKCS#1-PEM` type encrypted files with the encryption format `-----BEGIN RSA PRIVATE KEY-----` are supported.
+#### 2. ¹«Ô¿Á¬½Ó:
+##### Ä¿Ç°Ö»Ö§³Ö¼ÓÃÜ¸ñÊ½ÊÇ`-----BEGIN RSA PRIVATE KEY-----`ÕâÖÖµÄ`RSA-PKCS#1-PEM`ÀàĞÍµÄ¼ÓÃÜÎÄ¼ş¡£
 
-##### 1. Use key file pathï¼š
+##### 1. Ê¹ÓÃÃÜÔ¿ÎÄ¼şµØÖ·£º
 ```rust
 use ssh_rs::{Session, ssh};
 use ssh_rs::key_pair::KeyPairType;
 
 fn main() {
     let mut session: Session = ssh::create_session();
-    // pem format key path -> /xxx/xxx/id_rsa
-    // KeyPairType::SshRsa -> Rsa type algorithm, currently only supports rsa.
-    session.set_user_and_key_pair_path("user", "pem format key path", KeyPairType::SshRsa).unwrap();
+    // pem¸ñÊ½ÃÜÔ¿µØÖ· -> /xxx/xxx/id_rsa
+    // KeyPairType::SshRsa rsaÀàĞÍËã·¨£¬Ä¿Ç°Ö»Ö§³Örsa
+    session.set_user_and_key_pair_path("ÓÃ»§", "pem¸ñÊ½ÃÜÔ¿µØÖ·", KeyPairType::SshRsa).unwrap();
     session.connect("ip:port").unwrap();
 }    
 ```
 
-##### 2. Use key stringï¼š
+##### 2. Ê¹ÓÃÃÜÔ¿×Ö·û´®£º
 ```rust
 use ssh_rs::{Session, ssh};
 use ssh_rs::key_pair::KeyPairType;
 
 fn main() {
     let mut session: Session = ssh::create_session();
-    // pem format key string:
+    // pem¸ñÊ½ÃÜÔ¿×Ö·û´®:
     //      -----BEGIN RSA PRIVATE KEY-----
     //          xxxxxxxxxxxxxxxxxxxxx
     //      -----END RSA PRIVATE KEY-----
-    // KeyPairType::SshRsa -> Rsa type algorithm, currently only supports rsa.
-    session.set_user_and_key_pair("user", "pem format key string", KeyPairType::SshRsa).unwrap();
+    // KeyPairType::SshRsa rsaÀàĞÍËã·¨£¬Ä¿Ç°Ö»Ö§³Örsa
+    session.set_user_and_key_pair("ÓÃ»§", "pem¸ñÊ½ÃÜÔ¿×Ö·û´®", KeyPairType::SshRsa).unwrap();
     session.connect("ip:port").unwrap();
 }
 ```
 
-### Enable global loggingï¼š
+
+### ÆôÓÃÈ«¾ÖÈÕÖ¾£º
 
 ---
 
@@ -67,17 +68,17 @@ use ssh_rs::{Session, ssh};
 
 fn main() {
     let mut session: Session = ssh::create_session();
-    // is_enable_log Whether to enable global logging
-    // The default is false(Do not enable)
-    // Can be set as true (enable)
+    // is_enable_log ÊÇ·ñÆôÓÃÈ«¾ÖÈÕÖ¾
+    // Ä¬ÈÏÎª false£¨²»ÆôÓÃ£©
+    // ¿ÉÉèÖÃÎª true£¨ÆôÓÃ£©
     session.is_enable_log(true);
-    session.set_user_and_password("user", "password");
+    session.set_user_and_password("ÓÃ»§", "ÃÜÂë");
     session.connect("ip:port").unwrap();
 }
 ```
 
 
-### Set timeoutï¼š
+### ÉèÖÃ³¬Ê±Ê±¼ä£º
 
 ---
 
@@ -86,21 +87,21 @@ use ssh_rs::{Session, ssh};
 
 fn main() {
     let mut session: Session = ssh::create_session();
-    // set_timeout
-    // The unit is seconds
-    // The default timeout is 30 seconds
+    // set_timeout ÉèÖÃ³¬Ê±Ê±¼ä
+    // µ¥Î»Îª Ãë
+    // Ä¬ÈÏ³¬Ê±Ê±¼äÊÇ 30Ãë
     session.set_timeout(15);
-    session.set_user_and_password("user", "password");
+    session.set_user_and_password("ÓÃ»§", "ÃÜÂë");
     session.connect("ip:port").unwrap();
 }
 ```
 
 
-### How to useï¼š
+### Ê¹ÓÃ·½Ê½£º
 
 ---
 
-#### Currently only supports exec shell scp these three functions.
+#### Ä¿Ç°Ö»Ö§³Ö exec shell scp ÕâÈıÖÖ¹¦ÄÜ
 
 #### 1. exec
 
@@ -109,16 +110,16 @@ use ssh_rs::{ChannelExec, Session, ssh};
 
 fn main() {
     let mut session: Session = session();
-    // Usage 1
+    // ·½Ê½Ò»
     let exec: ChannelExec = session.open_exec().unwrap();
     let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
     println!("{}", String::from_utf8(vec).unwrap());
-    // Usage 2
+    // ·½Ê½¶ş
     let channel = session.open_channel().unwrap();
     let exec = channel.open_exec().unwrap();
     let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
     println!("{}", String::from_utf8(vec).unwrap());
-    // Close session.
+    // ¹Ø±Õ»á»°
     session.close().unwrap();
 }
 ```
@@ -132,16 +133,16 @@ use ssh_rs::{Channel, ChannelShell, Session, ssh};
 
 fn main() {
     let mut session: Session = session();
-    // Usage 1
+    // ·½Ê½Ò»
     let mut shell: ChannelShell = session.open_shell().unwrap();
     run_shell(&mut shell);
-    // Usage 2
+    // ·½Ê½¶ş
     let channel: Channel = session.open_channel().unwrap();
     let mut shell = channel.open_shell().unwrap();
     run_shell(&mut shell);
-    // Close channel.
+    // ¹Ø±ÕÍ¨µÀ
     shell.close().unwrap();
-    // Close session.
+    // ¹Ø±Õ»á»°
     session.close().unwrap();
 }
 
@@ -166,21 +167,23 @@ use ssh_rs::{Channel, ChannelScp, Session, ssh};
 
 fn main() {
     let mut session: Session = session();
-    // Usage 1
+    // ·½Ê½Ò»
+    // ÉÏ´«
     let scp: ChannelScp = session.open_scp().unwrap();
-    scp.upload("local path", "remote path").unwrap();
-   
+    scp.upload("±¾µØÂ·¾¶", "Ô¶³ÌÂ·¾¶").unwrap();
+    // ÏÂÔØ
     let scp: ChannelScp = session.open_scp().unwrap();
-    scp.download("local path", "remote path").unwrap();
+    scp.download("±¾µØÂ·¾¶", "Ô¶³ÌÂ·¾¶").unwrap();
 
-    // Usage 2
+    // ·½Ê½¶ş
+    // ÉÏ´«
     let channel: Channel = session.open_channel().unwrap();
     let scp: ChannelScp = channel.open_scp().unwrap();
-    scp.upload("local path", "remote path").unwrap();
-  
+    scp.upload("±¾µØÂ·¾¶", "Ô¶³ÌÂ·¾¶").unwrap();
+    // ÏÂÔØ
     let channel: Channel = session.open_channel().unwrap();
     let scp: ChannelScp = channel.open_scp().unwrap();
-    scp.download("local path", "remote path").unwrap();
+    scp.download("±¾µØÂ·¾¶", "Ô¶³ÌÂ·¾¶").unwrap();
 
     session.close().unwrap();
 }
@@ -188,38 +191,38 @@ fn main() {
 ```
 
 
-### Algorithm supportï¼š
+### Ëã·¨Ö§³Ö£º
 
 ---
 
-#### 1. Kex algorithms
+#### 1. ÃÜÔ¿½»»»Ëã·¨
 `curve25519-sha256`
-`ecdh-sha2-nistp256`
+`ecdh-sha2-nistp256` 
 
-#### 2. Server host key algorithms
+#### 2. Ö÷»úÃÜÔ¿Ëã·¨
 `ssh-ed25519`
-`ssh-rsa`
+`ssh-rsa` 
 
-#### 3. Encryption algorithms (client to server)
+#### 3. ¼ÓÃÜËã·¨£¨¿Í»§¶Ëµ½·şÎñ¶Ë£©
 `chacha20-poly1305@openssh.com`
-`aes128-ctr`
+`aes128-ctr` 
 
-#### 4. Encryption algorithms (server to client)
+#### 4. ¼ÓÃÜËã·¨£¨·şÎñ¶Ëµ½¿Í»§¶Ë£©
 `chacha20-poly1305@openssh.com`
-`aes128-ctr`
+`aes128-ctr` 
 
-#### 5. Mac algorithms (client to server)
+#### 5. MACËã·¨£¨¿Í»§¶Ëµ½·şÎñ¶Ë£©
 `hmac-sha1`
 
-#### 6. Mac algorithms (server to client)
+#### 6. MACËã·¨£¨·şÎñ¶Ëµ½¿Í»§¶Ë£©
 `hmac-sha1`
 
-#### 7. Compression algorithms (client to server)
+#### 7. Ñ¹ËõËã·¨£¨¿Í»§¶Ëµ½·şÎñ¶Ë£©
 `none`
 
-#### 8. Compression algorithms (server to client)
+#### 8. Ñ¹ËõËã·¨£¨·şÎñ¶Ëµ½¿Í»§¶Ë£©
 `none`
 
 ---
 
-#### â˜ƒï¸ Additional algorithms will continue to be added.
+#### ?? »á¼ÌĞøÌí¼ÓÆäËüËã·¨¡£
