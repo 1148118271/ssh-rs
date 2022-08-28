@@ -16,7 +16,7 @@ pub struct Session;
 
 
 impl Session {
-    pub fn is_usage_log(&self, b: bool) {
+    pub fn is_enable_log(&self, b: bool) {
         if b {
             Slog::default()
         }

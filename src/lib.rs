@@ -16,7 +16,7 @@
 //! fn main() {
 //!
 //! let mut session = ssh::create_session();
-//! session.is_usage_log(true);
+//! session.is_enable_log(true);
 //! session.set_user_and_password("root", "123456");
 //! session.connect("127.0.0.1:22").unwrap();
 //!
