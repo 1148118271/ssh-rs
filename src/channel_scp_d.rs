@@ -11,7 +11,7 @@ use crate::util;
 
 impl ChannelScp {
     ///   download
-    pub fn download<S: AsRef<OsStr> + ?Sized>(&mut self, local_path: &S, remote_path: &S) -> SshResult<()> {
+    pub fn download<S: AsRef<OsStr> + ?Sized>(mut self, local_path: &S, remote_path: &S) -> SshResult<()> {
         let local_path = Path::new(local_path);
         let remote_path = Path::new(remote_path);
 
@@ -30,7 +30,10 @@ impl ChannelScp {
         let mut scp_file = ScpFile::new();
         scp_file.local_path = self.local_path.clone();
         self.process_d(&mut scp_file)?;
-        Ok(())
+
+        log::info!("files download successful.");
+
+        self.channel.close()
     }
 
     fn process_d(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
@@ -67,7 +70,6 @@ impl ChannelScp {
                 _ => return Err(SshError::from("unknown error."))
             }
         }
-        log::info!("files download successful.");
         Ok(())
     }
 
@@ -96,7 +98,7 @@ impl ChannelScp {
                 log::error!("failed to open the folder, \
             it is possible that the path does not exist, \
             which does not affect subsequent operations. \
-            error info: {:?}", e);
+            error info: {:?}, path: {:?}", e, scp_file.local_path.to_str());
                 return Err(SshError::from(format!("file open error: {}", e.to_string())))
             }
         };

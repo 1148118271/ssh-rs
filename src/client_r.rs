@@ -35,13 +35,14 @@ impl Client {
         let mut result = vec![0; size::BUF_SIZE as usize];
         let len = match self.stream.read(&mut result) {
             Ok(len) => {
+                if len <= 0 {
+                    return Ok(results)
+                }
+
                 // 从服务段正常读取到数据的话
                 // 就刷新超时时间
                 self.timeout.renew();
 
-                if len <= 0 {
-                    return Ok(results)
-                }
                 len
             },
             Err(e) => {

@@ -5,7 +5,7 @@ use rsa::pkcs1::FromRsaPrivateKey;
 use rsa::PublicKeyParts;
 use crate::algorithm::hash::h;
 use crate::data::Data;
-use crate::SshResult;
+use crate::{SshError, SshResult};
 
 pub struct KeyPair {
     pub(crate) private_key: String,
@@ -30,13 +30,18 @@ impl KeyPair {
         let mut file = File::open(key_path).unwrap();
         let mut prks = String::new();
         file.read_to_string(&mut prks)?;
-        Ok(KeyPair::from_str(&prks, key_type))
+        KeyPair::from_str(&prks, key_type)
     }
 
 
-    pub fn from_str(key_str: &str, key_type: KeyPairType) -> Self {
+    pub fn from_str(key_str: &str, key_type: KeyPairType) -> SshResult<Self> {
         let key_type_str = KeyPairType::get_string(key_type);
-        let rprk = rsa::RsaPrivateKey::from_pkcs1_pem(key_str).unwrap();
+        let rprk = match rsa::RsaPrivateKey::from_pkcs1_pem(key_str) {
+            Ok(e) => e,
+            Err(e) => {
+                return Err(SshError::from(e.to_string()))
+            }
+        };
         let rpuk = rprk.to_public_key();
         let es = rpuk.e().to_bytes_be();
         let ns = rpuk.n().to_bytes_be();
@@ -45,11 +50,12 @@ impl KeyPair {
         blob.put_mpint(&es);
         blob.put_mpint(&ns);
         let blob = blob.to_vec();
-        KeyPair {
+        let pair = KeyPair {
             private_key: key_str.to_string(),
             key_type: key_type_str.to_string(),
             blob
-        }
+        };
+        Ok(pair)
     }
 
     pub fn get_blob(&self) -> Vec<u8> {
