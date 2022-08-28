@@ -16,10 +16,11 @@ impl Session {
         self.auth_user_info(user_info);
     }
 
-    pub fn set_user_and_key_pair<U: ToString, K: ToString>(&self, username: U, key_str: K, key_type: KeyPairType) {
-        let pair = KeyPair::from_str(key_str.to_string().as_str(), key_type);
+    pub fn set_user_and_key_pair<U: ToString, K: ToString>(&self, username: U, key_str: K, key_type: KeyPairType) -> SshResult<()> {
+        let pair = KeyPair::from_str(key_str.to_string().as_str(), key_type)?;
         let user_info = UserInfo::from_key_pair(username, pair);
         self.auth_user_info(user_info);
+        Ok(())
     }
 
     pub fn set_user_and_key_pair_path<U: ToString, P: AsRef<Path>>

@@ -4,7 +4,7 @@ use crate::{slog::log, SshError, SshResult};
 use crate::error::SshErrorKind;
 
 
-pub(crate) static mut TIMEOUT: u64 = 15;
+pub(crate) static mut TIMEOUT: u64 = 30;
 
 pub(crate) struct Timeout(RefCell<SystemTime>);
 

@@ -10,7 +10,7 @@ use crate::channel_scp::{ChannelScp, check_path, ScpFile};
 use crate::util;
 
 impl ChannelScp {
-    pub fn upload<S: AsRef<OsStr> + ?Sized>(&mut self, local_path: &S, remote_path: &S) -> SshResult<()> {
+    pub fn upload<S: AsRef<OsStr> + ?Sized>(mut self, local_path: &S, remote_path: &S) -> SshResult<()> {
         let local_path = Path::new(local_path);
         let remote_path = Path::new(remote_path);
 
