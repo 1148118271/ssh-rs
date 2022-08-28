@@ -1,65 +1,65 @@
-# ssh-rs ? 
+# ssh-rs âœ¨
 
 ---
 
-[English](https://github.com/1148118271/ssh-rs/blob/main/README.md)  |  [¼òÌåÖĞÎÄ](https://github.com/1148118271/ssh-rs/blob/main/README_ZH.md)
+[English](https://github.com/1148118271/ssh-rs/blob/main/README.md)  |  [ç®€ä½“ä¸­æ–‡](https://github.com/1148118271/ssh-rs/blob/main/README_ZH.md)
 
-rustÊµÏÖµÄssh2.0¿Í»§¶Ë¡£
+rustå®ç°çš„ssh2.0å®¢æˆ·ç«¯ã€‚
 
-Èç¹ûÔÚÊ¹ÓÃÖĞÓöµ½ÈÎºÎÎÊÌâ£¬»¶Ó­ [issues](https://github.com/1148118271/ssh-rs/issues) 
-»òÕß [PR](https://github.com/1148118271/ssh-rs/pulls) ¡£
+å¦‚æœåœ¨ä½¿ç”¨ä¸­é‡åˆ°ä»»ä½•é—®é¢˜ï¼Œæ¬¢è¿ [issues](https://github.com/1148118271/ssh-rs/issues)
+æˆ–è€… [PR](https://github.com/1148118271/ssh-rs/pulls) ã€‚
 
-### Á¬½Ó·½Ê½£º
+### è¿æ¥æ–¹å¼ï¼š
 
 ---
 
-#### 1. ÃÜÂëÁ¬½Ó:
+#### 1. å¯†ç è¿æ¥:
 ```rust
 use ssh_rs::{Session, ssh};
 
 fn main() {
     let mut session: Session = ssh::create_session();
-    session.set_user_and_password("ÓÃ»§", "ÃÜÂë");
+    session.set_user_and_password("ç”¨æˆ·", "å¯†ç ");
     session.connect("ip:port").unwrap();
 }
 ```
 
-#### 2. ¹«Ô¿Á¬½Ó:
-##### Ä¿Ç°Ö»Ö§³Ö¼ÓÃÜ¸ñÊ½ÊÇ`-----BEGIN RSA PRIVATE KEY-----`ÕâÖÖµÄ`RSA-PKCS#1-PEM`ÀàĞÍµÄ¼ÓÃÜÎÄ¼ş¡£
+#### 2. å…¬é’¥è¿æ¥:
+##### ç›®å‰åªæ”¯æŒåŠ å¯†æ ¼å¼æ˜¯`-----BEGIN RSA PRIVATE KEY-----`è¿™ç§çš„`RSA-PKCS#1-PEM`ç±»å‹çš„åŠ å¯†æ–‡ä»¶ã€‚
 
-##### 1. Ê¹ÓÃÃÜÔ¿ÎÄ¼şµØÖ·£º
+##### 1. ä½¿ç”¨å¯†é’¥æ–‡ä»¶åœ°å€ï¼š
 ```rust
 use ssh_rs::{Session, ssh};
 use ssh_rs::key_pair::KeyPairType;
 
 fn main() {
     let mut session: Session = ssh::create_session();
-    // pem¸ñÊ½ÃÜÔ¿µØÖ· -> /xxx/xxx/id_rsa
-    // KeyPairType::SshRsa rsaÀàĞÍËã·¨£¬Ä¿Ç°Ö»Ö§³Örsa
-    session.set_user_and_key_pair_path("ÓÃ»§", "pem¸ñÊ½ÃÜÔ¿µØÖ·", KeyPairType::SshRsa).unwrap();
+    // pemæ ¼å¼å¯†é’¥åœ°å€ -> /xxx/xxx/id_rsa
+    // KeyPairType::SshRsa rsaç±»å‹ç®—æ³•ï¼Œç›®å‰åªæ”¯æŒrsa
+    session.set_user_and_key_pair_path("ç”¨æˆ·", "pemæ ¼å¼å¯†é’¥åœ°å€", KeyPairType::SshRsa).unwrap();
     session.connect("ip:port").unwrap();
 }    
 ```
 
-##### 2. Ê¹ÓÃÃÜÔ¿×Ö·û´®£º
+##### 2. ä½¿ç”¨å¯†é’¥å­—ç¬¦ä¸²ï¼š
 ```rust
 use ssh_rs::{Session, ssh};
 use ssh_rs::key_pair::KeyPairType;
 
 fn main() {
     let mut session: Session = ssh::create_session();
-    // pem¸ñÊ½ÃÜÔ¿×Ö·û´®:
+    // pemæ ¼å¼å¯†é’¥å­—ç¬¦ä¸²:
     //      -----BEGIN RSA PRIVATE KEY-----
     //          xxxxxxxxxxxxxxxxxxxxx
     //      -----END RSA PRIVATE KEY-----
-    // KeyPairType::SshRsa rsaÀàĞÍËã·¨£¬Ä¿Ç°Ö»Ö§³Örsa
-    session.set_user_and_key_pair("ÓÃ»§", "pem¸ñÊ½ÃÜÔ¿×Ö·û´®", KeyPairType::SshRsa).unwrap();
+    // KeyPairType::SshRsa rsaç±»å‹ç®—æ³•ï¼Œç›®å‰åªæ”¯æŒrsa
+    session.set_user_and_key_pair("ç”¨æˆ·", "pemæ ¼å¼å¯†é’¥å­—ç¬¦ä¸²", KeyPairType::SshRsa).unwrap();
     session.connect("ip:port").unwrap();
 }
 ```
 
 
-### ÆôÓÃÈ«¾ÖÈÕÖ¾£º
+### å¯ç”¨å…¨å±€æ—¥å¿—ï¼š
 
 ---
 
@@ -68,17 +68,17 @@ use ssh_rs::{Session, ssh};
 
 fn main() {
     let mut session: Session = ssh::create_session();
-    // is_enable_log ÊÇ·ñÆôÓÃÈ«¾ÖÈÕÖ¾
-    // Ä¬ÈÏÎª false£¨²»ÆôÓÃ£©
-    // ¿ÉÉèÖÃÎª true£¨ÆôÓÃ£©
+    // is_enable_log æ˜¯å¦å¯ç”¨å…¨å±€æ—¥å¿—
+    // é»˜è®¤ä¸º falseï¼ˆä¸å¯ç”¨ï¼‰
+    // å¯è®¾ç½®ä¸º trueï¼ˆå¯ç”¨ï¼‰
     session.is_enable_log(true);
-    session.set_user_and_password("ÓÃ»§", "ÃÜÂë");
+    session.set_user_and_password("ç”¨æˆ·", "å¯†ç ");
     session.connect("ip:port").unwrap();
 }
 ```
 
 
-### ÉèÖÃ³¬Ê±Ê±¼ä£º
+### è®¾ç½®è¶…æ—¶æ—¶é—´ï¼š
 
 ---
 
@@ -87,21 +87,21 @@ use ssh_rs::{Session, ssh};
 
 fn main() {
     let mut session: Session = ssh::create_session();
-    // set_timeout ÉèÖÃ³¬Ê±Ê±¼ä
-    // µ¥Î»Îª Ãë
-    // Ä¬ÈÏ³¬Ê±Ê±¼äÊÇ 30Ãë
+    // set_timeout è®¾ç½®è¶…æ—¶æ—¶é—´
+    // å•ä½ä¸º ç§’
+    // é»˜è®¤è¶…æ—¶æ—¶é—´æ˜¯ 30ç§’
     session.set_timeout(15);
-    session.set_user_and_password("ÓÃ»§", "ÃÜÂë");
+    session.set_user_and_password("ç”¨æˆ·", "å¯†ç ");
     session.connect("ip:port").unwrap();
 }
 ```
 
 
-### Ê¹ÓÃ·½Ê½£º
+### ä½¿ç”¨æ–¹å¼ï¼š
 
 ---
 
-#### Ä¿Ç°Ö»Ö§³Ö exec shell scp ÕâÈıÖÖ¹¦ÄÜ
+#### ç›®å‰åªæ”¯æŒ exec shell scp è¿™ä¸‰ç§åŠŸèƒ½
 
 #### 1. exec
 
@@ -110,16 +110,16 @@ use ssh_rs::{ChannelExec, Session, ssh};
 
 fn main() {
     let mut session: Session = session();
-    // ·½Ê½Ò»
+    // æ–¹å¼ä¸€
     let exec: ChannelExec = session.open_exec().unwrap();
     let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
     println!("{}", String::from_utf8(vec).unwrap());
-    // ·½Ê½¶ş
+    // æ–¹å¼äºŒ
     let channel = session.open_channel().unwrap();
     let exec = channel.open_exec().unwrap();
     let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
     println!("{}", String::from_utf8(vec).unwrap());
-    // ¹Ø±Õ»á»°
+    // å…³é—­ä¼šè¯
     session.close().unwrap();
 }
 ```
@@ -133,16 +133,16 @@ use ssh_rs::{Channel, ChannelShell, Session, ssh};
 
 fn main() {
     let mut session: Session = session();
-    // ·½Ê½Ò»
+    // æ–¹å¼ä¸€
     let mut shell: ChannelShell = session.open_shell().unwrap();
     run_shell(&mut shell);
-    // ·½Ê½¶ş
+    // æ–¹å¼äºŒ
     let channel: Channel = session.open_channel().unwrap();
     let mut shell = channel.open_shell().unwrap();
     run_shell(&mut shell);
-    // ¹Ø±ÕÍ¨µÀ
+    // å…³é—­é€šé“
     shell.close().unwrap();
-    // ¹Ø±Õ»á»°
+    // å…³é—­ä¼šè¯
     session.close().unwrap();
 }
 
@@ -167,23 +167,23 @@ use ssh_rs::{Channel, ChannelScp, Session, ssh};
 
 fn main() {
     let mut session: Session = session();
-    // ·½Ê½Ò»
-    // ÉÏ´«
+    // æ–¹å¼ä¸€
+    // ä¸Šä¼ 
     let scp: ChannelScp = session.open_scp().unwrap();
-    scp.upload("±¾µØÂ·¾¶", "Ô¶³ÌÂ·¾¶").unwrap();
-    // ÏÂÔØ
+    scp.upload("æœ¬åœ°è·¯å¾„", "è¿œç¨‹è·¯å¾„").unwrap();
+    // ä¸‹è½½
     let scp: ChannelScp = session.open_scp().unwrap();
-    scp.download("±¾µØÂ·¾¶", "Ô¶³ÌÂ·¾¶").unwrap();
+    scp.download("æœ¬åœ°è·¯å¾„", "è¿œç¨‹è·¯å¾„").unwrap();
 
-    // ·½Ê½¶ş
-    // ÉÏ´«
+    // æ–¹å¼äºŒ
+    // ä¸Šä¼ 
     let channel: Channel = session.open_channel().unwrap();
     let scp: ChannelScp = channel.open_scp().unwrap();
-    scp.upload("±¾µØÂ·¾¶", "Ô¶³ÌÂ·¾¶").unwrap();
-    // ÏÂÔØ
+    scp.upload("æœ¬åœ°è·¯å¾„", "è¿œç¨‹è·¯å¾„").unwrap();
+    // ä¸‹è½½
     let channel: Channel = session.open_channel().unwrap();
     let scp: ChannelScp = channel.open_scp().unwrap();
-    scp.download("±¾µØÂ·¾¶", "Ô¶³ÌÂ·¾¶").unwrap();
+    scp.download("æœ¬åœ°è·¯å¾„", "è¿œç¨‹è·¯å¾„").unwrap();
 
     session.close().unwrap();
 }
@@ -191,38 +191,38 @@ fn main() {
 ```
 
 
-### Ëã·¨Ö§³Ö£º
+### ç®—æ³•æ”¯æŒï¼š
 
 ---
 
-#### 1. ÃÜÔ¿½»»»Ëã·¨
+#### 1. å¯†é’¥äº¤æ¢ç®—æ³•
 `curve25519-sha256`
-`ecdh-sha2-nistp256` 
+`ecdh-sha2-nistp256`
 
-#### 2. Ö÷»úÃÜÔ¿Ëã·¨
+#### 2. ä¸»æœºå¯†é’¥ç®—æ³•
 `ssh-ed25519`
-`ssh-rsa` 
+`ssh-rsa`
 
-#### 3. ¼ÓÃÜËã·¨£¨¿Í»§¶Ëµ½·şÎñ¶Ë£©
+#### 3. åŠ å¯†ç®—æ³•ï¼ˆå®¢æˆ·ç«¯åˆ°æœåŠ¡ç«¯ï¼‰
 `chacha20-poly1305@openssh.com`
-`aes128-ctr` 
+`aes128-ctr`
 
-#### 4. ¼ÓÃÜËã·¨£¨·şÎñ¶Ëµ½¿Í»§¶Ë£©
+#### 4. åŠ å¯†ç®—æ³•ï¼ˆæœåŠ¡ç«¯åˆ°å®¢æˆ·ç«¯ï¼‰
 `chacha20-poly1305@openssh.com`
-`aes128-ctr` 
+`aes128-ctr`
 
-#### 5. MACËã·¨£¨¿Í»§¶Ëµ½·şÎñ¶Ë£©
+#### 5. MACç®—æ³•ï¼ˆå®¢æˆ·ç«¯åˆ°æœåŠ¡ç«¯ï¼‰
 `hmac-sha1`
 
-#### 6. MACËã·¨£¨·şÎñ¶Ëµ½¿Í»§¶Ë£©
+#### 6. MACç®—æ³•ï¼ˆæœåŠ¡ç«¯åˆ°å®¢æˆ·ç«¯ï¼‰
 `hmac-sha1`
 
-#### 7. Ñ¹ËõËã·¨£¨¿Í»§¶Ëµ½·şÎñ¶Ë£©
+#### 7. å‹ç¼©ç®—æ³•ï¼ˆå®¢æˆ·ç«¯åˆ°æœåŠ¡ç«¯ï¼‰
 `none`
 
-#### 8. Ñ¹ËõËã·¨£¨·şÎñ¶Ëµ½¿Í»§¶Ë£©
+#### 8. å‹ç¼©ç®—æ³•ï¼ˆæœåŠ¡ç«¯åˆ°å®¢æˆ·ç«¯ï¼‰
 `none`
 
 ---
 
-#### ?? »á¼ÌĞøÌí¼ÓÆäËüËã·¨¡£
+#### ?? ä¼šç»§ç»­æ·»åŠ å…¶å®ƒç®—æ³•ã€‚
