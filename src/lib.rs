@@ -1,75 +1,178 @@
 //! Dependencies
 //! ```
-//! ssh-rs = "*"
+//! ssh-rs = "0.2.0"
 //! ```
 //!
-//! Quick example:
+//! ## Connection method：
 //!
-//!```
-//! use ssh_rs::ssh;
-//! use ssh_rs::{ChannelExec, Session};
-//! use std::thread;
-//! use std::thread::sleep;
-//! use std::io::{stdin, stdout, Write};
-//! use std::time::Duration;
+//! ### 1. Password:
+//! ```rust
+//! use ssh_rs::{Session, ssh};
 //!
 //! fn main() {
+//!     let mut session: Session = ssh::create_session();
+//!     session.set_user_and_password("user", "password");
+//!     session.connect("ip:port").unwrap();
+//! }
+//! ```
 //!
-//! let mut session = ssh::create_session();
-//! session.is_enable_log(true);
-//! session.set_user_and_password("root", "123456");
-//! session.connect("127.0.0.1:22").unwrap();
+//! ### 2. Public key:
+//! #### Currently, only `RSA-PKCS#1-PEM` type encrypted files with the encryption format `-----BEGIN RSA PRIVATE KEY-----` are supported.
 //!
-//!     // exec(&mut session);
-//!     // shell(&mut session);
-//!     // t_shell(&mut session);
+//! #### 1. Use key file path：
+//! ```rust
+//! use ssh_rs::{Session, ssh};
+//! use ssh_rs::key_pair::KeyPairType;
+//!
+//! fn main() {
+//!     let mut session: Session = ssh::create_session();
+//!     // pem format key path -> /xxx/xxx/id_rsa
+//!     // KeyPairType::SshRsa -> Rsa type algorithm, currently only supports rsa.
+//!     session.set_user_and_key_pair_path("user", "pem format key path", KeyPairType::SshRsa).unwrap();
+//!     session.connect("ip:port").unwrap();
+//! }
+//! ```
+//!
+//! #### 2. Use key string：
+//! ```rust
+//! use ssh_rs::{Session, ssh};
+//! use ssh_rs::key_pair::KeyPairType;
+//!
+//! fn main() {
+//!     let mut session: Session = ssh::create_session();
+//!     // pem format key string:
+//!     //      -----BEGIN RSA PRIVATE KEY-----
+//!     //          xxxxxxxxxxxxxxxxxxxxx
+//!     //      -----END RSA PRIVATE KEY-----
+//!     // KeyPairType::SshRsa -> Rsa type algorithm, currently only supports rsa.
+//!     session.set_user_and_key_pair("user", "pem format key string", KeyPairType::SshRsa).unwrap();
+//!     session.connect("ip:port").unwrap();
+//! }
+//! ```
+//!
+//! ## Enable global logging：
+//!
+//! ```rust
+//! use ssh_rs::{Session, ssh};
+//!
+//! fn main() {
+//!     let mut session: Session = ssh::create_session();
+//!     // is_enable_log Whether to enable global logging
+//!     // The default is false(Do not enable)
+//!     // Can be set as true (enable)
+//!     session.is_enable_log(true);
+//!     session.set_user_and_password("user", "password");
+//!     session.connect("ip:port").unwrap();
+//! }
+//! ```
 //!
 //!
-//!     // let mut scp = session.open_scp().unwrap();
-//!     // file upload
-//!     // scp.upload("localPath", "remotePath").unwrap();
-//!     // file download
-//!     // scp.download("localPath", "remotePath").unwrap();
+//! ## Set timeout：
+//!
+//! ```rust
+//! use ssh_rs::{Session, ssh};
+//!
+//! fn main() {
+//!     let mut session: Session = ssh::create_session();
+//!     // set_timeout
+//!     // The unit is seconds
+//!     // The default timeout is 30 seconds
+//!     session.set_timeout(15);
+//!     session.set_user_and_password("user", "password");
+//!     session.connect("ip:port").unwrap();
+//! }
+//! ```
+//!
+//!
+//! ## How to use：
+//!
+//! ### Currently only supports exec shell scp these three functions.
+//!
+//! ### 1. exec
+//!
+//! ```rust
+//! use ssh_rs::{ChannelExec, Session, ssh};
+//!
+//! fn main() {
+//!     let mut session: Session = session();
+//!     // Usage 1
+//!     let exec: ChannelExec = session.open_exec().unwrap();
+//!     let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
+//!     println!("{}", String::from_utf8(vec).unwrap());
+//!     // Usage 2
+//!     let channel = session.open_channel().unwrap();
+//!     let exec = channel.open_exec().unwrap();
+//!     let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
+//!     println!("{}", String::from_utf8(vec).unwrap());
+//!     // Close session.
+//!     session.close().unwrap();
+//! }
+//! ```
+//!
+//! ### 2. shell
+//!
+//! ```rust
+//! use std::thread::sleep;
+//! use std::time::Duration;
+//! use ssh_rs::{Channel, ChannelShell, Session, ssh};
+//!
+//! fn main() {
+//!     let mut session: Session = session();
+//!     // Usage 1
+//!     let mut shell: ChannelShell = session.open_shell().unwrap();
+//!     run_shell(&mut shell);
+//!     // Usage 2
+//!     let channel: Channel = session.open_channel().unwrap();
+//!     let mut shell = channel.open_shell().unwrap();
+//!     run_shell(&mut shell);
+//!     // Close channel.
+//!     shell.close().unwrap();
+//!     // Close session.
+//!     session.close().unwrap();
 //! }
 //!
-//! fn exec(session: &mut Session) {
-//! let exec: ChannelExec = session.open_exec().unwrap();
-//!     let vec = exec.send_command("ls -all").unwrap();
+//! fn run_shell(shell: &mut ChannelShell) {
+//!     sleep(Duration::from_millis(500));
+//!     let vec = shell.read().unwrap();
+//!     println!("{}", String::from_utf8(vec).unwrap());
+//!
+//!     shell.write(b"ls -all\n").unwrap();
+//!
+//!     sleep(Duration::from_millis(500));
+//!
+//!     let vec = shell.read().unwrap();
 //!     println!("{}", String::from_utf8(vec).unwrap());
 //! }
+//! ```
 //!
-//! fn shell(session: &mut Session) {
-//! let mut shell = session.open_shell().unwrap();
-//!     thread::sleep(Duration::from_millis(200));
-//!     let vec = shell.read().unwrap();
-//!     let result = String::from_utf8(vec).unwrap();
-//!     println!("{}", result);
-//!     shell.write(b"ls -a\n").unwrap();
-//!     thread::sleep(Duration::from_millis(200));
-//!     let vec = shell.read().unwrap();
-//!     let result = String::from_utf8(vec).unwrap();
-//!     println!("{}", result);
-//!     shell.close().unwrap();
+//! ### 3. scp
+//!
+//! ```rust
+//! use ssh_rs::{Channel, ChannelScp, Session, ssh};
+//!
+//! fn main() {
+//!     let mut session: Session = session();
+//!     // Usage 1
+//!     let scp: ChannelScp = session.open_scp().unwrap();
+//!     scp.upload("local path", "remote path").unwrap();
+//!
+//!     let scp: ChannelScp = session.open_scp().unwrap();
+//!     scp.download("local path", "remote path").unwrap();
+//!
+//!     // Usage 2
+//!     let channel: Channel = session.open_channel().unwrap();
+//!     let scp: ChannelScp = channel.open_scp().unwrap();
+//!     scp.upload("local path", "remote path").unwrap();
+//!
+//!     let channel: Channel = session.open_channel().unwrap();
+//!     let scp: ChannelScp = channel.open_scp().unwrap();
+//!     scp.download("local path", "remote path").unwrap();
+//!
+//!     session.close().unwrap();
 //! }
 //!
-//! fn t_shell(session: &mut Session) {
-//! let mut shell = session.open_shell().unwrap();
-//!     loop {
-//!
-//!         sleep(Duration::from_millis(300));
-//!
-//!         let vec = shell.read().unwrap();
-//!         if vec.is_empty() { continue; }
-//!         stdout().write(vec.as_slice()).unwrap();
-//!         stdout().flush().unwrap();
-//!
-//!         let mut cm = String::new();
-//!         stdin().read_line(&mut cm).unwrap();
-//!         shell.write(cm.as_bytes()).unwrap();
-//!
-//!     }
-//! }
-//!```
+//! ```
+
 
 
 mod client;
