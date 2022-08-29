@@ -533,7 +533,7 @@ dependencies = [
 
 [[package]]
 name = "ssh-rs"
-version = "0.1.5"
+version = "0.2.0"
 dependencies = [
  "aes",
  "filetime",
