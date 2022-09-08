@@ -1,13 +1,13 @@
-use std::ffi::OsStr;
-use std::fs::{File, read_dir};
-use std::io::Read;
-use std::path::Path;
-use std::time::SystemTime;
+use crate::channel_scp::{check_path, ChannelScp, ScpFile};
 use crate::constant::{permission, scp};
 use crate::error::{SshError, SshResult};
 use crate::slog::log;
-use crate::channel_scp::{ChannelScp, check_path, ScpFile};
 use crate::util;
+use std::ffi::OsStr;
+use std::fs::{read_dir, File};
+use std::io::Read;
+use std::path::Path;
+use std::time::SystemTime;
 
 impl ChannelScp {
     pub fn upload<S: AsRef<OsStr> + ?Sized>(mut self, local_path: &S, remote_path: &S) -> SshResult<()> {
@@ -21,7 +21,7 @@ impl ChannelScp {
         let local_path_str = local_path.to_str().unwrap();
 
         log::info!("start to upload files, \
-        local [{}] files will be synchronized to the remote [{}] folder.", remote_path_str, local_path_str);
+        local [{}] files will be synchronized to the remote [{}] folder.", local_path_str， remote_path_str);
 
         self.exec_scp(self.command_init(remote_path_str, scp::SINK).as_str())?;
         self.get_end()?;
