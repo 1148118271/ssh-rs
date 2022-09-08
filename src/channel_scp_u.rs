@@ -21,7 +21,7 @@ impl ChannelScp {
         let local_path_str = local_path.to_str().unwrap();
 
         log::info!("start to upload files, \
-        local [{}] files will be synchronized to the remote [{}] folder.", local_path_str， remote_path_str);
+        local [{}] files will be synchronized to the remote [{}] folder.", local_path_str, remote_path_str);
 
         self.exec_scp(self.command_init(remote_path_str, scp::SINK).as_str())?;
         self.get_end()?;
