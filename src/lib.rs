@@ -217,7 +217,10 @@ pub mod ssh {
     use crate::Session;
 
     pub fn create_session() -> Session {
-        Session
+        Session {
+            timeout_sec: 30,
+            config: None
+        }
     }
 
 }

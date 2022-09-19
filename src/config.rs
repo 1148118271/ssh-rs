@@ -12,29 +12,29 @@ use crate::algorithm::public_key::{Ed25519, PublicKey, RSA};
 use crate::user_info::UserInfo;
 
 
-pub(crate) static mut CONFIG: Option<Config> = None;
+// pub(crate) static mut CONFIG: Option<Config> = None;
+//
+//
+// pub(crate) fn init(user_info: UserInfo) {
+//     unsafe {
+//         CONFIG = Some(Config::new(user_info));
+//     }
+// }
+//
+// pub(crate) fn config() -> &'static mut Config {
+//     unsafe {
+//         CONFIG.as_mut().unwrap()
+//     }
+// }
 
 
-pub(crate) fn init(user_info: UserInfo) {
-    unsafe {
-        CONFIG = Some(Config::new(user_info));
-    }
-}
-
-pub(crate) fn config() -> &'static mut Config {
-    unsafe {
-        CONFIG.as_mut().unwrap()
-    }
-}
-
-
-pub(crate) struct Config {
-    pub(crate) auth: UserInfo,
-    pub(crate) version: VersionConfig,
-    pub(crate) algorithm: AlgorithmConfig,
+pub struct Config {
+    pub auth: UserInfo,
+    pub version: VersionConfig,
+    pub algorithm: AlgorithmConfig,
 }
 impl Config {
-    pub(crate) fn new(user_info: UserInfo) -> Self {
+    pub fn new(user_info: UserInfo) -> Self {
         Config {
             auth: user_info,
             version: VersionConfig::new(),

@@ -8,11 +8,31 @@ use crate::channel_scp::ChannelScp;
 use crate::{channel, ChannelExec, ChannelShell, client, config, kex, timeout, util};
 use crate::algorithm::hash::h;
 use crate::algorithm::{encryption, key_exchange, mac, public_key};
+use crate::config::Config;
 use crate::user_info::AuthType;
 use crate::window_size::WindowSize;
 
 
-pub struct Session;
+pub struct Session {
+
+    pub timeout_sec: u64,
+
+    pub config: Option<Config>,
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 impl Session {
@@ -49,7 +69,7 @@ impl Session {
         self.receive_version()?;
 
         // 版本验证
-        let config = config::config();
+        let config = self.get_config()?;
         config.version.validation()?;
         // 发送客户端版本
         self.send_version()?;
@@ -216,7 +236,7 @@ impl Session {
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
-                        let config = config::config();
+                        let config = self.get_config()?;
                         match config.auth.auth_type {
                             // 开始密码验证
                             AuthType::Password => self.password_authentication()?,
@@ -247,9 +267,9 @@ impl Session {
         }
     }
 
-    fn send_version(&mut self) -> SshResult<()> {
+    fn send_version(&self) -> SshResult<()> {
         let client = client::default()?;
-        let config = config::config();
+        let config = self.get_config()?;
         client.write_version(format!("{}\r\n", config.version.client_version).as_bytes())?;
         log::info!("client version: [{}]", config.version.client_version);
         Ok(())
@@ -261,7 +281,7 @@ impl Session {
         let from_utf8 = util::from_utf8(vec)?;
         let sv = from_utf8.trim();
         log::info!("server version: [{}]", sv);
-        let config = config::config();
+        let config = self.get_config_mut()?;
         config.version.server_version = sv.to_string();
         Ok(())
     }
