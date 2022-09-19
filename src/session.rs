@@ -57,6 +57,10 @@ impl Session {
         A: ToSocketAddrs
     {
 
+        if self.config.is_none() {
+            return Err(SshError::from("config is none."))
+        }
+
         // tcp 发起连接
         client::connect(addr)?;
 
@@ -68,9 +72,6 @@ impl Session {
         // 获取服务端版本
         self.receive_version()?;
 
-        // 版本验证
-        let config = self.get_config()?;
-        config.version.validation()?;
         // 发送客户端版本
         self.send_version()?;
 
@@ -79,9 +80,14 @@ impl Session {
         log::info!("prepare for key negotiation.");
 
         // 密钥协商
-        kex::send_algorithm()?;
-        kex::receive_algorithm()?;
+        // 发送客户端密钥
+        self.send_algorithm()?;
+        // 接收服务端密钥
+        self.receive_algorithm()?;
 
+        // 版本验证
+        let config = self.config.as_ref().unwrap();
+        config.version.validation()?;
         // 缓存密钥交换算法
         key_exchange::put(config.algorithm.matching_key_exchange_algorithm()?);
         // 公钥算法
@@ -90,8 +96,10 @@ impl Session {
         h::get().set_v_c(config.version.client_version.as_str());
         h::get().set_v_s(config.version.server_version.as_str());
 
-        kex::send_qc()?;
-        kex::verify_signature_and_new_keys()?;
+
+
+        self.send_qc()?;
+        self.verify_signature_and_new_keys()?;
 
         // 加密算法
         encryption::put(config.algorithm.matching_encryption_algorithm()?);
@@ -236,7 +244,7 @@ impl Session {
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
-                        let config = self.get_config()?;
+                        let config = self.config.as_ref().unwrap();
                         match config.auth.auth_type {
                             // 开始密码验证
                             AuthType::Password => self.password_authentication()?,
@@ -267,9 +275,9 @@ impl Session {
         }
     }
 
-    fn send_version(&self) -> SshResult<()> {
+    fn send_version(&mut self) -> SshResult<()> {
         let client = client::default()?;
-        let config = self.get_config()?;
+        let config = self.config.as_ref().unwrap();
         client.write_version(format!("{}\r\n", config.version.client_version).as_bytes())?;
         log::info!("client version: [{}]", config.version.client_version);
         Ok(())
@@ -281,7 +289,7 @@ impl Session {
         let from_utf8 = util::from_utf8(vec)?;
         let sv = from_utf8.trim();
         log::info!("server version: [{}]", sv);
-        let config = self.get_config_mut()?;
+        let config = self.config.as_mut().unwrap();
         config.version.server_version = sv.to_string();
         Ok(())
     }

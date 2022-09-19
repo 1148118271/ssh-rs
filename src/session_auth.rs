@@ -8,18 +8,11 @@ use crate::user_info::UserInfo;
 
 impl Session {
 
-    pub fn get_config(&self) -> SshResult<&Config> {
+    fn get_config(&self) -> SshResult<&Config> {
         if self.config.is_none() {
             return Err(SshError::from("config is none."))
         }
         Ok(self.config.as_ref().unwrap())
-    }
-
-    pub fn get_config_mut(&mut self) -> SshResult<&mut Config> {
-        if self.config.is_none() {
-            return Err(SshError::from("config is none."))
-        }
-        Ok(self.config.as_mut().unwrap())
     }
 
     pub fn auth_user_info(&mut self, user_info: UserInfo) {
@@ -54,7 +47,7 @@ impl Session {
 
     pub(crate) fn password_authentication(&self) -> SshResult<()> {
         log::info!("password authentication.");
-        let config =  self.get_config()?;
+        let config = self.get_config()?;
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
             .put_str(config.auth.username.as_str())
