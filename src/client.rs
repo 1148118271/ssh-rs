@@ -86,26 +86,26 @@ impl DerefMut for Client {
 
 
 
-static mut CLIENT: Option<Client> = None;
-
-pub(crate) fn connect<A: ToSocketAddrs>(addr: A) -> Result<(), SshError> {
-    unsafe {
-        let client = Client::connect(addr)?;
-        CLIENT = Some(client);
-        Ok(())
-    }
-}
-
-pub(crate) fn default() -> SshResult<&'static mut Client> {
-    unsafe {
-        match &mut CLIENT {
-            None => {
-                log::error!("Client null pointer");
-                Err(SshError::from("Client null pointer"))
-            }
-            Some(v) => {
-                Ok(v)
-            }
-        }
-    }
-}
+// static mut CLIENT: Option<Client> = None;
+//
+// pub(crate) fn connect<A: ToSocketAddrs>(addr: A) -> Result<(), SshError> {
+//     unsafe {
+//         let client = Client::connect(addr)?;
+//         CLIENT = Some(client);
+//         Ok(())
+//     }
+// }
+//
+// pub(crate) fn default() -> SshResult<&'static mut Client> {
+//     unsafe {
+//         match &mut CLIENT {
+//             None => {
+//                 log::error!("Client null pointer");
+//                 Err(SshError::from("Client null pointer"))
+//             }
+//             Some(v) => {
+//                 Ok(v)
+//             }
+//         }
+//     }
+// }

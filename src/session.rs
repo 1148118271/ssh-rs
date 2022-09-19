@@ -8,6 +8,7 @@ use crate::channel_scp::ChannelScp;
 use crate::{channel, ChannelExec, ChannelShell, client, config, kex, timeout, util};
 use crate::algorithm::hash::h;
 use crate::algorithm::{encryption, key_exchange, mac, public_key};
+use crate::client::Client;
 use crate::config::Config;
 use crate::user_info::AuthType;
 use crate::window_size::WindowSize;
@@ -18,6 +19,8 @@ pub struct Session {
     pub timeout_sec: u64,
 
     pub config: Option<Config>,
+
+    pub client: Option<Client>,
 
 }
 
@@ -61,8 +64,9 @@ impl Session {
             return Err(SshError::from("config is none."))
         }
 
-        // tcp 发起连接
-        client::connect(addr)?;
+        // 建立通道
+        self.client = Some(Client::connect(addr)?);
+
 
         log::info!("session opened.");
 
