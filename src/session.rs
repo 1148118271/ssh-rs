@@ -1,19 +1,22 @@
 use std::cell::RefCell;
 use std::net::ToSocketAddrs;
 use std::rc::Rc;
+use std::sync::Arc;
 use crate::data::Data;
 use crate::constant::{ssh_msg_code, size, ssh_str};
 use crate::error::{SshError, SshResult};
 use crate::slog::{log, Slog};
-use crate::{timeout, util};
+use crate::{channel, timeout, util};
 use crate::algorithm::encryption::Encryption;
 use crate::algorithm::hash::hash::HASH;
 use crate::algorithm::key_exchange::KeyExchange;
 use crate::algorithm::public_key::PublicKey;
+use crate::channel::Channel;
 use crate::h::H;
 use crate::client::Client;
 use crate::config::Config;
 use crate::user_info::AuthType;
+use crate::window_size::WindowSize;
 
 
 pub struct Session {
@@ -33,6 +36,8 @@ pub struct Session {
     pub(crate) public_key: Option<Box<dyn PublicKey>>,
 
     pub(crate) is_encryption: bool,
+
+    pub(crate) client_channel_no: u32,
 
 }
 
@@ -122,55 +127,59 @@ impl Session {
         self.authentication()
     }
 
-    pub fn close(mut self) -> SshResult<()> {
+    pub fn close(self) -> SshResult<()> {
         log::info!("session close.");
         self.client.unwrap().close()
     }
 
 }
 
-// impl Session {
-//     pub fn open_channel(&mut self) -> SshResult<Channel> {
-//         log::info!("channel opened.");
-//         let client_channel = channel::current_client_channel_no();
-//         self.send_open_channel(client_channel)?;
-//         let (server_channel, rws) = self.receive_open_channel()?;
-//         let mut win_size = WindowSize::new();
-//         win_size.server_channel = server_channel;
-//         win_size.client_channel = client_channel;
-//         win_size.add_remote_window_size(rws);
-//         win_size.add_remote_max_window_size(rws);
-//         Ok(Channel {
-//             remote_close: false,
-//             local_close: false,
-//             window_size: win_size
-//         })
-//     }
-//
-//     pub fn open_exec(&mut self) -> SshResult<ChannelExec> {
-//         let channel = self.open_channel()?;
-//         channel.open_exec()
-//     }
-//
-//     pub fn open_shell(&mut self) -> SshResult<ChannelShell> {
-//         let channel = self.open_channel()?;
-//         channel.open_shell()
-//     }
-//
-//     pub fn open_scp(&mut self) -> SshResult<ChannelScp> {
-//         let channel = self.open_channel()?;
-//         channel.open_scp()
-//     }
-// }
+impl Session {
+    pub fn open_channel(&mut self) -> SshResult<Channel> {
+        log::info!("channel opened.");
+        self.send_open_channel(self.client_channel_no)?;
+        let (server_channel_no, rws) = self.receive_open_channel()?;
+        // 打开成功， 通道号+1
+        let mut win_size = WindowSize::new();
+        win_size.server_channel_no = server_channel_no;
+        win_size.client_channel_no = self.client_channel_no;
+        win_size.add_remote_window_size(rws);
+        win_size.add_remote_max_window_size(rws);
+
+        self.client_channel_no += 1;
+
+        Ok(Channel {
+            remote_close: false,
+            local_close: false,
+            window_size: win_size,
+            session: self as *mut Session
+        })
+    }
+
+    // pub fn open_exec(&mut self) -> SshResult<ChannelExec> {
+    //     let channel = self.open_channel()?;
+    //     channel.open_exec()
+    // }
+    //
+    // pub fn open_shell(&mut self) -> SshResult<ChannelShell> {
+    //     let channel = self.open_channel()?;
+    //     channel.open_shell()
+    // }
+    //
+    // pub fn open_scp(&mut self) -> SshResult<ChannelScp> {
+    //     let channel = self.open_channel()?;
+    //     channel.open_scp()
+    // }
+}
 
 impl Session {
 
     // 本地请求远程打开通道
-    fn send_open_channel(&mut self, client_channel: u32) -> SshResult<()> {
+    fn send_open_channel(&mut self, client_channel_no: u32) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_OPEN)
             .put_str(ssh_str::SESSION)
-            .put_u32(client_channel)
+            .put_u32(client_channel_no)
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
         self.write(data)
@@ -189,12 +198,12 @@ impl Session {
                         // 接收方通道号
                         result.get_u32();
                         // 发送方通道号
-                        let server_channel = result.get_u32();
+                        let server_channel_no = result.get_u32();
                         // 远程初始窗口大小
                         let rws = result.get_u32();
                         // 远程的最大数据包大小， 暂时不需要
                         result.get_u32();
-                        return Ok((server_channel, rws));
+                        return Ok((server_channel_no, rws));
                     },
                     /*
                         byte SSH_MSG_CHANNEL_OPEN_FAILURE

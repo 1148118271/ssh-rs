@@ -229,7 +229,8 @@ pub mod ssh {
             encryption: None,
             key_exchange: None,
             public_key: None,
-            is_encryption: false
+            is_encryption: false,
+            client_channel_no: 0,
         }
     }
 

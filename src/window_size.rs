@@ -9,8 +9,8 @@ use crate::packet::Packet;
 use crate::SshError;
 
 pub struct WindowSize {
-    pub(crate) server_channel: u32,
-    pub(crate) client_channel: u32,
+    pub(crate) server_channel_no: u32,
+    pub(crate) client_channel_no: u32,
     /// 本地窗口最大大小
     local_max_window_size: u32,
     /// 本地窗口大小
@@ -25,8 +25,8 @@ impl WindowSize {
 
     pub(crate) fn new() -> Self {
         WindowSize {
-            server_channel: 0,
-            client_channel: 0,
+            server_channel_no: 0,
+            client_channel_no: 0,
             local_max_window_size: LOCAL_WINDOW_SIZE,
             local_window_size: LOCAL_WINDOW_SIZE,
             remote_max_window_size: 0,
