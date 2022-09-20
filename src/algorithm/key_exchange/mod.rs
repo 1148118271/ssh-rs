@@ -14,23 +14,6 @@ pub(crate) mod curve25519;
 pub(crate) mod ecdh_sha2_nistp256;
 
 
-static mut KEY_EXCHANGE: Option<Box<dyn KeyExchange>> = None;
-
-
-pub(crate) fn put(ke: Box<dyn KeyExchange>) {
-    unsafe {
-        KEY_EXCHANGE = Some(ke)
-    }
-}
-
-pub(crate) fn get() -> &'static Box<dyn KeyExchange> {
-    unsafe {
-        KEY_EXCHANGE.as_ref().unwrap()
-    }
-}
-
-
-
 pub trait KeyExchange: Send + Sync {
     fn new() -> SshResult<Self> where Self: Sized;
     fn get_public_key(&self) -> &[u8];

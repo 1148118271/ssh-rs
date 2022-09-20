@@ -3,6 +3,7 @@ use crate::data::Data;
 use crate::slog::log;
 use crate::{SshError, SshResult};
 use crate::algorithm::encryption::{AesCtr128, ChaCha20Poly1305, Encryption};
+use crate::algorithm::hash::hash::HASH;
 use crate::algorithm::key_exchange::curve25519::CURVE25519;
 use crate::algorithm::key_exchange::ecdh_sha2_nistp256::EcdhP256;
 use crate::algorithm::key_exchange::KeyExchange;
@@ -12,27 +13,12 @@ use crate::algorithm::public_key::{Ed25519, PublicKey, RSA};
 use crate::user_info::UserInfo;
 
 
-// pub static mut CONFIG: Option<Config> = None;
-//
-//
-// pub fn init(user_info: UserInfo) {
-//     unsafe {
-//         CONFIG = Some(Config::new(user_info));
-//     }
-// }
-//
-// pub fn config() -> &'static mut Config {
-//     unsafe {
-//         CONFIG.as_mut().unwrap()
-//     }
-// }
-
-
 pub struct Config {
     pub auth: UserInfo,
     pub version: VersionConfig,
     pub algorithm: AlgorithmConfig,
 }
+
 impl Config {
     pub fn new(user_info: UserInfo) -> Self {
         Config {
@@ -111,7 +97,7 @@ impl AlgorithmConfig {
     /// 目前支持:
     ///     1. chacha20-poly1305@openssh.com
     ///     2. aes128-ctr
-    pub fn matching_encryption_algorithm(&self) -> SshResult<Box<dyn Encryption>> {
+    pub fn matching_encryption_algorithm(&self, hash: HASH, mac: Box<dyn Mac>) -> SshResult<Box<dyn Encryption>> {
         // 目前是加密和解密使用一个算法
         // 所以直接取一个算法为准
         let encryption_algorithm: String = get_algorithm(
@@ -119,8 +105,8 @@ impl AlgorithmConfig {
             &self.server_algorithm.c_encryption_algorithm.0
         );
         match encryption_algorithm.as_str() {
-            algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH => Ok(Box::new(ChaCha20Poly1305::new())),
-            algorithms::ENCRYPTION_AES128_CTR => Ok(Box::new(AesCtr128::new())),
+            algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH => Ok(Box::new(ChaCha20Poly1305::new(hash, mac))),
+            algorithms::ENCRYPTION_AES128_CTR => Ok(Box::new(AesCtr128::new(hash, mac))),
             _ => {
                 log::error!("description the encryption algorithm fails to match, \
                 algorithms supported by the server: {},\

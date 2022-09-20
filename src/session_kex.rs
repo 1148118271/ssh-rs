@@ -1,6 +1,5 @@
-use std::sync::atomic::Ordering;
+use std::borrow::{Borrow, BorrowMut};
 use crate::constant::ssh_msg_code;
-use crate::algorithm::encryption::IS_ENCRYPT;
 use crate::error::{SshError, SshResult};
 use crate::data::Data;
 use crate::slog::log;
@@ -11,9 +10,9 @@ use crate::config::{
     MacAlgorithm,
     PublicKeyAlgorithm
 };
-use crate::{client, config, Session, util};
-use crate::algorithm::{key_exchange, public_key};
-use crate::algorithm::hash::h;
+use crate::{Session, util};
+use crate::algorithm::hash;
+
 
 impl Session {
 
@@ -21,8 +20,9 @@ impl Session {
     pub fn send_algorithm(&mut self) -> SshResult<()> {
         let config = self.config.as_ref().unwrap();
         log::info!("client algorithms: [{}]", config.algorithm.client_algorithm.to_string());
-        if IS_ENCRYPT.load(Ordering::Relaxed) {
-            IS_ENCRYPT.store(false, Ordering::Relaxed);
+        // TODO 密钥从新交换的时候, 不确定是否修改加密状态
+        if self.is_encryption {
+            self.is_encryption = false;
         }
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
@@ -34,24 +34,21 @@ impl Session {
             .put_u32(0_u32);
 
         // h 加入客户端算法信息
-        h::get().set_i_c(data.as_slice());
-
-        let client = client::default()?;
-        client.write(data)
+        self.h.as_ref().borrow_mut().set_i_c(data.as_slice());
+        self.write(data)
     }
 
     /// 获取服务端的算法列表
     pub fn receive_algorithm(&mut self) -> SshResult<()> {
-        let client = client::default()?;
         loop {
-            let results = client.read()?;
+            let results = self.read()?;
             for result in results {
                 if result.is_empty() { continue }
                 let message_code = result[0];
                 match message_code {
                     ssh_msg_code::SSH_MSG_KEXINIT => {
                         // h 加入服务端算法信息
-                        h::get().set_i_s(result.as_slice());
+                        self.h.as_ref().borrow_mut().set_i_s(result.as_slice());
                         return self.processing_server_algorithm(result)
                     }
                     _ => {}
@@ -61,20 +58,24 @@ impl Session {
     }
 
     /// 发送客户端公钥
-    pub fn send_qc(&self) -> SshResult<()> {
-        let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_KEXDH_INIT);
-        data.put_u8s(key_exchange::get().get_public_key());
-        let client = client::default()?;
-        client.write(data)
+    pub fn send_qc(&mut self) -> SshResult<()> {
+        match self.key_exchange.as_mut() {
+            None => Err(SshError::from("key exchange algorithm is none.")),
+            Some(key_exchange) => {
+                let mut data = Data::new();
+                data.put_u8(ssh_msg_code::SSH_MSG_KEXDH_INIT);
+                data.put_u8s(key_exchange.get_public_key());
+                self.write(data)
+            }
+        }
+
     }
 
 
     /// 接收服务端公钥和签名，并验证签名的正确性
-    pub fn verify_signature_and_new_keys(&self) -> SshResult<()> {
+    pub fn verify_signature_and_new_keys(&mut self) -> SshResult<()> {
         loop {
-            let client = client::default()?;
-            let results = client.read()?;
+            let results = self.read()?;
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -83,15 +84,25 @@ impl Session {
                         // 生成session_id并且获取signature
                         let sig = self.generate_signature(result)?;
                         // 验签
-                        let session_id = h::get().digest();
-                        let flag = public_key::get()
-                            .verify_signature(h::get().k_s.as_ref(),
-                                              &session_id, &sig)?;
-                        if !flag {
-                            log::error!("signature verification failure.");
-                            return Err(SshError::from("signature verification failure."))
+                        let session_id = match self.key_exchange.as_ref() {
+                            None => return Err(SshError::from("key exchange algorithm is none.")),
+                            Some(key_exchange) => {
+                                let hash_type = key_exchange.get_hash_type();
+                                hash::digest( self.h.as_ref().borrow_mut().as_bytes().as_slice(), hash_type)
+                            }
+                        };
+                        match self.public_key.as_ref() {
+                            None => return Err(SshError::from("public key algorithm is none.")),
+                            Some(public_key) => {
+                                let flag = public_key.verify_signature(self.h.as_ref().borrow().k_s.as_ref(),
+                                                      &session_id, &sig)?;
+                                if !flag {
+                                    log::error!("signature verification failure.");
+                                    return Err(SshError::from("signature verification failure."))
+                                }
+                                log::info!("signature verification success.");
+                            }
                         }
-                        log::info!("signature verification success.");
                     }
                     ssh_msg_code::SSH_MSG_NEWKEYS => return self.new_keys(),
                     _ => {}
@@ -101,26 +112,29 @@ impl Session {
     }
 
     /// SSH_MSG_NEWKEYS 代表密钥交换完成
-    pub fn new_keys(&self) -> Result<(), SshError> {
+    pub fn new_keys(&mut self) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
-        let client = client::default()?;
-        client.write(data)?;
-        IS_ENCRYPT.store(true, Ordering::Relaxed);
+        self.write(data)?;
+        self.is_encryption = true;
         log::info!("send new keys");
         Ok(())
     }
 
     /// 生成签名
-    pub fn generate_signature(&self, mut data: Data) -> Result<Vec<u8>, SshError> {
+    pub fn generate_signature(&mut self, mut data: Data) -> SshResult<Vec<u8>> {
+        let key_exchange = match self.key_exchange.as_mut() {
+            None => return Err(SshError::from("key exchange algorithm is none.")),
+            Some(key_exchange) => key_exchange,
+        };
         let ks = data.get_u8s();
-        let h_val = h::get();
+        let mut h_val = self.h.as_ref().borrow_mut();
         h_val.set_k_s(&ks);
         // TODO 未进行密钥指纹验证！！
         let qs = data.get_u8s();
-        h_val.set_q_c(key_exchange::get().get_public_key());
+        h_val.set_q_c(key_exchange.get_public_key());
         h_val.set_q_s(&qs);
-        let vec = key_exchange::get().get_shared_secret(qs)?;
+        let vec = key_exchange.get_shared_secret(qs)?;
         h_val.set_k(&vec);
         let h = data.get_u8s();
         let mut hd = Data::from(h);

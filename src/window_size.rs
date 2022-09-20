@@ -1,5 +1,5 @@
-use std::io::{Read, Write};
-use crate::algorithm::encryption;
+use std::io::{Read};
+use crate::algorithm::encryption::Encryption;
 use crate::client::Client;
 use crate::constant::size::LOCAL_WINDOW_SIZE;
 use crate::constant::{size, ssh_msg_code};
@@ -62,7 +62,12 @@ impl WindowSize {
 
 impl WindowSize {
 
-    pub fn process_remote_window_size(&mut self, data: &[u8], client: &mut Client) -> SshResult<()> {
+    pub fn process_remote_window_size(&mut self,
+                                      data: &[u8],
+                                      client: &mut Client,
+                                      encryption: &mut Box<dyn Encryption>
+    ) -> SshResult<()>
+    {
         if self.remote_window_size == 0 {
             return Ok(());
         }
@@ -72,6 +77,7 @@ impl WindowSize {
             Some(size) => size
         };
         self.sub_remote_window_size(size);
+
         if used > 0 && self.remote_max_window_size / used <= 20 {
             let mut result = vec![0; size::BUF_SIZE as usize];
             loop {
@@ -90,8 +96,8 @@ impl WindowSize {
             }
 
             client.sequence.server_auto_increment();
-            let result = encryption::get()
-                .decrypt(client.sequence.server_sequence_num, &mut result)?;
+
+            let result = encryption.decrypt(client.sequence.server_sequence_num, &mut result)?;
             let mut data = Packet::from(result).unpacking();
             let mc = data.get_u8();
             if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
@@ -122,35 +128,35 @@ impl WindowSize {
 impl WindowSize {
 
     pub fn process_local_window_size(&mut self, data: &[u8], client: &mut Client) -> SshResult<()> {
-        let size = match self.get_size(data) {
-            None => return Ok(()),
-            Some(size) => size
-        };
-        self.sub_local_window_size(size);
-        let used = self.local_max_window_size - self.local_window_size;
-        if used <= 0 {
-            return Ok(())
-        }
-        if (self.local_max_window_size / used) > 20 {
-            return Ok(());
-        }
-
-        let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
-            .put_u32(self.server_channel)
-            .put_u32(used);
-
-        let buf = client.get_encryption_data(data)?;
-
-        client.sequence.client_auto_increment();
-
-        if let Err(e) = client.stream.write(&buf) {
-            return Err(SshError::from(e))
-        }
-        if let Err(e) = client.stream.flush() {
-            return Err(SshError::from(e))
-        }
-        self.add_local_window_size(used);
+        // let size = match self.get_size(data) {
+        //     None => return Ok(()),
+        //     Some(size) => size
+        // };
+        // self.sub_local_window_size(size);
+        // let used = self.local_max_window_size - self.local_window_size;
+        // if used <= 0 {
+        //     return Ok(())
+        // }
+        // if (self.local_max_window_size / used) > 20 {
+        //     return Ok(());
+        // }
+        //
+        // let mut data = Data::new();
+        // data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
+        //     .put_u32(self.server_channel)
+        //     .put_u32(used);
+        //
+        // let buf = client.get_encryption_data(data)?;
+        //
+        // client.sequence.client_auto_increment();
+        //
+        // if let Err(e) = client.stream.write(&buf) {
+        //     return Err(SshError::from(e))
+        // }
+        // if let Err(e) = client.stream.flush() {
+        //     return Err(SshError::from(e))
+        // }
+        // self.add_local_window_size(used);
         return Ok(());
     }
 

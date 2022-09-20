@@ -1,11 +1,16 @@
+use std::cell::RefCell;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::rc::Rc;
 use rsa::pkcs1::FromRsaPrivateKey;
 use rsa::PublicKeyParts;
-use crate::algorithm::hash::h;
+use crate::h;
 use crate::data::Data;
 use crate::{SshError, SshResult};
+use crate::algorithm::hash;
+use crate::algorithm::hash::HashType;
+use crate::h::H;
 
 pub struct KeyPair {
     pub(crate) private_key: String,
@@ -62,8 +67,8 @@ impl KeyPair {
         self.blob.to_vec()
     }
 
-    pub(crate) fn signature(&self, buf: &[u8]) -> Vec<u8> {
-        let session_id = h::get().digest();
+    pub(crate) fn signature(&self, buf: &[u8], h: Rc<RefCell<H>>, hash_type: HashType) -> Vec<u8> {
+        let session_id = hash::digest(h.borrow().as_bytes().as_slice(), hash_type);
         let mut sd = Data::new();
         sd.put_u8s(session_id.as_slice());
         sd.extend_from_slice(buf);

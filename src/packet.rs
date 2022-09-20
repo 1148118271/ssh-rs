@@ -1,4 +1,4 @@
-use crate::algorithm::encryption;
+use crate::algorithm::encryption::Encryption;
 use crate::data::Data;
 
 
@@ -64,16 +64,16 @@ impl Packet {
     }
 
     // 封包
-    pub fn build(&mut self, is_encrypt: bool) {
+    pub fn build(&mut self, encryption: Option<&Box<dyn Encryption>>, is_encrypt: bool) {
         let data_len =  self.data.len() as u32;
         let bsize = match is_encrypt {
-                true => encryption::get().bsize() as i32,
+                true => encryption.unwrap().bsize() as i32,
                 // 未加密的填充: 整个包的总长度是8的倍数，并且填充长度不能小于4
                 false => 8,
         };
         let padding_len = {
             let mut pad = (-((data_len +
-                if is_encrypt && encryption::get().is_cp() { 1 }
+                if is_encrypt && encryption.unwrap().is_cp() { 1 }
                 else { 5 }) as i32))
                 & (bsize - 1) as i32;
             if pad < bsize {

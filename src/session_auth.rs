@@ -1,5 +1,5 @@
 use std::path::Path;
-use crate::{client, config, Session, SshError, SshResult};
+use crate::{Session, SshError, SshResult};
 use crate::config::Config;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
@@ -45,7 +45,7 @@ impl Session {
         Ok(())
     }
 
-    pub(crate) fn password_authentication(&self) -> SshResult<()> {
+    pub(crate) fn password_authentication(&mut self) -> SshResult<()> {
         log::info!("password authentication.");
         let config = self.get_config()?;
         let mut data = Data::new();
@@ -55,11 +55,10 @@ impl Session {
             .put_str(ssh_str::PASSWORD)
             .put_u8(false as u8)
             .put_str(config.auth.password.as_str());
-        let client = client::default()?;
-        client.write(data)
+        self.write(data)
     }
 
-    pub(crate) fn public_key_authentication(&self) -> SshResult<()> {
+    pub(crate) fn public_key_authentication(&mut self) -> SshResult<()> {
         log::info!("public key authentication.");
         let config = self.get_config()?;
         let mut data = Data::new();
@@ -70,11 +69,10 @@ impl Session {
             .put_u8(false as u8)
             .put_str(config.auth.key_pair.key_type.as_str())
             .put_u8s(config.auth.key_pair.blob.as_slice());
-        let client = client::default()?;
-        client.write(data)
+        self.write(data)
     }
 
-    pub(crate) fn public_key_signature(&self) -> SshResult<()> {
+    pub(crate) fn public_key_signature(&mut self) -> SshResult<()> {
         let config = self.get_config()?;
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
@@ -84,9 +82,12 @@ impl Session {
             .put_u8(true as u8)
             .put_str(config.auth.key_pair.key_type.as_str())
             .put_u8s(config.auth.key_pair.blob.as_slice());
-        let signature = config.auth.key_pair.signature(data.as_slice());
+        let hash_type = match self.key_exchange.as_ref() {
+            None => return Err(SshError::from("key exchange algorithm is none.")),
+            Some(key_exchange) =>  key_exchange.get_hash_type()
+        };
+        let signature = config.auth.key_pair.signature(data.as_slice(), self.h.clone(), hash_type);
         data.put_u8s(&signature);
-        let client = client::default()?;
-        client.write(data)
+        self.write(data)
     }
 }

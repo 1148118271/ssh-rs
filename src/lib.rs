@@ -176,12 +176,12 @@
 
 
 mod client;
-mod client_r;
-mod client_w;
+mod session_r;
+mod session_w;
 mod session;
 mod session_auth;
 mod channel;
-mod kex;
+mod session_kex;
 mod channel_shell;
 mod channel_exec;
 mod channel_scp;
@@ -201,12 +201,13 @@ mod timeout;
 
 pub mod key_pair;
 pub mod error;
+pub(crate) mod h;
 
 pub use session::Session;
-pub use channel::Channel;
-pub use channel_shell::ChannelShell;
-pub use channel_exec::ChannelExec;
-pub use channel_scp::ChannelScp;
+// pub use channel::Channel;
+// pub use channel_shell::ChannelShell;
+// pub use channel_exec::ChannelExec;
+// pub use channel_scp::ChannelScp;
 pub use user_info::UserInfo;
 
 
@@ -214,12 +215,21 @@ use crate::error::{SshError, SshResult};
 
 
 pub mod ssh {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use crate::h::H;
     use crate::Session;
 
     pub fn create_session() -> Session {
         Session {
             timeout_sec: 30,
-            config: None
+            h: Rc::new(RefCell::new(H::new())),
+            config: None,
+            client: None,
+            encryption: None,
+            key_exchange: None,
+            public_key: None,
+            is_encryption: false
         }
     }
 

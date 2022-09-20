@@ -1,6 +1,9 @@
-use crate::algorithm::hash::h;
+use std::cell::RefCell;
+use std::rc::Rc;
 use crate::algorithm::hash;
+use crate::algorithm::hash::HashType;
 use crate::constant;
+use crate::h::H;
 
 
 /// 加密密钥必须是对一个已知值和 K 的 HASH 结果，方法如下：
@@ -24,46 +27,34 @@ use crate::constant;
 /// 如果 K 的熵比 HASH 的内状态（internal state）大小要大，则该过程将造成熵的丢失。
 
 
-static mut HASH_VAL: Option<HASH> = None;
 
-
-pub(crate) fn get() -> &'static HASH {
-     unsafe {
-         if HASH_VAL.is_none() {
-             HASH_VAL = Some(HASH::new())
-         }
-
-         HASH_VAL.as_ref().unwrap()
-     }
-}
-
-
-
-
-pub(crate) struct HASH {
+pub struct HASH {
     /// IV
-    pub(crate) iv_c_s          : Vec<u8>,
-    pub(crate) iv_s_c          : Vec<u8>,
+    pub iv_c_s          : Vec<u8>,
+    pub iv_s_c          : Vec<u8>,
 
     /// 数据加密的 key
-    pub(crate) ek_c_s          : Vec<u8>,
-    pub(crate) ek_s_c          : Vec<u8>,
+    pub ek_c_s          : Vec<u8>,
+    pub ek_s_c          : Vec<u8>,
 
     /// Hmac时候用到的 key
-    pub(crate) ik_c_s          : Vec<u8>,
-    pub(crate) ik_s_c          : Vec<u8>
+    pub ik_c_s          : Vec<u8>,
+    pub ik_s_c          : Vec<u8>,
+
+    
+    hash_type: HashType,
+    h: Rc<RefCell<H>>
 }
 
 
 impl HASH {
-    pub(crate) fn new() -> Self {
-        let h_val = h::get();
-        let k = h_val.k.clone();
-        let h = h_val.digest();
+    pub fn new(rh: Rc<RefCell<H>>, hash_type: HashType) -> Self {
+        let k = rh.borrow().k.clone();
+        let h = hash::digest(rh.borrow().as_bytes().as_slice(), hash_type);
         let session_id = h.clone();
         let mut keys = vec![];
         for v in constant::ALPHABET {
-            keys.push(HASH::mix(&k, &h, v, &session_id));
+            keys.push(HASH::mix(&k, &h, v, &session_id, hash_type));
         }
         HASH {
             iv_c_s: keys[0].clone(),
@@ -73,20 +64,23 @@ impl HASH {
             ek_s_c: keys[3].clone(),
 
             ik_c_s: keys[4].clone(),
-            ik_s_c: keys[5].clone()
+            ik_s_c: keys[5].clone(),
+
+            hash_type,
+            h: rh.clone()
         }
     }
 
-    fn mix(k: &[u8], h: &[u8], key_char: u8, session_id: &[u8]) -> Vec<u8> {
+    fn mix(k: &[u8], h: &[u8], key_char: u8, session_id: &[u8], hash_type: HashType) -> Vec<u8> {
         let mut key: Vec<u8> = Vec::new();
         key.extend(k);
         key.extend(h);
         key.push(key_char);
         key.extend(session_id);
-        hash::digest(key.as_slice())
+        hash::digest(key.as_slice(), hash_type)
     }
 
-    pub(crate) fn extend_key(&self, key_size: usize) -> (Vec<u8>, Vec<u8>) {
+    pub fn extend_key(&self, key_size: usize) -> (Vec<u8>, Vec<u8>) {
         let mut ck = self.ek_c_s.to_vec();
         let mut sk = self.ek_s_c.to_vec();
         while key_size > ck.len() {
@@ -97,14 +91,13 @@ impl HASH {
     }
 
     fn extend(&self, key: &[u8]) -> Vec<u8> {
-        let h_val = h::get();
-        let k = h_val.k.clone();
-        let h = h_val.digest();
+        let k = self.h.borrow().k.clone();
+        let h = hash::digest(self.h.borrow().as_bytes().as_slice(), self.hash_type);
         let mut hash: Vec<u8> = Vec::new();
         hash.extend(k);
         hash.extend(h);
         hash.extend(key);
-        hash::digest(hash.as_slice())
+        hash::digest(hash.as_slice(), self.hash_type)
     }
 
 }
