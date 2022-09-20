@@ -7,6 +7,7 @@ use crate::window_size::WindowSize;
 
 
 impl Session {
+    /// 接收服务端版本
     pub(crate) fn read_version(&mut self) -> Vec<u8> {
         let client = self.client.as_mut().unwrap();
         let mut v = [0_u8; 128];
@@ -18,11 +19,11 @@ impl Session {
         }
     }
 
-    pub(crate) fn read(&mut self) -> Result<Vec<Data>, SshError> {
+    pub fn read(&mut self) -> Result<Vec<Data>, SshError> {
         self.read_data(None)
     }
 
-    pub(crate) fn read_data(&mut self, lws: Option<&mut WindowSize>) -> SshResult<Vec<Data>> {
+    pub fn read_data(&mut self, lws: Option<&mut WindowSize>) -> SshResult<Vec<Data>> {
         let client = self.client.as_mut().unwrap();
         // 判断超时时间
         // 如果超时,即抛出异常

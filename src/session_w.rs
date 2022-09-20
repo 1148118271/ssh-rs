@@ -8,7 +8,7 @@ use crate::window_size::WindowSize;
 impl Session {
 
     /// 发送客户端版本
-    pub fn write_version(&mut self, buf: &[u8]) -> Result<(), SshError> {
+    pub(crate) fn write_version(&mut self, buf: &[u8]) -> Result<(), SshError> {
         let client = self.client.as_mut().unwrap();
         match client.stream.write(&buf) {
             Ok(_) => Ok(()),

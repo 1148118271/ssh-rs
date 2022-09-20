@@ -17,7 +17,7 @@ use crate::algorithm::hash;
 impl Session {
 
     /// 发送客户端的算法列表
-    pub fn send_algorithm(&mut self) -> SshResult<()> {
+    pub(crate) fn send_algorithm(&mut self) -> SshResult<()> {
         let config = self.config.as_ref().unwrap();
         log::info!("client algorithms: [{}]", config.algorithm.client_algorithm.to_string());
         // TODO 密钥从新交换的时候, 不确定是否修改加密状态
@@ -39,7 +39,7 @@ impl Session {
     }
 
     /// 获取服务端的算法列表
-    pub fn receive_algorithm(&mut self) -> SshResult<()> {
+    pub(crate) fn receive_algorithm(&mut self) -> SshResult<()> {
         loop {
             let results = self.read()?;
             for result in results {
@@ -58,7 +58,7 @@ impl Session {
     }
 
     /// 发送客户端公钥
-    pub fn send_qc(&mut self) -> SshResult<()> {
+    pub(crate) fn send_qc(&mut self) -> SshResult<()> {
         match self.key_exchange.as_mut() {
             None => Err(SshError::from("key exchange algorithm is none.")),
             Some(key_exchange) => {
@@ -73,7 +73,7 @@ impl Session {
 
 
     /// 接收服务端公钥和签名，并验证签名的正确性
-    pub fn verify_signature_and_new_keys(&mut self) -> SshResult<()> {
+    pub(crate) fn verify_signature_and_new_keys(&mut self) -> SshResult<()> {
         loop {
             let results = self.read()?;
             for mut result in results {
@@ -112,7 +112,7 @@ impl Session {
     }
 
     /// SSH_MSG_NEWKEYS 代表密钥交换完成
-    pub fn new_keys(&mut self) -> Result<(), SshError> {
+    pub(crate) fn new_keys(&mut self) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
         self.write(data)?;
@@ -122,7 +122,7 @@ impl Session {
     }
 
     /// 生成签名
-    pub fn generate_signature(&mut self, mut data: Data) -> SshResult<Vec<u8>> {
+    pub(crate) fn generate_signature(&mut self, mut data: Data) -> SshResult<Vec<u8>> {
         let key_exchange = match self.key_exchange.as_mut() {
             None => return Err(SshError::from("key exchange algorithm is none.")),
             Some(key_exchange) => key_exchange,
@@ -144,7 +144,7 @@ impl Session {
     }
 
     /// 处理服务端的算法列表
-    pub fn processing_server_algorithm(&mut self, mut data: Data) -> SshResult<()> {
+    pub(crate) fn processing_server_algorithm(&mut self, mut data: Data) -> SshResult<()> {
         data.get_u8();
         // 跳过16位cookie
         data.skip(16);

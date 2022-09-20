@@ -18,21 +18,21 @@ use crate::user_info::AuthType;
 
 pub struct Session {
 
-    pub timeout_sec: u64,
+    pub(crate) timeout_sec: u64,
 
-    pub h: Rc<RefCell<H>>,
+    pub(crate) h: Rc<RefCell<H>>,
 
-    pub config: Option<Config>,
+    pub(crate) config: Option<Config>,
 
-    pub client: Option<Client>,
+    pub(crate) client: Option<Client>,
 
-    pub encryption: Option<Box<dyn Encryption>>,
+    pub(crate) encryption: Option<Box<dyn Encryption>>,
 
-    pub key_exchange: Option<Box<dyn KeyExchange>>,
+    pub(crate) key_exchange: Option<Box<dyn KeyExchange>>,
 
-    pub public_key: Option<Box<dyn PublicKey>>,
+    pub(crate) public_key: Option<Box<dyn PublicKey>>,
 
-    pub is_encryption: bool,
+    pub(crate) is_encryption: bool,
 
 }
 

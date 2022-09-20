@@ -5,7 +5,6 @@ use std::path::Path;
 use std::rc::Rc;
 use rsa::pkcs1::FromRsaPrivateKey;
 use rsa::PublicKeyParts;
-use crate::h;
 use crate::data::Data;
 use crate::{SshError, SshResult};
 use crate::algorithm::hash;

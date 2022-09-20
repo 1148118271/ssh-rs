@@ -1,5 +1,3 @@
-use std::borrow::BorrowMut;
-use crate::algorithm::hash;
 use crate::data::Data;
 
 /// 密钥交换产生两个值：一个共享秘密 K，以及一个交换哈希 H。加密和验证密钥来自它们。第一
@@ -11,19 +9,6 @@ use crate::data::Data;
 /// H = hash algorithm(v_c | v_s | i_c | i_s | k_s | q_c | q_s | k)
 ///
 ///
-
-
-// static mut H_VAL: H = H::new();
-//
-//
-// pub(crate) fn get() -> &'static mut H {
-//     unsafe {
-//         H_VAL.borrow_mut()
-//     }
-// }
-
-
-
 #[derive(Clone)]
 pub struct H {
 
