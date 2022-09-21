@@ -176,8 +176,8 @@
 
 
 mod client;
-mod session_r;
-mod session_w;
+mod client_r;
+mod client_w;
 mod session;
 mod session_auth;
 mod channel;

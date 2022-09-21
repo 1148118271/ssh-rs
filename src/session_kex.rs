@@ -21,9 +21,9 @@ impl Session {
         let config = self.config.as_ref().unwrap();
         log::info!("client algorithms: [{}]", config.algorithm.client_algorithm.to_string());
         // TODO 密钥从新交换的时候, 不确定是否修改加密状态
-        if self.is_encryption {
-            self.is_encryption = false;
-        }
+        // if self.is_encryption.get() {
+        //     self.is_encryption.set(false);
+        // }
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
         data.extend(util::cookie());
@@ -116,7 +116,6 @@ impl Session {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
         self.write(data)?;
-        self.is_encryption = true;
         log::info!("send new keys");
         Ok(())
     }

@@ -5,22 +5,10 @@ use crate::data::Data;
 use crate::slog::log;
 //use crate::channel_exec::ChannelExec;
 //use crate::channel_scp::ChannelScp;
-//use crate::channel_shell::ChannelShell;
-use crate::{client, Session};
+use crate::channel_shell::ChannelShell;
+use crate::Session;
 
 use crate::window_size::WindowSize;
-
-
-// 客户端通道编号初始值
-// pub(crate) static CLIENT_CHANNEL_NO: AtomicU32 = AtomicU32::new(0);
-//
-//
-// pub fn current_client_channel_no() -> u32 {
-//     let client_channel_no = CLIENT_CHANNEL_NO.load(Relaxed);
-//     CLIENT_CHANNEL_NO.fetch_add(1, Relaxed);
-//     client_channel_no
-// }
-
 
 pub struct Channel {
     pub(crate) remote_close: bool,
@@ -49,8 +37,8 @@ impl Channel {
             ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
                 data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                // let client = client::default()?;
-                // client.write(data)?;
+                let client = self.get_session_mut();
+                client.write(data)?;
             }
             ssh_msg_code::SSH_MSG_KEXINIT => {
                 // let vec = result.to_vec();
@@ -103,21 +91,21 @@ impl Channel {
             ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {}
             ssh_msg_code::SSH_MSG_CHANNEL_FAILURE => return Err(SshError::from("channel failure.")),
             ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
-                // let cc = result.get_u32();
-                // if cc == self.client_channel_no {
-                //     self.remote_close = true;
-                //     self.close()?;
-                // }
+                let cc = result.get_u32();
+                if cc == self.client_channel_no {
+                    self.remote_close = true;
+                    self.close()?;
+                }
             }
             _ => {}
         }
         Ok(())
     }
 
-    // pub fn open_shell(self) -> SshResult<ChannelShell> {
-    //     log::info!("shell opened.");
-    //     return ChannelShell::open(self)
-    // }
+    pub fn open_shell(self) -> SshResult<ChannelShell> {
+        log::info!("shell opened.");
+        return ChannelShell::open(self)
+    }
     //
     // pub fn open_exec(self) -> SshResult<ChannelExec> {
     //     log::info!("exec opened.");
@@ -129,44 +117,48 @@ impl Channel {
     //     return Ok(ChannelScp::open(self))
     // }
 
-    // pub fn close(&mut self) -> SshResult<()> {
-    //     log::info!("channel close.");
-    //     self.send_close()?;
-    //     self.receive_close()
-    // }
+    pub fn close(&mut self) -> SshResult<()> {
+        log::info!("channel close.");
+        self.send_close()?;
+        self.receive_close()
+    }
 
     fn send_close(&mut self) -> SshResult<()> {
         if self.local_close { return Ok(()); }
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_CLOSE)
             .put_u32(self.server_channel_no);
-        let client = unsafe {
-            &mut *self.session
-        };
+        let client = self.get_session_mut();
         client.write(data)?;
         self.local_close = true;
         Ok(())
     }
 
-    // fn receive_close(&mut self) -> SshResult<()> {
-    //     if self.remote_close { return Ok(()); }
-    //     loop {
-    //         let client = client::default()?;
-    //         let results = client.read()?; // close 时不消耗窗口空间
-    //         for mut result in results {
-    //             if result.is_empty() { continue }
-    //             let message_code = result.get_u8();
-    //             match message_code {
-    //                 ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
-    //                     let cc = result.get_u32();
-    //                     if cc == self.client_channel_no {
-    //                         self.remote_close = true;
-    //                         return Ok(())
-    //                     }
-    //                 }
-    //                 _ => self.other(message_code, result)?
-    //             }
-    //         }
-    //     }
-    // }
+    fn receive_close(&mut self) -> SshResult<()> {
+        if self.remote_close { return Ok(()); }
+        loop {
+            // close 时不消耗窗口空间
+            let results = {
+                self.get_session_mut().read()
+            }?;
+            for mut result in results {
+                if result.is_empty() { continue }
+                let message_code = result.get_u8();
+                match message_code {
+                    ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
+                        let cc = result.get_u32();
+                        if cc == self.client_channel_no {
+                            self.remote_close = true;
+                            return Ok(())
+                        }
+                    }
+                    _ => self.other(message_code, result)?
+                }
+            }
+        }
+    }
+
+    pub(crate) fn get_session_mut(&self) -> &mut Session {
+        unsafe { &mut *self.session }
+    }
 }

@@ -1,16 +1,14 @@
 use std::io::Write;
 use crate::client::Client;
+use crate::{SshError, SshResult};
 use crate::data::Data;
 use crate::packet::Packet;
-use crate::{Session, SshError};
 use crate::window_size::WindowSize;
 
-impl Session {
-
+impl Client {
     /// 发送客户端版本
-    pub(crate) fn write_version(&mut self, buf: &[u8]) -> Result<(), SshError> {
-        let client = self.client.as_mut().unwrap();
-        match client.stream.write(&buf) {
+    pub(crate) fn write_version(&mut self, buf: &[u8]) -> SshResult<()> {
+        match self.stream.write(&buf) {
             Ok(_) => Ok(()),
             Err(e) => Err(SshError::from(e))
         }
@@ -21,25 +19,19 @@ impl Session {
     }
 
     pub fn write_data(&mut self, data: Data, rws: Option<&mut WindowSize>) -> Result<(), SshError> {
-        let client = self.client.as_mut().unwrap();
-        let buf = if self.is_encryption {
-            match self.encryption.as_mut() {
-                None => return Err(SshError::from("encryption algorithm is none.")),
-                Some(encryption) => {
-                    if let Some(rws) = rws {
-                        // rws.process_remote_window_size(data.as_slice(), client, encryption)?;
-                    }
-                    client.get_encryption_data(data, encryption)?
-                }
+        let buf = if self.is_encryption.get() {
+            if let Some(rws) = rws {
+                rws.process_remote_window_size(data.as_slice(), self)?;
             }
+            self.get_encryption_data(data)?
         } else {
             let mut packet = Packet::from(data);
             packet.build(None, false);
             packet.to_vec()
         };
-        client.sequence.client_auto_increment();
+        self.sequence.client_auto_increment();
         loop {
-            if let Err(e) = client.stream.write(&buf) {
+            if let Err(e) = self.stream.write(&buf) {
                 if Client::is_would_block(&e) {
                     continue
                 }
@@ -48,10 +40,18 @@ impl Session {
                 break
             }
         }
-        if let Err(e) = client.stream.flush() {
+        if let Err(e) = self.stream.flush() {
             return Err(SshError::from(e))
         }
         Ok(())
     }
 
+    pub(crate) fn get_encryption_data(&self, data: Data) -> SshResult<Vec<u8>> {
+        let encryption = self.encryption.unwrap().get_mut();
+        let mut packet = Packet::from(data);
+        packet.build(Some(encryption),true);
+        let mut buf = packet.to_vec();
+        encryption.encrypt(self.sequence.client_sequence_num, &mut buf);
+        Ok(buf)
+    }
 }

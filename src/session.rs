@@ -1,4 +1,5 @@
-use std::cell::RefCell;
+use std::borrow::BorrowMut;
+use std::cell::{Cell, RefCell};
 use std::net::ToSocketAddrs;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -29,13 +30,13 @@ pub struct Session {
 
     pub(crate) client: Option<Client>,
 
-    pub(crate) encryption: Option<Box<dyn Encryption>>,
+    pub(crate) encryption: Option<Rc<RefCell<Box<dyn Encryption>>>>,
 
     pub(crate) key_exchange: Option<Box<dyn KeyExchange>>,
 
     pub(crate) public_key: Option<Box<dyn PublicKey>>,
 
-    pub(crate) is_encryption: bool,
+    pub(crate) is_encryption: Rc<Cell<bool>>,
 
     pub(crate) client_channel_no: u32,
 
@@ -97,29 +98,35 @@ impl Session {
             let config = self.config.as_ref().unwrap();
             config.version.validation()?;
 
-
             // 缓存密钥交换算法
             self.key_exchange = Some(config.algorithm.matching_key_exchange_algorithm()?);
             // 公钥算法
             self.public_key = Some(config.algorithm.matching_public_key_algorithm()?);
 
-            self.h.borrow_mut().set_v_c(config.version.client_version.as_str());
-            self.h.borrow_mut().set_v_s(config.version.server_version.as_str());
+            let mut h_mut = self.h.as_ref().borrow_mut();
+            h_mut.set_v_c(config.version.client_version.as_str());
+            h_mut.set_v_s(config.version.server_version.as_str());
         }
 
         self.send_qc()?;
         self.verify_signature_and_new_keys()?;
 
+        // 验签成功, 之后的数据交互开始加密
+        self.is_encryption.set(true);
+        self.client.unwrap().is_encryption = self.is_encryption.clone();
+
         let hash = HASH::new(self.h.clone(), self.key_exchange.as_ref().unwrap().get_hash_type());
-
-
         let config = self.config.as_ref().unwrap();
-
         // mac 算法
         let mac = config.algorithm.matching_mac_algorithm()?;
-
         // 加密算法
-        self.encryption = Some(config.algorithm.matching_encryption_algorithm(hash, mac)?);
+        let erc = Rc::new(
+            RefCell::new(
+                config.algorithm.matching_encryption_algorithm(hash, mac)?
+            )
+        );
+        self.encryption = Some(erc.clone());
+        self.client.unwrap().encryption = Some(erc);
 
         log::info!("key negotiation successful.");
 
@@ -182,13 +189,13 @@ impl Session {
             .put_u32(client_channel_no)
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
-        self.write(data)
+        self.client.unwrap().write(data)
     }
 
     // 远程回应是否可以打开通道
     fn receive_open_channel(&mut self) -> SshResult<(u32, u32)> {
         loop {
-            let results = self.read()?;
+            let results = self.client.unwrap().read()?;
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -250,12 +257,12 @@ impl Session {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
-        self.write(data)
+        self.client.unwrap().write(data)
     }
 
     fn authentication(&mut self) -> SshResult<()> {
         loop {
-            let results = self.read()?;
+            let results = self.client.unwrap().read()?;
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -284,7 +291,7 @@ impl Session {
                     ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                         let mut data = Data::new();
                         data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                        self.write(data)?
+                        self.client.unwrap().write(data)?
                     }
                     _ => {}
                 }
@@ -297,13 +304,13 @@ impl Session {
             let config = self.config.as_ref().unwrap();
             config.version.client_version.clone()
         };
-        self.write_version(format!("{}\r\n", cv.as_str()).as_bytes())?;
+        self.client.unwrap().write_version(format!("{}\r\n", cv.as_str()).as_bytes())?;
         log::info!("client version: [{}]", cv);
         Ok(())
     }
 
     fn receive_version(&mut self) -> SshResult<()> {
-        let vec = self.read_version();
+        let vec = self.client.unwrap().read_version();
         let from_utf8 = util::from_utf8(vec)?;
         let sv = from_utf8.trim();
         log::info!("server version: [{}]", sv);

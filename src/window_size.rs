@@ -1,4 +1,6 @@
-use std::io::{Read};
+use std::cell::RefCell;
+use std::io::{Read, Write};
+use std::rc::Rc;
 use crate::algorithm::encryption::Encryption;
 use crate::client::Client;
 use crate::constant::size::LOCAL_WINDOW_SIZE;
@@ -62,10 +64,9 @@ impl WindowSize {
 
 impl WindowSize {
 
-    pub fn process_remote_window_size(&mut self,
+    pub(crate) fn process_remote_window_size(&mut self,
                                       data: &[u8],
                                       client: &mut Client,
-                                      encryption: &mut Box<dyn Encryption>
     ) -> SshResult<()>
     {
         if self.remote_window_size == 0 {
@@ -94,9 +95,8 @@ impl WindowSize {
                     }
                 };
             }
-
             client.sequence.server_auto_increment();
-
+            let mut encryption = client.encryption.unwrap().borrow_mut();
             let result = encryption.decrypt(client.sequence.server_sequence_num, &mut result)?;
             let mut data = Packet::from(result).unpacking();
             let mc = data.get_u8();
@@ -112,59 +112,63 @@ impl WindowSize {
         return Ok(())
     }
 
-    pub fn sub_remote_window_size(&mut self, rws: u32) {
+    pub(crate) fn sub_remote_window_size(&mut self, rws: u32) {
         self.remote_window_size = self.remote_window_size - rws;
     }
 
-    pub fn add_remote_window_size(&mut self, rws: u32) {
+    pub(crate) fn add_remote_window_size(&mut self, rws: u32) {
         self.remote_window_size = self.remote_window_size + rws;
     }
 
-    pub fn add_remote_max_window_size(&mut self, rws: u32) {
+    pub(crate) fn add_remote_max_window_size(&mut self, rws: u32) {
         self.remote_max_window_size = self.remote_max_window_size + rws;
     }
 }
 
 impl WindowSize {
 
-    pub fn process_local_window_size(&mut self, data: &[u8], client: &mut Client) -> SshResult<()> {
-        // let size = match self.get_size(data) {
-        //     None => return Ok(()),
-        //     Some(size) => size
-        // };
-        // self.sub_local_window_size(size);
-        // let used = self.local_max_window_size - self.local_window_size;
-        // if used <= 0 {
-        //     return Ok(())
-        // }
-        // if (self.local_max_window_size / used) > 20 {
-        //     return Ok(());
-        // }
-        //
-        // let mut data = Data::new();
-        // data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
-        //     .put_u32(self.server_channel)
-        //     .put_u32(used);
-        //
-        // let buf = client.get_encryption_data(data)?;
-        //
-        // client.sequence.client_auto_increment();
-        //
-        // if let Err(e) = client.stream.write(&buf) {
-        //     return Err(SshError::from(e))
-        // }
-        // if let Err(e) = client.stream.flush() {
-        //     return Err(SshError::from(e))
-        // }
-        // self.add_local_window_size(used);
+    pub(crate) fn process_local_window_size(&mut self,
+                                     data: &[u8],
+                                     client: &mut Client,
+    ) -> SshResult<()>
+    {
+        let size = match self.get_size(data) {
+            None => return Ok(()),
+            Some(size) => size
+        };
+        self.sub_local_window_size(size);
+        let used = self.local_max_window_size - self.local_window_size;
+        if used <= 0 {
+            return Ok(())
+        }
+        if (self.local_max_window_size / used) > 20 {
+            return Ok(());
+        }
+
+        let mut data = Data::new();
+        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
+            .put_u32(self.server_channel_no)
+            .put_u32(used);
+
+        let buf = client.get_encryption_data(data)?;
+
+        client.sequence.client_auto_increment();
+
+        if let Err(e) = client.stream.write(&buf) {
+            return Err(SshError::from(e))
+        }
+        if let Err(e) = client.stream.flush() {
+            return Err(SshError::from(e))
+        }
+        self.add_local_window_size(used);
         return Ok(());
     }
 
-    pub fn sub_local_window_size(&mut self, lws: u32) {
+    pub(crate) fn sub_local_window_size(&mut self, lws: u32) {
         self.local_window_size = self.local_window_size - lws;
     }
 
-    pub fn add_local_window_size(&mut self, lws: u32) {
+    pub(crate) fn add_local_window_size(&mut self, lws: u32) {
         self.local_window_size = self.local_window_size + lws;
     }
 
