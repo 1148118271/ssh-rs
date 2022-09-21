@@ -35,13 +35,13 @@ impl Session {
 
         // h 加入客户端算法信息
         self.h.as_ref().borrow_mut().set_i_c(data.as_slice());
-        self.write(data)
+        self.client.as_mut().unwrap().write(data)
     }
 
     /// 获取服务端的算法列表
     pub(crate) fn receive_algorithm(&mut self) -> SshResult<()> {
         loop {
-            let results = self.read()?;
+            let results = self.client.as_mut().unwrap().read()?;
             for result in results {
                 if result.is_empty() { continue }
                 let message_code = result[0];
@@ -65,7 +65,7 @@ impl Session {
                 let mut data = Data::new();
                 data.put_u8(ssh_msg_code::SSH_MSG_KEXDH_INIT);
                 data.put_u8s(key_exchange.get_public_key());
-                self.write(data)
+                self.client.as_mut().unwrap().write(data)
             }
         }
 
@@ -75,7 +75,7 @@ impl Session {
     /// 接收服务端公钥和签名，并验证签名的正确性
     pub(crate) fn verify_signature_and_new_keys(&mut self) -> SshResult<()> {
         loop {
-            let results = self.read()?;
+            let results = self.client.as_mut().unwrap().read()?;
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -115,7 +115,7 @@ impl Session {
     pub(crate) fn new_keys(&mut self) -> Result<(), SshError> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
-        self.write(data)?;
+        self.client.as_mut().unwrap().write(data)?;
         log::info!("send new keys");
         Ok(())
     }

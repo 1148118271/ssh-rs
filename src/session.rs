@@ -113,7 +113,7 @@ impl Session {
 
         // 验签成功, 之后的数据交互开始加密
         self.is_encryption.set(true);
-        self.client.unwrap().is_encryption = self.is_encryption.clone();
+        self.client.as_mut().unwrap().is_encryption = self.is_encryption.clone();
 
         let hash = HASH::new(self.h.clone(), self.key_exchange.as_ref().unwrap().get_hash_type());
         let config = self.config.as_ref().unwrap();
@@ -126,8 +126,8 @@ impl Session {
             )
         );
         self.encryption = Some(erc.clone());
-        self.client.unwrap().encryption = Some(erc);
-
+        let client = self.client.as_mut().unwrap();
+        client.encryption = Some(erc.clone());
         log::info!("key negotiation successful.");
 
         self.initiate_authentication()?;
@@ -189,13 +189,13 @@ impl Session {
             .put_u32(client_channel_no)
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
-        self.client.unwrap().write(data)
+        self.client.as_mut().unwrap().write(data)
     }
 
     // 远程回应是否可以打开通道
     fn receive_open_channel(&mut self) -> SshResult<(u32, u32)> {
         loop {
-            let results = self.client.unwrap().read()?;
+            let results = self.client.as_mut().unwrap().read()?;
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -257,12 +257,12 @@ impl Session {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
-        self.client.unwrap().write(data)
+        self.client.as_mut().unwrap().write(data)
     }
 
     fn authentication(&mut self) -> SshResult<()> {
         loop {
-            let results = self.client.unwrap().read()?;
+            let results = self.client.as_mut().unwrap().read()?;
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -291,7 +291,7 @@ impl Session {
                     ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                         let mut data = Data::new();
                         data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                        self.client.unwrap().write(data)?
+                        self.client.as_mut().unwrap().write(data)?
                     }
                     _ => {}
                 }
@@ -304,13 +304,13 @@ impl Session {
             let config = self.config.as_ref().unwrap();
             config.version.client_version.clone()
         };
-        self.client.unwrap().write_version(format!("{}\r\n", cv.as_str()).as_bytes())?;
+        self.client.as_mut().unwrap().write_version(format!("{}\r\n", cv.as_str()).as_bytes())?;
         log::info!("client version: [{}]", cv);
         Ok(())
     }
 
     fn receive_version(&mut self) -> SshResult<()> {
-        let vec = self.client.unwrap().read_version();
+        let vec = self.client.as_mut().unwrap().read_version();
         let from_utf8 = util::from_utf8(vec)?;
         let sv = from_utf8.trim();
         log::info!("server version: [{}]", sv);

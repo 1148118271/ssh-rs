@@ -96,7 +96,7 @@ impl WindowSize {
                 };
             }
             client.sequence.server_auto_increment();
-            let mut encryption = client.encryption.unwrap().borrow_mut();
+            let mut encryption = client.encryption.as_mut().unwrap().borrow_mut();
             let result = encryption.decrypt(client.sequence.server_sequence_num, &mut result)?;
             let mut data = Packet::from(result).unpacking();
             let mc = data.get_u8();

@@ -55,7 +55,7 @@ impl Session {
             .put_str(ssh_str::PASSWORD)
             .put_u8(false as u8)
             .put_str(config.auth.password.as_str());
-        self.write(data)
+        self.client.as_mut().unwrap().write(data)
     }
 
     pub(crate) fn public_key_authentication(&mut self) -> SshResult<()> {
@@ -69,7 +69,7 @@ impl Session {
             .put_u8(false as u8)
             .put_str(config.auth.key_pair.key_type.as_str())
             .put_u8s(config.auth.key_pair.blob.as_slice());
-        self.write(data)
+        self.client.as_mut().unwrap().write(data)
     }
 
     pub(crate) fn public_key_signature(&mut self) -> SshResult<()> {
@@ -88,6 +88,6 @@ impl Session {
         };
         let signature = config.auth.key_pair.signature(data.as_slice(), self.h.clone(), hash_type);
         data.put_u8s(&signature);
-        self.write(data)
+        self.client.as_mut().unwrap().write(data)
     }
 }

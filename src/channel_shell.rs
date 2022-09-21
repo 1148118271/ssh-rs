@@ -14,7 +14,7 @@ impl ChannelShell {
         ChannelShell::request_pty(&channel)?;
         ChannelShell::get_shell(&channel)?;
         loop {
-            let results = { channel.get_session_mut().read() }?;
+            let results = { channel.get_session_mut().client.as_mut().unwrap().read() }?;
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -47,7 +47,7 @@ impl ChannelShell {
             0_u8,                 // TTY_OP_END
         ];
         data.put_u8s(&model);
-        channel.get_session_mut().write(data)
+        channel.get_session_mut().client.as_mut().unwrap().write(data)
     }
 
     fn get_shell(channel: &Channel) -> SshResult<()> {
@@ -56,13 +56,13 @@ impl ChannelShell {
             .put_u32(channel.server_channel_no)
             .put_str(ssh_str::SHELL)
             .put_u8(true as u8);
-        channel.get_session_mut().write(data)
+        channel.get_session_mut().client.as_mut().unwrap().write(data)
     }
 
     pub fn read(&mut self) -> SshResult<Vec<u8>> {
         let mut buf = vec![];
         let session = unsafe { &mut *self.0.session };
-        let results = session.read_data(Some(&mut self.0.window_size))?;
+        let results = session.client.as_mut().unwrap().read_data(Some(&mut self.0.window_size))?;
         for mut result in results {
             if result.is_empty() { continue }
             let message_code = result.get_u8();
@@ -86,7 +86,7 @@ impl ChannelShell {
             .put_u32(self.0.server_channel_no)
             .put_u8s(buf);
         let session = unsafe { &mut *self.0.session };
-        session.write_data(data, Some(&mut self.0.window_size))
+        session.client.as_mut().unwrap().write_data(data, Some(&mut self.0.window_size))
     }
 
     pub fn close(mut self) -> SshResult<()> {

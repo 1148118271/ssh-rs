@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::ops::Deref;
 use crate::client::Client;
 use crate::{SshError, SshResult};
 use crate::data::Data;
@@ -47,9 +48,10 @@ impl Client {
     }
 
     pub(crate) fn get_encryption_data(&self, data: Data) -> SshResult<Vec<u8>> {
-        let encryption = self.encryption.unwrap().get_mut();
+        let encryption = self.encryption.clone().unwrap();
+        let mut encryption = encryption.borrow_mut();
         let mut packet = Packet::from(data);
-        packet.build(Some(encryption),true);
+        packet.build(Some(encryption.deref()),true);
         let mut buf = packet.to_vec();
         encryption.encrypt(self.sequence.client_sequence_num, &mut buf);
         Ok(buf)

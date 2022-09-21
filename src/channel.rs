@@ -37,8 +37,8 @@ impl Channel {
             ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
                 data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                let client = self.get_session_mut();
-                client.write(data)?;
+                let session = self.get_session_mut();
+                session.client.as_mut().unwrap().write(data)?;
             }
             ssh_msg_code::SSH_MSG_KEXINIT => {
                 // let vec = result.to_vec();
@@ -128,8 +128,8 @@ impl Channel {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_CLOSE)
             .put_u32(self.server_channel_no);
-        let client = self.get_session_mut();
-        client.write(data)?;
+        let session = self.get_session_mut();
+        session.client.as_mut().unwrap().write(data)?;
         self.local_close = true;
         Ok(())
     }
@@ -139,7 +139,7 @@ impl Channel {
         loop {
             // close 时不消耗窗口空间
             let results = {
-                self.get_session_mut().read()
+                self.get_session_mut().client.as_mut().unwrap().read()
             }?;
             for mut result in results {
                 if result.is_empty() { continue }

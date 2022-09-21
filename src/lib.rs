@@ -215,7 +215,7 @@ use crate::error::{SshError, SshResult};
 
 
 pub mod ssh {
-    use std::cell::RefCell;
+    use std::cell::{Cell, RefCell};
     use std::rc::Rc;
     use crate::h::H;
     use crate::Session;
@@ -229,7 +229,7 @@ pub mod ssh {
             encryption: None,
             key_exchange: None,
             public_key: None,
-            is_encryption: false,
+            is_encryption: Rc::new(Cell::new(false)),
             client_channel_no: 0,
         }
     }
