@@ -1,9 +1,9 @@
 use std::ffi::OsStr;
 use std::fs;
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
-use crate::constant::{permission, scp};
+use crate::constant::scp;
 use crate::error::{SshError, SshResult};
 use crate::slog::log;
 use crate::channel_scp::{ChannelScp, ScpFile, check_path};
@@ -90,18 +90,25 @@ impl ChannelScp {
 
         scp_file.local_path = buf;
 
-        match File::open(scp_file.local_path.as_path()) {
-            Ok(file) => {
-                self.sync_permissions(scp_file, file);
-            }
-            Err(e) => {
-                log::error!("failed to open the folder, \
+        #[cfg(windows)]
+        self.sync_permissions(scp_file);
+
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        {
+            match fs::File::open(scp_file.local_path.as_path()) {
+                Ok(file) => {
+                    self.sync_permissions(scp_file, file);
+                }
+                Err(e) => {
+                    log::error!("failed to open the folder, \
             it is possible that the path does not exist, \
             which does not affect subsequent operations. \
             error info: {:?}, path: {:?}", e, scp_file.local_path.to_str());
-                return Err(SshError::from(format!("file open error: {}", e.to_string())))
-            }
-        };
+                    return Err(SshError::from(format!("file open error: {}", e.to_string())))
+                }
+            };
+        }
+
         log::debug!("dir: [{}] download completed.", scp_file.name);
         Ok(())
     }
@@ -155,12 +162,32 @@ impl ChannelScp {
                 return Err(SshError::from(e))
             }
         }
+
+        #[cfg(windows)]
+        self.sync_permissions(scp_file);
+
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         self.sync_permissions(scp_file, file);
+
         log::debug!("file: [{}] download completed.", scp_file.name);
         Ok(())
     }
 
-    fn sync_permissions(&self, scp_file: &mut ScpFile, file: File) {
+
+    #[cfg(windows)]
+    fn sync_permissions(&self, scp_file: &mut ScpFile) {
+        let modify_time = filetime::FileTime::from_unix_time(scp_file.modify_time, 0);
+        let access_time = filetime::FileTime::from_unix_time(scp_file.access_time, 0);
+        if let Err(e) = filetime::set_file_times(scp_file.local_path.as_path(), access_time, modify_time) {
+            log::error!("the file time synchronization is abnormal,\
+             which may be caused by the operating system,\
+              which does not affect subsequent operations.\
+               error info: {:?}", e)
+        }
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    fn sync_permissions(&self, scp_file: &mut ScpFile, file: fs::File) {
         let modify_time = filetime::FileTime::from_unix_time(scp_file.modify_time, 0);
         let access_time = filetime::FileTime::from_unix_time(scp_file.access_time, 0);
         if let Err(e) = filetime::set_file_times(scp_file.local_path.as_path(), access_time, modify_time) {
@@ -170,23 +197,20 @@ impl ChannelScp {
                error info: {:?}", e)
         }
 
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            // error default mode 0755
-            match u32::from_str_radix(match scp_file.is_dir {
-                true => permission::DIR,
-                false => permission::FILE
-            }, 8) {
-                Ok(mode) => {
-                    if let Err(_) = file.set_permissions(fs::Permissions::from_mode(mode)) {
-                        log::error!("the operating system does not allow modification of file permissions, \
+        use std::os::unix::fs::PermissionsExt;
+        // error default mode 0755
+        match u32::from_str_radix(match scp_file.is_dir {
+            true => crate::constant::permission::DIR,
+            false => crate::constant::permission::FILE
+        }, 8) {
+            Ok(mode) => {
+                if let Err(_) = file.set_permissions(fs::Permissions::from_mode(mode)) {
+                    log::error!("the operating system does not allow modification of file permissions, \
                         which does not affect subsequent operations.");
-                    }
                 }
-                Err(v) => {
-                    log::error!("Unknown error {}", v)
-                }
+            }
+            Err(v) => {
+                log::error!("Unknown error {}", v)
             }
         }
     }
