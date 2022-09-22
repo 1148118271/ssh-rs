@@ -1,6 +1,5 @@
 use aes::Aes128Ctr;
 use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
-use crate::algorithm::{hash, mac};
 use crate::{SshError, SshResult};
 use crate::algorithm::encryption::Encryption;
 use crate::algorithm::hash::hash::HASH;

@@ -22,7 +22,7 @@ impl Encryption for ChaCha20Poly1305 {
     }
 
 
-    fn new(hash: HASH, mac: Box<dyn Mac>) -> ChaCha20Poly1305 {
+    fn new(hash: HASH, _mac: Box<dyn Mac>) -> ChaCha20Poly1305 {
         let (ck, sk) = hash.extend_key(BSIZE);
         let mut sealing_key = [0_u8; BSIZE];
         let mut opening_key = [0_u8; BSIZE];

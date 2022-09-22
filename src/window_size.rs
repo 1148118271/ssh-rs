@@ -1,7 +1,4 @@
-use std::cell::RefCell;
 use std::io::{Read, Write};
-use std::rc::Rc;
-use crate::algorithm::encryption::Encryption;
 use crate::client::Client;
 use crate::constant::size::LOCAL_WINDOW_SIZE;
 use crate::constant::{size, ssh_msg_code};

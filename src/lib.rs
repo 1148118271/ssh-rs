@@ -204,10 +204,10 @@ pub mod error;
 pub(crate) mod h;
 
 pub use session::Session;
-// pub use channel::Channel;
-// pub use channel_shell::ChannelShell;
-// pub use channel_exec::ChannelExec;
-// pub use channel_scp::ChannelScp;
+pub use channel::Channel;
+pub use channel_shell::ChannelShell;
+pub use channel_exec::ChannelExec;
+pub use channel_scp::ChannelScp;
 pub use user_info::UserInfo;
 
 
@@ -219,6 +219,7 @@ pub mod ssh {
     use std::rc::Rc;
     use crate::h::H;
     use crate::Session;
+    use crate::slog::Slog;
 
     pub fn create_session() -> Session {
         Session {
@@ -234,4 +235,9 @@ pub mod ssh {
         }
     }
 
+    pub fn is_enable_log(b: bool) {
+        if b {
+            Slog::default()
+        }
+    }
 }

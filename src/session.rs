@@ -1,18 +1,15 @@
-use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
 use std::net::ToSocketAddrs;
 use std::rc::Rc;
-use std::sync::Arc;
 use crate::data::Data;
 use crate::constant::{ssh_msg_code, size, ssh_str};
 use crate::error::{SshError, SshResult};
-use crate::slog::{log, Slog};
-use crate::{channel, timeout, util};
+use crate::slog::log;
+use crate::{ChannelShell, ChannelScp, ChannelExec, Channel, util};
 use crate::algorithm::encryption::Encryption;
 use crate::algorithm::hash::hash::HASH;
 use crate::algorithm::key_exchange::KeyExchange;
 use crate::algorithm::public_key::PublicKey;
-use crate::channel::Channel;
 use crate::h::H;
 use crate::client::Client;
 use crate::config::Config;
@@ -43,21 +40,10 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn is_enable_log(&self, b: bool) {
-        if b {
-            Slog::default()
-        }
+
+    pub fn set_timeout(&mut self, secs: u64) {
+        self.timeout_sec = secs;
     }
-
-    pub fn set_timeout(&self, secs: u64) {
-        unsafe {
-            timeout::TIMEOUT = secs
-        }
-    }
-
-}
-
-impl Session {
 
     pub fn connect<A>(&mut self, addr: A) -> SshResult<()>
     where
@@ -69,7 +55,7 @@ impl Session {
         }
 
         // 建立通道
-        self.client = Some(Client::connect(addr)?);
+        self.client = Some(Client::connect(addr, self.timeout_sec)?);
 
 
         log::info!("session opened.");
@@ -163,20 +149,20 @@ impl Session {
         })
     }
 
-    // pub fn open_exec(&mut self) -> SshResult<ChannelExec> {
-    //     let channel = self.open_channel()?;
-    //     channel.open_exec()
-    // }
-    //
-    // pub fn open_shell(&mut self) -> SshResult<ChannelShell> {
-    //     let channel = self.open_channel()?;
-    //     channel.open_shell()
-    // }
-    //
-    // pub fn open_scp(&mut self) -> SshResult<ChannelScp> {
-    //     let channel = self.open_channel()?;
-    //     channel.open_scp()
-    // }
+    pub fn open_exec(&mut self) -> SshResult<ChannelExec> {
+        let channel = self.open_channel()?;
+        channel.open_exec()
+    }
+
+    pub fn open_shell(&mut self) -> SshResult<ChannelShell> {
+        let channel = self.open_channel()?;
+        channel.open_shell()
+    }
+
+    pub fn open_scp(&mut self) -> SshResult<ChannelScp> {
+        let channel = self.open_channel()?;
+        channel.open_scp()
+    }
 }
 
 impl Session {

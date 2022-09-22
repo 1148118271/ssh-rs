@@ -1,9 +1,5 @@
-
 mod chacha20_poly1305_openssh;
 mod aes_ctr_128;
-
-use std::rc::Rc;
-use std::sync::atomic::AtomicBool;
 
 pub(crate) use {
     chacha20_poly1305_openssh::ChaCha20Poly1305,

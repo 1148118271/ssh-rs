@@ -3,21 +3,24 @@ use std::time::{Duration, SystemTime};
 use crate::{slog::log, SshError, SshResult};
 use crate::error::SshErrorKind;
 
-
-pub(crate) static mut TIMEOUT: u64 = 30;
-
-pub(crate) struct Timeout(RefCell<SystemTime>);
+pub(crate) struct Timeout {
+    time: RefCell<SystemTime>,
+    timeout_sec: u64
+}
 
 impl Timeout {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(timeout_sec: u64) -> Self {
         let time = SystemTime::now();
-        let time = unsafe { time + Duration::from_secs(TIMEOUT) };
-        Timeout(RefCell::new(time))
+        let time = time + Duration::from_secs(timeout_sec);
+        Timeout {
+            time: RefCell::new(time),
+            timeout_sec
+        }
     }
 
     pub(crate) fn is_timeout(&self) -> SshResult<()> {
         let time = SystemTime::now();
-        if time > *self.0.borrow() {
+        if time > *self.time.borrow() {
             log::error!("time out.");
             return Err(SshError::from(SshErrorKind::Timeout))
         }
@@ -25,7 +28,7 @@ impl Timeout {
     }
 
     pub(crate) fn renew(&self) {
-        let mut ref_mut = self.0.borrow_mut();
-        *ref_mut = unsafe { SystemTime::now() + Duration::from_secs(TIMEOUT) };
+        let mut ref_mut = self.time.borrow_mut();
+        *ref_mut = SystemTime::now() + Duration::from_secs(self.timeout_sec)
     }
 }

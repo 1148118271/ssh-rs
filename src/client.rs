@@ -1,16 +1,11 @@
 use std::cell::{Cell, RefCell};
 use std::io;
-use std::io::Read;
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use crate::algorithm::encryption::Encryption;
-use crate::constant::size;
-use crate::data::Data;
 use crate::error::{SshError, SshResult};
-use crate::packet::Packet;
 use crate::timeout::Timeout;
-use crate::window_size::WindowSize;
 
 
 pub struct Client {
@@ -45,7 +40,7 @@ impl Sequence {
 }
 
 impl Client {
-    pub(crate) fn connect<A: ToSocketAddrs>(addr: A) -> SshResult<Client> {
+    pub(crate) fn connect<A: ToSocketAddrs>(addr: A, timeout_sec: u64) -> SshResult<Client> {
         match TcpStream::connect(addr) {
             Ok(stream) => {
                 // default nonblocking
@@ -58,7 +53,7 @@ impl Client {
                             client_sequence_num: 0,
                             server_sequence_num: 0
                         },
-                        timeout: Timeout::new(),
+                        timeout: Timeout::new(timeout_sec),
                         encryption: None,
                         is_encryption: Rc::new(Cell::new(false))
                     }

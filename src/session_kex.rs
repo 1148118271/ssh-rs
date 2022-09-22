@@ -1,4 +1,3 @@
-use std::borrow::{Borrow, BorrowMut};
 use crate::constant::ssh_msg_code;
 use crate::error::{SshError, SshResult};
 use crate::data::Data;
