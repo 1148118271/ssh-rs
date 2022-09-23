@@ -118,6 +118,9 @@ impl Client {
 
     fn get_encrypt_data(&mut self, result: &mut Vec<u8>, data_len: usize) -> SshResult<()> {
         loop {
+
+            self.timeout.is_timeout()?;
+
             let mut buf = vec![0; data_len - result.len()];
             match self.stream.read(&mut buf) {
                 Ok(len) => {
@@ -142,11 +145,18 @@ impl Client {
 
     fn check_result_len(&mut self, result: &mut Vec<u8>) -> SshResult<usize> {
         loop {
+
+            self.timeout.is_timeout()?;
+
             let mut buf = vec![0; size::BUF_SIZE as usize];
             match self.stream.read(&mut buf) {
                 Ok(len) => {
-                    buf.truncate(len);
-                    result.extend(buf);
+                    if len > 0 {
+                        self.timeout.renew();
+                        buf.truncate(len);
+                        result.extend(buf);
+                    }
+
                     if result.len() >= 4 {
                         return Ok(len)
                     }
