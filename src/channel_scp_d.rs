@@ -3,7 +3,7 @@ use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
-use crate::constant::scp;
+use crate::constant::{scp, ssh_msg_code};
 use crate::error::{SshError, SshResult};
 use crate::slog::log;
 use crate::channel_scp::{ChannelScp, ScpFile, check_path};
@@ -38,6 +38,9 @@ impl ChannelScp {
 
     fn process_d(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
         loop {
+            if self.channel.is_close() {
+                return Ok(());
+            }
             self.send_end()?;
             let data = self.read_data()?;
             if data.is_empty() {
@@ -125,8 +128,7 @@ impl ChannelScp {
             Some(v) => scp_file.name = v.to_string()
         }
         scp_file.is_dir = false;
-        self.save_file(scp_file)?;
-        Ok(())
+        self.save_file(scp_file)
     }
 
     fn save_file(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
@@ -149,8 +151,27 @@ impl ChannelScp {
         self.send_end()?;
         let mut count = 0;
         loop {
-            let data = self.read_data()?;
-            if data.is_empty() { continue }
+            if self.channel.is_close() {
+                return Ok(())
+            }
+            let session = unsafe { &mut *self.channel.session };
+            let results = session.client.as_mut().unwrap().read_data(Some(&mut self.channel.window_size))?;
+            let mut data = vec![];
+            for mut result in results {
+                let message_code = result.get_u8();
+                match message_code {
+                    ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
+                        let cc = result.get_u32();
+                        if cc == self.channel.client_channel_no {
+                            data.extend(result.get_u8s())
+                        }
+                    }
+                    _ => self.channel.other(message_code, result)?
+                }
+            }
+            if data.is_empty() {
+                continue
+            }
             count += data.len() as u64;
             if count == scp_file.size + 1 {
                 if let Err(e) = file.write_all(&data[..(data.len() - 1)]) {

@@ -163,4 +163,8 @@ impl Channel {
     pub(crate) fn get_session_mut(&self) -> &mut Session {
         unsafe { &mut *self.session }
     }
+
+    pub(crate) fn is_close(&self) -> bool {
+        self.local_close && self.remote_close
+    }
 }

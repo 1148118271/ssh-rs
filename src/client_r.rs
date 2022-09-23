@@ -52,12 +52,9 @@ impl Client {
 
         result.truncate(len);
         // 处理未加密数据
-        if !self.is_encryption.get() {
-            self.process_data(result, &mut results);
-        }
-        // 处理加密数据
-        else {
-            self.process_data_encrypt(result, &mut results, lws)?
+        match self.is_encryption.get() {
+            true => self.process_data_encrypt(result, &mut results, lws)?,
+            false => self.process_data(result, &mut results)
         }
         Ok(results)
     }
@@ -121,10 +118,11 @@ impl Client {
 
     fn get_encrypt_data(&mut self, result: &mut Vec<u8>, data_len: usize) -> SshResult<()> {
         loop {
-            let mut buf = vec![0; size::BUF_SIZE as usize];
+            let mut buf = vec![0; data_len - result.len()];
             match self.stream.read(&mut buf) {
                 Ok(len) => {
                     if len > 0 {
+                        self.timeout.renew();
                         buf.truncate(len);
                         result.extend(buf);
                     }
