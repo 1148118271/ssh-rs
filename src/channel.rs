@@ -1,6 +1,5 @@
 use std::ops::{Deref, DerefMut};
-use std::sync::atomic::AtomicU32;
-use std::sync::atomic::Ordering::Relaxed;
+use crate::algorithm::hash;
 use crate::constant::{ssh_msg_code};
 use crate::error::{SshError, SshResult};
 use crate::data::Data;
@@ -8,28 +7,14 @@ use crate::slog::log;
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
-use crate::{client, config, kex};
-use crate::algorithm::hash::h;
-use crate::algorithm::{key_exchange, public_key};
+use crate::Session;
 use crate::window_size::WindowSize;
-
-
-// 客户端通道编号初始值
-pub(crate) static CLIENT_CHANNEL_NO: AtomicU32 = AtomicU32::new(0);
-
-
-pub fn current_client_channel_no() -> u32 {
-    let client_channel_no = CLIENT_CHANNEL_NO.load(Relaxed);
-    CLIENT_CHANNEL_NO.fetch_add(1, Relaxed);
-    client_channel_no
-}
-
-
 
 pub struct Channel {
     pub(crate) remote_close: bool,
     pub(crate) local_close: bool,
-    pub(crate) window_size: WindowSize
+    pub(crate) window_size: WindowSize,
+    pub(crate) session: *mut Session,
 }
 
 impl Deref for Channel {
@@ -52,38 +37,40 @@ impl Channel {
             ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
                 data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                let client = client::default()?;
-                client.write(data)?;
+                let session = self.get_session_mut();
+                session.client.as_mut().unwrap().write(data)?;
             }
             ssh_msg_code::SSH_MSG_KEXINIT => {
                 let vec = result.to_vec();
                 let mut data = Data::from(vec![message_code]);
                 data.extend(vec);
-                let h = h::get();
+                let mut h = self.get_session_mut().h.borrow_mut();
                 h.set_i_s(data.as_slice());
-                kex::processing_server_algorithm(data)?;
-                kex::send_algorithm()?;
-                let config = config::config();
 
+                self.get_session_mut().processing_server_algorithm(data)?;
+                self.get_session_mut().send_algorithm()?;
+
+                let config =  self.get_session_mut().config.as_mut().unwrap();
                 // 缓存密钥交换算法
-                key_exchange::put(config.algorithm.matching_key_exchange_algorithm()?);
+                self.get_session_mut().key_exchange = Some(config.algorithm.matching_key_exchange_algorithm()?);
                 // 公钥算法
-                public_key::put(config.algorithm.matching_public_key_algorithm()?);
+                self.get_session_mut().public_key = Some(config.algorithm.matching_public_key_algorithm()?);
 
                 h.set_v_c(config.version.client_version.as_str());
                 h.set_v_s(config.version.server_version.as_str());
 
-                kex::send_qc()?;
+                self.get_session_mut().send_qc()?;
 
-                kex::verify_signature_and_new_keys()?
+                self.get_session_mut().verify_signature_and_new_keys()?
             }
             ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
                 // 生成session_id并且获取signature
-                let sig = kex::generate_signature(result)?;
-                // 验签
-                let session_id = h::get().digest();
-                let flag = public_key::get()
-                    .verify_signature(h::get().k_s.as_ref(),
+                let sig = self.get_session_mut().generate_signature(result)?;
+                let session = self.get_session_mut();
+                let hash_type = session.key_exchange.as_ref().unwrap().get_hash_type();
+                let session_id = hash::digest(session.h.as_ref().borrow_mut().as_bytes().as_slice(), hash_type);
+                let flag = session.public_key.as_ref().unwrap()
+                    .verify_signature(session.h.borrow().k_s.as_ref(),
                                       &session_id, &sig)?;
                 if !flag {
                     log::error!("signature verification failure.");
@@ -91,7 +78,7 @@ impl Channel {
                 }
                 log::info!("signature verification success.");
             }
-            ssh_msg_code::SSH_MSG_NEWKEYS => kex::new_keys()?,
+            ssh_msg_code::SSH_MSG_NEWKEYS => {} //kex::new_keys()?,
             // 通道大小 暂不处理
             ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
                 // 接收方通道号， 暂时不需要
@@ -107,7 +94,7 @@ impl Channel {
             ssh_msg_code::SSH_MSG_CHANNEL_FAILURE => return Err(SshError::from("channel failure.")),
             ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
                 let cc = result.get_u32();
-                if cc == self.client_channel {
+                if cc == self.client_channel_no {
                     self.remote_close = true;
                     self.close()?;
                 }
@@ -142,9 +129,9 @@ impl Channel {
         if self.local_close { return Ok(()); }
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_CLOSE)
-            .put_u32(self.server_channel);
-        let client = client::default()?;
-        client.write(data)?;
+            .put_u32(self.server_channel_no);
+        let session = self.get_session_mut();
+        session.client.as_mut().unwrap().write(data)?;
         self.local_close = true;
         Ok(())
     }
@@ -152,15 +139,17 @@ impl Channel {
     fn receive_close(&mut self) -> SshResult<()> {
         if self.remote_close { return Ok(()); }
         loop {
-            let client = client::default()?;
-            let results = client.read()?; // close 时不消耗窗口空间
+            // close 时不消耗窗口空间
+            let results = {
+                self.get_session_mut().client.as_mut().unwrap().read()
+            }?;
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
                         let cc = result.get_u32();
-                        if cc == self.client_channel {
+                        if cc == self.client_channel_no {
                             self.remote_close = true;
                             return Ok(())
                         }
@@ -169,5 +158,13 @@ impl Channel {
                 }
             }
         }
+    }
+
+    pub(crate) fn get_session_mut(&self) -> &mut Session {
+        unsafe { &mut *self.session }
+    }
+
+    pub(crate) fn is_close(&self) -> bool {
+        self.local_close && self.remote_close
     }
 }

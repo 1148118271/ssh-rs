@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use crate::constant::{scp, ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::error::{SshResult, SshError};
-use crate::{Channel, client};
+use crate::Channel;
 
 
 
@@ -34,30 +34,30 @@ impl ChannelScp {
     pub(crate) fn send_bytes(&mut self, bytes: &[u8]) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
-            .put_u32(self.channel.server_channel)
+            .put_u32(self.channel.server_channel_no)
             .put_u8s(bytes);
-        let client = client::default()?;
-        client.write_data(data, Some(self.channel.window_size.borrow_mut()))
+        let session = unsafe { &mut *self.channel.session };
+        session.client.as_mut().unwrap().write_data(data, Some(self.channel.window_size.borrow_mut()))
     }
 
     pub(crate) fn read_data(&mut self) -> SshResult<Vec<u8>> {
         let mut vec = vec![];
         loop {
             if !vec.is_empty() { break }
-            let client = client::default()?;
-            let results = client.read_data(Some(self.channel.window_size.borrow_mut()))?;
+            let session = unsafe { &mut *self.channel.session };
+            let results = session.client.as_mut().unwrap().read_data(Some(self.channel.window_size.borrow_mut()))?;
             for mut result in results {
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                         let cc = result.get_u32();
-                        if cc == self.channel.client_channel {
+                        if cc == self.channel.client_channel_no {
                             vec.extend(result.get_u8s())
                         }
                     }
                     ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
                         let cc = result.get_u32();
-                        if cc == self.channel.client_channel {
+                        if cc == self.channel.client_channel_no {
                             self.channel.remote_close = true;
                             self.channel.close()?;
                             return Ok(vec)
@@ -73,12 +73,11 @@ impl ChannelScp {
     pub(crate) fn exec_scp(&mut self, command: &str) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
-            .put_u32(self.channel.server_channel)
+            .put_u32(self.channel.server_channel_no)
             .put_str(ssh_str::EXEC)
             .put_u8(true as u8)
             .put_str(command);
-        let client = client::default()?;
-        client.write(data)
+        self.channel.get_session_mut().client.as_mut().unwrap().write(data)
     }
 
     pub(crate) fn command_init(&self, remote_path: &str, arg: &str) -> String {

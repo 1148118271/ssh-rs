@@ -1,44 +1,62 @@
+use std::cell::{Cell, RefCell};
 use std::net::ToSocketAddrs;
+use std::rc::Rc;
 use crate::data::Data;
 use crate::constant::{ssh_msg_code, size, ssh_str};
 use crate::error::{SshError, SshResult};
-use crate::slog::{log, Slog};
-use crate::channel::Channel;
-use crate::channel_scp::ChannelScp;
-use crate::{channel, ChannelExec, ChannelShell, client, config, kex, timeout, util};
-use crate::algorithm::hash::h;
-use crate::algorithm::{encryption, key_exchange, mac, public_key};
+use crate::slog::log;
+use crate::{ChannelShell, ChannelScp, ChannelExec, Channel, util};
+use crate::algorithm::encryption::Encryption;
+use crate::algorithm::hash::hash::HASH;
+use crate::algorithm::key_exchange::KeyExchange;
+use crate::algorithm::public_key::PublicKey;
+use crate::h::H;
+use crate::client::Client;
+use crate::config::Config;
 use crate::user_info::AuthType;
 use crate::window_size::WindowSize;
 
 
-pub struct Session;
+pub struct Session {
 
+    pub(crate) timeout_sec: u64,
 
-impl Session {
-    pub fn is_enable_log(&self, b: bool) {
-        if b {
-            Slog::default()
-        }
-    }
+    pub(crate) h: Rc<RefCell<H>>,
 
-    pub fn set_timeout(&self, secs: u64) {
-        unsafe {
-            timeout::TIMEOUT = secs
-        }
-    }
+    pub(crate) config: Option<Config>,
+
+    pub(crate) client: Option<Client>,
+
+    pub(crate) encryption: Option<Rc<RefCell<Box<dyn Encryption>>>>,
+
+    pub(crate) key_exchange: Option<Box<dyn KeyExchange>>,
+
+    pub(crate) public_key: Option<Box<dyn PublicKey>>,
+
+    pub(crate) is_encryption: Rc<Cell<bool>>,
+
+    pub(crate) client_channel_no: u32,
 
 }
 
 impl Session {
 
-    pub fn connect<A>(&mut self, addr: A) -> Result<(), SshError>
+    pub fn set_timeout(&mut self, secs: u64) {
+        self.timeout_sec = secs;
+    }
+
+    pub fn connect<A>(&mut self, addr: A) -> SshResult<()>
     where
         A: ToSocketAddrs
     {
 
-        // tcp 发起连接
-        client::connect(addr)?;
+        if self.config.is_none() {
+            return Err(SshError::from("config is none."))
+        }
+
+        // 建立通道
+        self.client = Some(Client::connect(addr, self.timeout_sec)?);
+
 
         log::info!("session opened.");
 
@@ -48,9 +66,6 @@ impl Session {
         // 获取服务端版本
         self.receive_version()?;
 
-        // 版本验证
-        let config = config::config();
-        config.version.validation()?;
         // 发送客户端版本
         self.send_version()?;
 
@@ -59,45 +74,78 @@ impl Session {
         log::info!("prepare for key negotiation.");
 
         // 密钥协商
-        kex::send_algorithm()?;
-        kex::receive_algorithm()?;
+        // 发送客户端密钥
+        self.send_algorithm()?;
+        // 接收服务端密钥
+        self.receive_algorithm()?;
 
-        // 缓存密钥交换算法
-        key_exchange::put(config.algorithm.matching_key_exchange_algorithm()?);
-        // 公钥算法
-        public_key::put(config.algorithm.matching_public_key_algorithm()?);
+        // 版本验证
+        {
+            let config = self.config.as_ref().unwrap();
+            config.version.validation()?;
 
-        h::get().set_v_c(config.version.client_version.as_str());
-        h::get().set_v_s(config.version.server_version.as_str());
+            // 缓存密钥交换算法
+            self.key_exchange = Some(config.algorithm.matching_key_exchange_algorithm()?);
+            // 公钥算法
+            self.public_key = Some(config.algorithm.matching_public_key_algorithm()?);
 
-        kex::send_qc()?;
-        kex::verify_signature_and_new_keys()?;
+            let mut h_mut = self.h.as_ref().borrow_mut();
+            h_mut.set_v_c(config.version.client_version.as_str());
+            h_mut.set_v_s(config.version.server_version.as_str());
+        }
 
-        // 加密算法
-        encryption::put(config.algorithm.matching_encryption_algorithm()?);
+        self.send_qc()?;
+        self.verify_signature_and_new_keys()?;
+
+        // 验签成功, 之后的数据交互开始加密
+        self.is_encryption.set(true);
+        self.client.as_mut().unwrap().is_encryption = self.is_encryption.clone();
+
+        let hash = HASH::new(self.h.clone(), self.key_exchange.as_ref().unwrap().get_hash_type());
+        let config = self.config.as_ref().unwrap();
         // mac 算法
-        mac::put(config.algorithm.matching_mac_algorithm()?);
-
+        let mac = config.algorithm.matching_mac_algorithm()?;
+        // 加密算法
+        let erc = Rc::new(
+            RefCell::new(
+                config.algorithm.matching_encryption_algorithm(hash, mac)?
+            )
+        );
+        self.encryption = Some(erc.clone());
+        let client = self.client.as_mut().unwrap();
+        client.encryption = Some(erc.clone());
         log::info!("key negotiation successful.");
 
         self.initiate_authentication()?;
         self.authentication()
     }
 
+    pub fn close(self) -> SshResult<()> {
+        log::info!("session close.");
+        self.client.unwrap().close()
+    }
+
+}
+
+impl Session {
     pub fn open_channel(&mut self) -> SshResult<Channel> {
         log::info!("channel opened.");
-        let client_channel = channel::current_client_channel_no();
-        self.send_open_channel(client_channel)?;
-        let (server_channel, rws) = self.receive_open_channel()?;
+        self.send_open_channel(self.client_channel_no)?;
+        let (server_channel_no, rws) = self.receive_open_channel()?;
+        // 打开成功， 通道号+1
         let mut win_size = WindowSize::new();
-        win_size.server_channel = server_channel;
-        win_size.client_channel = client_channel;
+        win_size.server_channel_no = server_channel_no;
+        win_size.client_channel_no = self.client_channel_no;
         win_size.add_remote_window_size(rws);
         win_size.add_remote_max_window_size(rws);
+
+        self.client_channel_no += 1;
+
         Ok(Channel {
             remote_close: false,
             local_close: false,
-            window_size: win_size
+            window_size: win_size,
+            session: self as *mut Session
         })
     }
 
@@ -115,33 +163,25 @@ impl Session {
         let channel = self.open_channel()?;
         channel.open_scp()
     }
-
-    pub fn close(self) -> SshResult<()> {
-        log::info!("session close.");
-        client::default()?.close()
-    }
-
 }
 
 impl Session {
 
     // 本地请求远程打开通道
-    fn send_open_channel(&mut self, client_channel: u32) -> SshResult<()> {
+    fn send_open_channel(&mut self, client_channel_no: u32) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_OPEN)
             .put_str(ssh_str::SESSION)
-            .put_u32(client_channel)
+            .put_u32(client_channel_no)
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
-        let client = client::default()?;
-        client.write(data)
+        self.client.as_mut().unwrap().write(data)
     }
 
     // 远程回应是否可以打开通道
     fn receive_open_channel(&mut self) -> SshResult<(u32, u32)> {
         loop {
-            let client = client::default()?;
-            let results = client.read()?;
+            let results = self.client.as_mut().unwrap().read()?;
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
@@ -151,12 +191,12 @@ impl Session {
                         // 接收方通道号
                         result.get_u32();
                         // 发送方通道号
-                        let server_channel = result.get_u32();
+                        let server_channel_no = result.get_u32();
                         // 远程初始窗口大小
                         let rws = result.get_u32();
                         // 远程的最大数据包大小， 暂时不需要
                         result.get_u32();
-                        return Ok((server_channel, rws));
+                        return Ok((server_channel_no, rws));
                     },
                     /*
                         byte SSH_MSG_CHANNEL_OPEN_FAILURE
@@ -203,20 +243,18 @@ impl Session {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
-        let client = client::default()?;
-        client.write(data)
+        self.client.as_mut().unwrap().write(data)
     }
 
     fn authentication(&mut self) -> SshResult<()> {
-        let client = client::default()?;
         loop {
-            let results = client.read()?;
+            let results = self.client.as_mut().unwrap().read()?;
             for mut result in results {
                 if result.is_empty() { continue }
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
-                        let config = config::config();
+                        let config = self.config.as_ref().unwrap();
                         match config.auth.auth_type {
                             // 开始密码验证
                             AuthType::Password => self.password_authentication()?,
@@ -239,7 +277,7 @@ impl Session {
                     ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                         let mut data = Data::new();
                         data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                        client.write(data)?
+                        self.client.as_mut().unwrap().write(data)?
                     }
                     _ => {}
                 }
@@ -248,22 +286,25 @@ impl Session {
     }
 
     fn send_version(&mut self) -> SshResult<()> {
-        let client = client::default()?;
-        let config = config::config();
-        client.write_version(format!("{}\r\n", config.version.client_version).as_bytes())?;
-        log::info!("client version: [{}]", config.version.client_version);
+        let cv = {
+            let config = self.config.as_ref().unwrap();
+            config.version.client_version.clone()
+        };
+        self.client.as_mut().unwrap().write_version(format!("{}\r\n", cv.as_str()).as_bytes())?;
+        log::info!("client version: [{}]", cv);
         Ok(())
     }
 
     fn receive_version(&mut self) -> SshResult<()> {
-        let client = client::default()?;
-        let vec = client.read_version();
+        let vec = self.client.as_mut().unwrap().read_version();
         let from_utf8 = util::from_utf8(vec)?;
         let sv = from_utf8.trim();
         log::info!("server version: [{}]", sv);
-        let config = config::config();
+        let config = self.config.as_mut().unwrap();
         config.version.server_version = sv.to_string();
         Ok(())
     }
+
+
 }
 

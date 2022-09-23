@@ -181,7 +181,7 @@ mod client_w;
 mod session;
 mod session_auth;
 mod channel;
-mod kex;
+mod session_kex;
 mod channel_shell;
 mod channel_exec;
 mod channel_scp;
@@ -201,6 +201,7 @@ mod timeout;
 
 pub mod key_pair;
 pub mod error;
+pub(crate) mod h;
 
 pub use session::Session;
 pub use channel::Channel;
@@ -214,10 +215,29 @@ use crate::error::{SshError, SshResult};
 
 
 pub mod ssh {
+    use std::cell::{Cell, RefCell};
+    use std::rc::Rc;
+    use crate::h::H;
     use crate::Session;
+    use crate::slog::Slog;
 
     pub fn create_session() -> Session {
-        Session
+        Session {
+            timeout_sec: 30,
+            h: Rc::new(RefCell::new(H::new())),
+            config: None,
+            client: None,
+            encryption: None,
+            key_exchange: None,
+            public_key: None,
+            is_encryption: Rc::new(Cell::new(false)),
+            client_channel_no: 0,
+        }
     }
 
+    pub fn is_enable_log(b: bool) {
+        if b {
+            Slog::default()
+        }
+    }
 }

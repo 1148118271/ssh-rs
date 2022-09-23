@@ -3,6 +3,7 @@ use crate::data::Data;
 use crate::slog::log;
 use crate::{SshError, SshResult};
 use crate::algorithm::encryption::{AesCtr128, ChaCha20Poly1305, Encryption};
+use crate::algorithm::hash::hash::HASH;
 use crate::algorithm::key_exchange::curve25519::CURVE25519;
 use crate::algorithm::key_exchange::ecdh_sha2_nistp256::EcdhP256;
 use crate::algorithm::key_exchange::KeyExchange;
@@ -12,29 +13,14 @@ use crate::algorithm::public_key::{Ed25519, PublicKey, RSA};
 use crate::user_info::UserInfo;
 
 
-pub(crate) static mut CONFIG: Option<Config> = None;
-
-
-pub(crate) fn init(user_info: UserInfo) {
-    unsafe {
-        CONFIG = Some(Config::new(user_info));
-    }
+pub struct Config {
+    pub auth: UserInfo,
+    pub version: VersionConfig,
+    pub algorithm: AlgorithmConfig,
 }
 
-pub(crate) fn config() -> &'static mut Config {
-    unsafe {
-        CONFIG.as_mut().unwrap()
-    }
-}
-
-
-pub(crate) struct Config {
-    pub(crate) auth: UserInfo,
-    pub(crate) version: VersionConfig,
-    pub(crate) algorithm: AlgorithmConfig,
-}
 impl Config {
-    pub(crate) fn new(user_info: UserInfo) -> Self {
+    pub fn new(user_info: UserInfo) -> Self {
         Config {
             auth: user_info,
             version: VersionConfig::new(),
@@ -46,18 +32,18 @@ impl Config {
 
 
 #[derive(Clone)]
-pub(crate) struct VersionConfig {
-    pub(crate) client_version: String,
-    pub(crate) server_version: String,
+pub struct VersionConfig {
+    pub client_version: String,
+    pub server_version: String,
 }
 impl VersionConfig {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         VersionConfig {
             client_version: CLIENT_VERSION.to_string(),
             server_version: String::new()
         }
     }
-    pub(crate) fn validation(&self) -> SshResult<()> {
+    pub fn validation(&self) -> SshResult<()> {
         if !self.server_version.contains("SSH-2.0") {
             log::error!("error in version negotiation, version mismatch.");
             return Err(SshError::from("error in version negotiation, version mismatch."))
@@ -68,12 +54,12 @@ impl VersionConfig {
 
 
 #[derive(Clone)]
-pub(crate) struct AlgorithmConfig {
-    pub(crate) client_algorithm: AlgorithmList,
-    pub(crate) server_algorithm: AlgorithmList,
+pub struct AlgorithmConfig {
+    pub client_algorithm: AlgorithmList,
+    pub server_algorithm: AlgorithmList,
 }
 impl AlgorithmConfig {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         AlgorithmConfig {
             client_algorithm: AlgorithmList::client_algorithm(),
             server_algorithm: AlgorithmList::new()
@@ -84,7 +70,7 @@ impl AlgorithmConfig {
     /// 匹配合适的mac算法
     /// 目前支持：
     ///     1. hmac-sha1
-    pub(crate) fn matching_mac_algorithm(&self) -> SshResult<Box<dyn Mac>> {
+    pub fn matching_mac_algorithm(&self) -> SshResult<Box<dyn Mac>> {
         // 目前是加密和解密使用一个算法
         // 所以直接取一个算法为准
         let mac_algorithm: String = get_algorithm(
@@ -111,7 +97,7 @@ impl AlgorithmConfig {
     /// 目前支持:
     ///     1. chacha20-poly1305@openssh.com
     ///     2. aes128-ctr
-    pub(crate) fn matching_encryption_algorithm(&self) -> SshResult<Box<dyn Encryption>> {
+    pub fn matching_encryption_algorithm(&self, hash: HASH, mac: Box<dyn Mac>) -> SshResult<Box<dyn Encryption>> {
         // 目前是加密和解密使用一个算法
         // 所以直接取一个算法为准
         let encryption_algorithm: String = get_algorithm(
@@ -119,8 +105,8 @@ impl AlgorithmConfig {
             &self.server_algorithm.c_encryption_algorithm.0
         );
         match encryption_algorithm.as_str() {
-            algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH => Ok(Box::new(ChaCha20Poly1305::new())),
-            algorithms::ENCRYPTION_AES128_CTR => Ok(Box::new(AesCtr128::new())),
+            algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH => Ok(Box::new(ChaCha20Poly1305::new(hash, mac))),
+            algorithms::ENCRYPTION_AES128_CTR => Ok(Box::new(AesCtr128::new(hash, mac))),
             _ => {
                 log::error!("description the encryption algorithm fails to match, \
                 algorithms supported by the server: {},\
@@ -138,7 +124,7 @@ impl AlgorithmConfig {
     /// 目前支持:
     ///     1. ed25519.rs
     ///     2. ssh-rsa
-    pub(crate) fn matching_public_key_algorithm(&self) -> SshResult<Box<dyn PublicKey>> {
+    pub fn matching_public_key_algorithm(&self) -> SshResult<Box<dyn PublicKey>> {
         let public_key_algorithm: String = get_algorithm(
             &self.client_algorithm.public_key_algorithm.0,
             &self.server_algorithm.public_key_algorithm.0
@@ -162,7 +148,7 @@ impl AlgorithmConfig {
     /// 目前支持:
     ///     1. curve25519-sha256
     ///     2. ecdh-sha2-nistp256
-    pub(crate) fn matching_key_exchange_algorithm(&self) -> SshResult<Box<dyn KeyExchange>> {
+    pub fn matching_key_exchange_algorithm(&self) -> SshResult<Box<dyn KeyExchange>> {
         let key_exchange_algorithm: String = get_algorithm(
             &self.client_algorithm.key_exchange_algorithm.0,
             &self.server_algorithm.key_exchange_algorithm.0
@@ -194,18 +180,18 @@ fn get_algorithm(c_algorithm: &Vec<String>, s_algorithm: &Vec<String>) -> String
 }
 
 #[derive(Clone)]
-pub(crate) struct AlgorithmList {
-    pub(crate) key_exchange_algorithm: KeyExchangeAlgorithm,
-    pub(crate) public_key_algorithm: PublicKeyAlgorithm,
-    pub(crate) c_encryption_algorithm: EncryptionAlgorithm,
-    pub(crate) s_encryption_algorithm: EncryptionAlgorithm,
-    pub(crate) c_mac_algorithm: MacAlgorithm,
-    pub(crate) s_mac_algorithm: MacAlgorithm,
-    pub(crate) c_compression_algorithm: CompressionAlgorithm,
-    pub(crate) s_compression_algorithm: CompressionAlgorithm,
+pub struct AlgorithmList {
+    pub key_exchange_algorithm: KeyExchangeAlgorithm,
+    pub public_key_algorithm: PublicKeyAlgorithm,
+    pub c_encryption_algorithm: EncryptionAlgorithm,
+    pub s_encryption_algorithm: EncryptionAlgorithm,
+    pub c_mac_algorithm: MacAlgorithm,
+    pub s_mac_algorithm: MacAlgorithm,
+    pub c_compression_algorithm: CompressionAlgorithm,
+    pub s_compression_algorithm: CompressionAlgorithm,
 }
 impl AlgorithmList {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         AlgorithmList {
             key_exchange_algorithm: KeyExchangeAlgorithm(vec![]),
             public_key_algorithm: PublicKeyAlgorithm(vec![]),
@@ -218,7 +204,7 @@ impl AlgorithmList {
         }
     }
 
-    pub(crate) fn client_algorithm() -> Self {
+    pub fn client_algorithm() -> Self {
         AlgorithmList {
             key_exchange_algorithm: KeyExchangeAlgorithm::get_client(),
             public_key_algorithm: PublicKeyAlgorithm::get_client(),
@@ -231,7 +217,7 @@ impl AlgorithmList {
         }
     }
 
-    pub(crate) fn as_i(&self) -> Vec<u8> {
+    pub fn as_i(&self) -> Vec<u8> {
         let mut data = Data::new();
         data.put_str(self.key_exchange_algorithm.to_string().as_str());
         data.put_str(self.public_key_algorithm.to_string().as_str());
@@ -262,9 +248,9 @@ impl ToString for AlgorithmList {
 
 
 #[derive(Clone)]
-pub(crate) struct KeyExchangeAlgorithm(pub(crate) Vec<String>);
+pub struct KeyExchangeAlgorithm(pub Vec<String>);
 impl KeyExchangeAlgorithm {
-    pub(crate) fn get_client() -> Self {
+    pub fn get_client() -> Self {
         KeyExchangeAlgorithm(
             vec![
                 algorithms::DH_CURVE25519_SHA256.to_string(),
@@ -282,9 +268,9 @@ impl ToString for KeyExchangeAlgorithm {
 
 
 #[derive(Clone)]
-pub(crate) struct PublicKeyAlgorithm(pub(crate) Vec<String>);
+pub struct PublicKeyAlgorithm(pub Vec<String>);
 impl PublicKeyAlgorithm {
-    pub(crate) fn get_client() -> Self {
+    pub fn get_client() -> Self {
         PublicKeyAlgorithm(
             vec![
                 algorithms::PUBLIC_KEY_ED25519.to_string(),
@@ -301,9 +287,9 @@ impl ToString for PublicKeyAlgorithm {
 }
 
 #[derive(Clone)]
-pub(crate) struct EncryptionAlgorithm(pub(crate) Vec<String>);
+pub struct EncryptionAlgorithm(pub Vec<String>);
 impl EncryptionAlgorithm {
-    pub(crate) fn get_client() -> Self {
+    pub fn get_client() -> Self {
         EncryptionAlgorithm(
             vec![
                 algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH.to_string(),
@@ -319,9 +305,9 @@ impl ToString for EncryptionAlgorithm {
 }
 
 #[derive(Clone)]
-pub(crate) struct MacAlgorithm(pub(crate) Vec<String>);
+pub struct MacAlgorithm(pub Vec<String>);
 impl MacAlgorithm {
-    pub(crate) fn get_client() -> Self {
+    pub fn get_client() -> Self {
         MacAlgorithm(
             vec![
                 algorithms::MAC_HMAC_SHA1.to_string(),
@@ -337,9 +323,9 @@ impl ToString for MacAlgorithm {
 
 
 #[derive(Clone)]
-pub(crate) struct CompressionAlgorithm(pub(crate) Vec<String>);
+pub struct CompressionAlgorithm(pub Vec<String>);
 impl CompressionAlgorithm {
-    pub(crate) fn get_client() -> Self {
+    pub fn get_client() -> Self {
         CompressionAlgorithm(
             vec![
                 algorithms::COMPRESSION_ALGORITHMS.to_string(),

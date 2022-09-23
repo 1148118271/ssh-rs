@@ -1,17 +1,14 @@
 use std::io;
 use std::io::Read;
-use std::sync::atomic::Ordering::Relaxed;
 use crate::client::Client;
-use crate::constant::size;
 use crate::data::Data;
-use crate::algorithm::encryption::IS_ENCRYPT;
 use crate::{SshError, SshResult};
-use crate::algorithm::encryption;
+use crate::constant::size;
 use crate::packet::Packet;
 use crate::window_size::WindowSize;
 
 impl Client {
-
+    /// 发送客户端版本
     pub(crate) fn read_version(&mut self) -> Vec<u8> {
         let mut v = [0_u8; 128];
         loop {
@@ -22,11 +19,11 @@ impl Client {
         }
     }
 
-    pub(crate) fn read(&mut self) -> Result<Vec<Data>, SshError> {
+    pub fn read(&mut self) -> SshResult<Vec<Data>> {
         self.read_data(None)
     }
 
-    pub(crate) fn read_data(&mut self, lws: Option<&mut WindowSize>) -> SshResult<Vec<Data>> {
+    pub fn read_data(&mut self, lws: Option<&mut WindowSize>) -> SshResult<Vec<Data>> {
         // 判断超时时间
         // 如果超时,即抛出异常
         self.timeout.is_timeout()?;
@@ -55,18 +52,14 @@ impl Client {
 
         result.truncate(len);
         // 处理未加密数据
-        if !IS_ENCRYPT.load(Relaxed) {
-            self.process_data(result, &mut results);
+        match self.is_encryption.get() {
+            true => self.process_data_encrypt(result, &mut results, lws)?,
+            false => self.process_data(result, &mut results)
         }
-        // 处理加密数据
-        else {
-            self.process_data_encrypt(result, &mut results, lws)?
-        }
-
         Ok(results)
     }
 
-    fn process_data(&mut self, mut result: Vec<u8>, results: &mut Vec<Data>) {
+    pub fn process_data(&mut self, mut result: Vec<u8>, results: &mut Vec<Data>) {
         // 未加密
         self.sequence.server_auto_increment();
         let packet_len = &result[..4];
@@ -82,31 +75,33 @@ impl Client {
         }
         let data = Packet::from(result).unpacking();
         results.push(data);
-
     }
 
-    fn process_data_encrypt(&mut self,
-                            mut result: Vec<u8>,
-                            results: &mut Vec<Data>,
-                            mut lws: Option<&mut WindowSize>)
-        -> SshResult<()>
+    pub fn process_data_encrypt(&mut self,
+                                mut result: Vec<u8>,
+                                results: &mut Vec<Data>,
+                                mut lws: Option<&mut WindowSize>
+    ) -> SshResult<()>
     {
         loop {
             self.sequence.server_auto_increment();
             if result.len() < 4 {
                 self.check_result_len(&mut result)?;
             }
-            let key = encryption::get();
-            let data_len = key.data_len(self.sequence.server_sequence_num, result.as_slice());
-            // let packet_len = self.get_encrypt_packet_length(&result[..4], key);
-            // let data_len = (packet_len + 4 + 16) as usize;
-
+            let data_len = {
+                let rc = self.encryption.clone().unwrap();
+                let mut erc = rc.as_ref().borrow_mut();
+                erc.data_len(self.sequence.server_sequence_num, result.as_slice())
+            };
             if result.len() < data_len {
                 self.get_encrypt_data(&mut result, data_len)?;
             }
             let (this, remaining) = result.split_at_mut(data_len);
-            let decryption_result =
-                key.decrypt(self.sequence.server_sequence_num, &mut this.to_vec())?;
+            let decryption_result = {
+                let rc = &self.encryption.clone().unwrap();
+                let mut erc = rc.as_ref().borrow_mut();
+                erc.decrypt(self.sequence.server_sequence_num, &mut this.to_vec())
+            }?;
             let data = Packet::from(decryption_result).unpacking();
             // 判断是否需要修改窗口大小
             if let Some(v) = &mut lws {
@@ -121,13 +116,16 @@ impl Client {
         Ok(())
     }
 
-
     fn get_encrypt_data(&mut self, result: &mut Vec<u8>, data_len: usize) -> SshResult<()> {
         loop {
-            let mut buf = vec![0; size::BUF_SIZE as usize];
+
+            self.timeout.is_timeout()?;
+
+            let mut buf = vec![0; data_len - result.len()];
             match self.stream.read(&mut buf) {
                 Ok(len) => {
                     if len > 0 {
+                        self.timeout.renew();
                         buf.truncate(len);
                         result.extend(buf);
                     }
@@ -145,34 +143,20 @@ impl Client {
         }
     }
 
-    // fn get_encrypt_packet_length(&self, len: &[u8], key: &mut ChaCha20Poly1305) -> u32 {
-    //     let mut packet_len_slice = [0_u8; 4];
-    //     packet_len_slice.copy_from_slice(len);
-    //     let packet_len_slice = key.server_key
-    //         .decrypt_packet_length(
-    //             self.sequence.server_sequence_num,
-    //             packet_len_slice);
-    //     u32::from_be_bytes(packet_len_slice)
-    // }
-
-    // fn get_encrypt_packet_length(&self, len: &[u8], key: &mut AesCtr) -> u32 {
-    //     // let mut packet_len_slice = [0_u8; 4];
-    //     // key.decryption()
-    //     // packet_len_slice.copy_from_slice(len);
-    //     // let packet_len_slice = key.server_key
-    //     //     .decrypt_packet_length(
-    //     //         self.sequence.server_sequence_num,
-    //     //         packet_len_slice);
-    //     // u32::from_be_bytes(packet_len_slice)
-    // }
-
     fn check_result_len(&mut self, result: &mut Vec<u8>) -> SshResult<usize> {
         loop {
+
+            self.timeout.is_timeout()?;
+
             let mut buf = vec![0; size::BUF_SIZE as usize];
             match self.stream.read(&mut buf) {
                 Ok(len) => {
-                    buf.truncate(len);
-                    result.extend(buf);
+                    if len > 0 {
+                        self.timeout.renew();
+                        buf.truncate(len);
+                        result.extend(buf);
+                    }
+
                     if result.len() >= 4 {
                         return Ok(len)
                     }

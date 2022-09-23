@@ -1,15 +1,19 @@
+use std::cell::{Cell, RefCell};
 use std::io;
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
+use std::rc::Rc;
+use crate::algorithm::encryption::Encryption;
 use crate::error::{SshError, SshResult};
-use crate::slog::log;
 use crate::timeout::Timeout;
 
 
 pub struct Client {
     pub(crate) stream: TcpStream,
     pub(crate) sequence: Sequence,
-    pub(crate) timeout: Timeout
+    pub(crate) timeout: Timeout,
+    pub(crate) encryption: Option<Rc<RefCell<Box<dyn Encryption>>>>,
+    pub(crate) is_encryption: Rc<Cell<bool>>,
 }
 
 #[derive(Clone)]
@@ -36,11 +40,12 @@ impl Sequence {
 }
 
 impl Client {
-    pub(crate) fn connect<A: ToSocketAddrs>(addr: A) -> SshResult<Client> {
+    pub(crate) fn connect<A: ToSocketAddrs>(addr: A, timeout_sec: u64) -> SshResult<Client> {
         match TcpStream::connect(addr) {
             Ok(stream) => {
                 // default nonblocking
                 stream.set_nonblocking(true).unwrap();
+
                 Ok(
                     Client{
                         stream,
@@ -48,7 +53,9 @@ impl Client {
                             client_sequence_num: 0,
                             server_sequence_num: 0
                         },
-                        timeout: Timeout::new()
+                        timeout: Timeout::new(timeout_sec),
+                        encryption: None,
+                        is_encryption: Rc::new(Cell::new(false))
                     }
                 )
             }
@@ -81,31 +88,5 @@ impl Deref for Client {
 impl DerefMut for Client {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.stream
-    }
-}
-
-
-
-static mut CLIENT: Option<Client> = None;
-
-pub(crate) fn connect<A: ToSocketAddrs>(addr: A) -> Result<(), SshError> {
-    unsafe {
-        let client = Client::connect(addr)?;
-        CLIENT = Some(client);
-        Ok(())
-    }
-}
-
-pub(crate) fn default() -> SshResult<&'static mut Client> {
-    unsafe {
-        match &mut CLIENT {
-            None => {
-                log::error!("Client null pointer");
-                Err(SshError::from("Client null pointer"))
-            }
-            Some(v) => {
-                Ok(v)
-            }
-        }
     }
 }

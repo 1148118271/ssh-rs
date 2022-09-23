@@ -1,5 +1,4 @@
 use std::io::{Read, Write};
-use crate::algorithm::encryption;
 use crate::client::Client;
 use crate::constant::size::LOCAL_WINDOW_SIZE;
 use crate::constant::{size, ssh_msg_code};
@@ -9,8 +8,8 @@ use crate::packet::Packet;
 use crate::SshError;
 
 pub struct WindowSize {
-    pub(crate) server_channel: u32,
-    pub(crate) client_channel: u32,
+    pub(crate) server_channel_no: u32,
+    pub(crate) client_channel_no: u32,
     /// 本地窗口最大大小
     local_max_window_size: u32,
     /// 本地窗口大小
@@ -25,8 +24,8 @@ impl WindowSize {
 
     pub(crate) fn new() -> Self {
         WindowSize {
-            server_channel: 0,
-            client_channel: 0,
+            server_channel_no: 0,
+            client_channel_no: 0,
             local_max_window_size: LOCAL_WINDOW_SIZE,
             local_window_size: LOCAL_WINDOW_SIZE,
             remote_max_window_size: 0,
@@ -62,7 +61,11 @@ impl WindowSize {
 
 impl WindowSize {
 
-    pub fn process_remote_window_size(&mut self, data: &[u8], client: &mut Client) -> SshResult<()> {
+    pub(crate) fn process_remote_window_size(&mut self,
+                                      data: &[u8],
+                                      client: &mut Client,
+    ) -> SshResult<()>
+    {
         if self.remote_window_size == 0 {
             return Ok(());
         }
@@ -72,6 +75,7 @@ impl WindowSize {
             Some(size) => size
         };
         self.sub_remote_window_size(size);
+
         if used > 0 && self.remote_max_window_size / used <= 20 {
             let mut result = vec![0; size::BUF_SIZE as usize];
             loop {
@@ -88,10 +92,9 @@ impl WindowSize {
                     }
                 };
             }
-
             client.sequence.server_auto_increment();
-            let result = encryption::get()
-                .decrypt(client.sequence.server_sequence_num, &mut result)?;
+            let mut encryption = client.encryption.as_mut().unwrap().borrow_mut();
+            let result = encryption.decrypt(client.sequence.server_sequence_num, &mut result)?;
             let mut data = Packet::from(result).unpacking();
             let mc = data.get_u8();
             if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
@@ -106,22 +109,26 @@ impl WindowSize {
         return Ok(())
     }
 
-    pub fn sub_remote_window_size(&mut self, rws: u32) {
+    pub(crate) fn sub_remote_window_size(&mut self, rws: u32) {
         self.remote_window_size = self.remote_window_size - rws;
     }
 
-    pub fn add_remote_window_size(&mut self, rws: u32) {
+    pub(crate) fn add_remote_window_size(&mut self, rws: u32) {
         self.remote_window_size = self.remote_window_size + rws;
     }
 
-    pub fn add_remote_max_window_size(&mut self, rws: u32) {
+    pub(crate) fn add_remote_max_window_size(&mut self, rws: u32) {
         self.remote_max_window_size = self.remote_max_window_size + rws;
     }
 }
 
 impl WindowSize {
 
-    pub fn process_local_window_size(&mut self, data: &[u8], client: &mut Client) -> SshResult<()> {
+    pub(crate) fn process_local_window_size(&mut self,
+                                     data: &[u8],
+                                     client: &mut Client,
+    ) -> SshResult<()>
+    {
         let size = match self.get_size(data) {
             None => return Ok(()),
             Some(size) => size
@@ -137,7 +144,7 @@ impl WindowSize {
 
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
-            .put_u32(self.server_channel)
+            .put_u32(self.server_channel_no)
             .put_u32(used);
 
         let buf = client.get_encryption_data(data)?;
@@ -154,11 +161,11 @@ impl WindowSize {
         return Ok(());
     }
 
-    pub fn sub_local_window_size(&mut self, lws: u32) {
+    pub(crate) fn sub_local_window_size(&mut self, lws: u32) {
         self.local_window_size = self.local_window_size - lws;
     }
 
-    pub fn add_local_window_size(&mut self, lws: u32) {
+    pub(crate) fn add_local_window_size(&mut self, lws: u32) {
         self.local_window_size = self.local_window_size + lws;
     }
 
