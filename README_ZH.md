@@ -61,11 +61,12 @@ fn main() {
 use ssh_rs::{Session, ssh};
 
 fn main() {
-    let mut session: Session = ssh::create_session();
     // is_enable_log 是否启用全局日志
     // 默认为 false（不启用）
     // 可设置为 true（启用）
-    session.is_enable_log(true);
+    ssh::is_enable_log(true);
+    
+    let mut session: Session = ssh::create_session();
     session.set_user_and_password("用户", "密码");
     session.connect("ip:port").unwrap();
 }

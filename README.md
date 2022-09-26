@@ -60,11 +60,12 @@ fn main() {
 use ssh_rs::{Session, ssh};
 
 fn main() {
-    let mut session: Session = ssh::create_session();
     // is_enable_log Whether to enable global logging
     // The default is false(Do not enable)
     // Can be set as true (enable)
-    session.is_enable_log(true);
+    ssh::is_enable_log(true);
+    
+    let mut session: Session = ssh::create_session();
     session.set_user_and_password("user", "password");
     session.connect("ip:port").unwrap();
 }
