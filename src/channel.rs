@@ -1,5 +1,4 @@
 use std::ops::{Deref, DerefMut};
-use crate::algorithm::hash;
 use crate::constant::{ssh_msg_code};
 use crate::error::{SshError, SshResult};
 use crate::data::Data;
@@ -41,42 +40,10 @@ impl Channel {
                 session.client.as_mut().unwrap().write(data)?;
             }
             ssh_msg_code::SSH_MSG_KEXINIT => {
-                let vec = result.to_vec();
-                let mut data = Data::from(vec![message_code]);
-                data.extend(vec);
-                let mut h = self.get_session_mut().h.borrow_mut();
-                h.set_i_s(data.as_slice());
-
-                self.get_session_mut().processing_server_algorithm(data)?;
-                self.get_session_mut().send_algorithm()?;
-
-                let config =  self.get_session_mut().config.as_mut().unwrap();
-                // 缓存密钥交换算法
-                self.get_session_mut().key_exchange = Some(config.algorithm.matching_key_exchange_algorithm()?);
-                // 公钥算法
-                self.get_session_mut().public_key = Some(config.algorithm.matching_public_key_algorithm()?);
-
-                h.set_v_c(config.version.client_version.as_str());
-                h.set_v_s(config.version.server_version.as_str());
-
-                self.get_session_mut().send_qc()?;
-
-                self.get_session_mut().verify_signature_and_new_keys()?
+                // TODO 密钥重新交换
             }
             ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
-                // 生成session_id并且获取signature
-                let sig = self.get_session_mut().generate_signature(result)?;
-                let session = self.get_session_mut();
-                let hash_type = session.key_exchange.as_ref().unwrap().get_hash_type();
-                let session_id = hash::digest(session.h.as_ref().borrow_mut().as_bytes().as_slice(), hash_type);
-                let flag = session.public_key.as_ref().unwrap()
-                    .verify_signature(session.h.borrow().k_s.as_ref(),
-                                      &session_id, &sig)?;
-                if !flag {
-                    log::error!("signature verification failure.");
-                    return Err(SshError::from("signature verification failure."))
-                }
-                log::info!("signature verification success.");
+                // TODO 密钥重新交换
             }
             ssh_msg_code::SSH_MSG_NEWKEYS => {} //kex::new_keys()?,
             // 通道大小 暂不处理

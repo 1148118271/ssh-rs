@@ -1,15 +1,11 @@
-use std::cell::{Cell, RefCell};
 use std::net::ToSocketAddrs;
-use std::rc::Rc;
 use crate::data::Data;
 use crate::constant::{ssh_msg_code, size, ssh_str};
 use crate::error::{SshError, SshResult};
 use crate::slog::log;
 use crate::{ChannelShell, ChannelScp, ChannelExec, Channel, util};
-use crate::algorithm::encryption::Encryption;
 use crate::algorithm::hash::hash::HASH;
-use crate::algorithm::key_exchange::KeyExchange;
-use crate::algorithm::public_key::PublicKey;
+use crate::algorithm::hash::HashType;
 use crate::h::H;
 use crate::client::Client;
 use crate::config::Config;
@@ -21,19 +17,9 @@ pub struct Session {
 
     pub(crate) timeout_sec: u64,
 
-    pub(crate) h: Rc<RefCell<H>>,
-
     pub(crate) config: Option<Config>,
 
     pub(crate) client: Option<Client>,
-
-    pub(crate) encryption: Option<Rc<RefCell<Box<dyn Encryption>>>>,
-
-    pub(crate) key_exchange: Option<Box<dyn KeyExchange>>,
-
-    pub(crate) public_key: Option<Box<dyn PublicKey>>,
-
-    pub(crate) is_encryption: Rc<Cell<bool>>,
 
     pub(crate) client_channel_no: u32,
 
@@ -57,6 +43,7 @@ impl Session {
         // 建立通道
         self.client = Some(Client::connect(addr, self.timeout_sec)?);
 
+        let mut h = H::new();
 
         log::info!("session opened.");
 
@@ -64,10 +51,11 @@ impl Session {
 
         // 版本协商
         // 获取服务端版本
-        self.receive_version()?;
-
+        self.receive_version(&mut h)?;
         // 发送客户端版本
-        self.send_version()?;
+        self.send_version(&mut h)?;
+        // 版本验证
+        self.config.as_mut().unwrap().version.validation()?;
 
         log::info!("version negotiation was successful.");
 
@@ -75,49 +63,34 @@ impl Session {
 
         // 密钥协商
         // 发送客户端密钥
-        self.send_algorithm()?;
+        self.send_algorithm(&mut h)?;
         // 接收服务端密钥
-        self.receive_algorithm()?;
+        self.receive_algorithm(&mut h)?;
 
-        // 版本验证
-        {
+        let (mut key_exchange, mut public_key) = {
             let config = self.config.as_ref().unwrap();
-            config.version.validation()?;
-
-            // 缓存密钥交换算法
-            self.key_exchange = Some(config.algorithm.matching_key_exchange_algorithm()?);
-            // 公钥算法
-            self.public_key = Some(config.algorithm.matching_public_key_algorithm()?);
-
-            let mut h_mut = self.h.as_ref().borrow_mut();
-            h_mut.set_v_c(config.version.client_version.as_str());
-            h_mut.set_v_s(config.version.server_version.as_str());
-        }
-
-        self.send_qc()?;
-        self.verify_signature_and_new_keys()?;
-
-        // 验签成功, 之后的数据交互开始加密
-        self.is_encryption.set(true);
-        self.client.as_mut().unwrap().is_encryption = self.is_encryption.clone();
-
-        let hash = HASH::new(self.h.clone(), self.key_exchange.as_ref().unwrap().get_hash_type());
-        let config = self.config.as_ref().unwrap();
-        // mac 算法
-        let mac = config.algorithm.matching_mac_algorithm()?;
-        // 加密算法
-        let erc = Rc::new(
-            RefCell::new(
-                config.algorithm.matching_encryption_algorithm(hash, mac)?
+            (
+                config.algorithm.matching_key_exchange_algorithm()?,
+                config.algorithm.matching_public_key_algorithm()?
             )
-        );
-        self.encryption = Some(erc.clone());
-        let client = self.client.as_mut().unwrap();
-        client.encryption = Some(erc.clone());
+        };
+
+        self.send_qc(key_exchange.get_public_key())?;
+        self.verify_signature_and_new_keys(&mut public_key, &mut key_exchange, &mut h)?;
+
+        let hash = HASH::new(h.clone(), key_exchange.get_hash_type());
+        // mac 算法
+        let mac = self.config.as_ref().unwrap().algorithm.matching_mac_algorithm()?;
+        // 加密算法
+        let encryption = self.config.as_ref().unwrap()
+            .algorithm.matching_encryption_algorithm(hash, mac)?;
+        self.client.as_mut().unwrap().encryption = Some(encryption);
+        self.client.as_mut().unwrap().is_encryption = true;
+
         log::info!("key negotiation successful.");
 
         self.initiate_authentication()?;
-        self.authentication()
+        self.authentication(key_exchange.get_hash_type(), h)
     }
 
     pub fn close(self) -> SshResult<()> {
@@ -246,7 +219,7 @@ impl Session {
         self.client.as_mut().unwrap().write(data)
     }
 
-    fn authentication(&mut self) -> SshResult<()> {
+    fn authentication(&mut self, ht: HashType, h: H) -> SshResult<()> {
         loop {
             let results = self.client.as_mut().unwrap().read()?;
             for mut result in results {
@@ -268,7 +241,7 @@ impl Session {
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_PK_OK => {
                         log::info!("user auth support this algorithm.");
-                        self.public_key_signature()?
+                        self.public_key_signature(ht, h.clone())?
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_SUCCESS => {
                         log::info!("user auth successful.");
@@ -285,23 +258,25 @@ impl Session {
         }
     }
 
-    fn send_version(&mut self) -> SshResult<()> {
+    fn send_version(&mut self, h: &mut H) -> SshResult<()> {
         let cv = {
             let config = self.config.as_ref().unwrap();
             config.version.client_version.clone()
         };
         self.client.as_mut().unwrap().write_version(format!("{}\r\n", cv.as_str()).as_bytes())?;
+        h.set_v_c(cv.as_str());
         log::info!("client version: [{}]", cv);
         Ok(())
     }
 
-    fn receive_version(&mut self) -> SshResult<()> {
+    fn receive_version(&mut self, h: &mut H) -> SshResult<()> {
         let vec = self.client.as_mut().unwrap().read_version();
         let from_utf8 = util::from_utf8(vec)?;
         let sv = from_utf8.trim();
         log::info!("server version: [{}]", sv);
         let config = self.config.as_mut().unwrap();
         config.version.server_version = sv.to_string();
+        h.set_v_s(sv);
         Ok(())
     }
 

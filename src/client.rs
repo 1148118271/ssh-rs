@@ -1,8 +1,6 @@
-use std::cell::{Cell, RefCell};
 use std::io;
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
 use crate::algorithm::encryption::Encryption;
 use crate::error::{SshError, SshResult};
 use crate::timeout::Timeout;
@@ -12,8 +10,8 @@ pub struct Client {
     pub(crate) stream: TcpStream,
     pub(crate) sequence: Sequence,
     pub(crate) timeout: Timeout,
-    pub(crate) encryption: Option<Rc<RefCell<Box<dyn Encryption>>>>,
-    pub(crate) is_encryption: Rc<Cell<bool>>,
+    pub(crate) encryption: Option<Box<dyn Encryption>>,
+    pub(crate) is_encryption: bool,
 }
 
 #[derive(Clone)]
@@ -55,7 +53,7 @@ impl Client {
                         },
                         timeout: Timeout::new(timeout_sec),
                         encryption: None,
-                        is_encryption: Rc::new(Cell::new(false))
+                        is_encryption: false
                     }
                 )
             }

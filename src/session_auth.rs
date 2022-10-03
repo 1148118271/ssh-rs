@@ -1,8 +1,10 @@
 use std::path::Path;
 use crate::{Session, SshError, SshResult};
+use crate::algorithm::hash::HashType;
 use crate::config::Config;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
+use crate::h::H;
 use crate::key_pair::{KeyPair, KeyPairType};
 use crate::user_info::UserInfo;
 
@@ -72,7 +74,7 @@ impl Session {
         self.client.as_mut().unwrap().write(data)
     }
 
-    pub(crate) fn public_key_signature(&mut self) -> SshResult<()> {
+    pub(crate) fn public_key_signature(&mut self, ht: HashType, h: H) -> SshResult<()> {
         let config = self.get_config()?;
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
@@ -82,11 +84,7 @@ impl Session {
             .put_u8(true as u8)
             .put_str(config.auth.key_pair.key_type.as_str())
             .put_u8s(config.auth.key_pair.blob.as_slice());
-        let hash_type = match self.key_exchange.as_ref() {
-            None => return Err(SshError::from("key exchange algorithm is none.")),
-            Some(key_exchange) =>  key_exchange.get_hash_type()
-        };
-        let signature = config.auth.key_pair.signature(data.as_slice(), self.h.clone(), hash_type);
+        let signature = config.auth.key_pair.signature(data.as_slice(), h, ht);
         data.put_u8s(&signature);
         self.client.as_mut().unwrap().write(data)
     }

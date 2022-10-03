@@ -52,7 +52,7 @@ impl Client {
 
         result.truncate(len);
         // 处理未加密数据
-        match self.is_encryption.get() {
+        match self.is_encryption {
             true => self.process_data_encrypt(result, &mut results, lws)?,
             false => self.process_data(result, &mut results)
         }
@@ -89,18 +89,14 @@ impl Client {
                 self.check_result_len(&mut result)?;
             }
             let data_len = {
-                let rc = self.encryption.clone().unwrap();
-                let mut erc = rc.as_ref().borrow_mut();
-                erc.data_len(self.sequence.server_sequence_num, result.as_slice())
+                self.encryption.as_mut().unwrap().data_len(self.sequence.server_sequence_num, result.as_slice())
             };
             if result.len() < data_len {
                 self.get_encrypt_data(&mut result, data_len)?;
             }
             let (this, remaining) = result.split_at_mut(data_len);
             let decryption_result = {
-                let rc = &self.encryption.clone().unwrap();
-                let mut erc = rc.as_ref().borrow_mut();
-                erc.decrypt(self.sequence.server_sequence_num, &mut this.to_vec())
+                self.encryption.as_mut().unwrap().decrypt(self.sequence.server_sequence_num, &mut this.to_vec())
             }?;
             let data = Packet::from(decryption_result).unpacking();
             // 判断是否需要修改窗口大小
