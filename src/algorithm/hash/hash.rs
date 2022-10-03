@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-use std::rc::Rc;
 use crate::algorithm::hash;
 use crate::algorithm::hash::HashType;
 use crate::constant;
@@ -43,18 +41,18 @@ pub struct HASH {
 
     
     hash_type: HashType,
-    h: Rc<RefCell<H>>
+    h: H
 }
 
 
 impl HASH {
-    pub fn new(rh: Rc<RefCell<H>>, hash_type: HashType) -> Self {
-        let k = rh.borrow().k.clone();
-        let h = hash::digest(rh.borrow().as_bytes().as_slice(), hash_type);
-        let session_id = h.clone();
+    pub fn new(h: H, hash_type: HashType) -> Self {
+        let k = h.k.as_slice();
+        let h_ = hash::digest(&h.as_bytes(), hash_type);
+        let session_id = h_.clone();
         let mut keys = vec![];
         for v in constant::ALPHABET {
-            keys.push(HASH::mix(&k, &h, v, &session_id, hash_type));
+            keys.push(HASH::mix(k, &h_, v, &session_id, hash_type));
         }
         HASH {
             iv_c_s: keys[0].clone(),
@@ -67,7 +65,7 @@ impl HASH {
             ik_s_c: keys[5].clone(),
 
             hash_type,
-            h: rh.clone()
+            h
         }
     }
 
@@ -91,8 +89,8 @@ impl HASH {
     }
 
     fn extend(&self, key: &[u8]) -> Vec<u8> {
-        let k = self.h.borrow().k.clone();
-        let h = hash::digest(self.h.borrow().as_bytes().as_slice(), self.hash_type);
+        let k = self.h.k.clone();
+        let h = hash::digest(self.h.as_bytes().as_slice(), self.hash_type);
         let mut hash: Vec<u8> = Vec::new();
         hash.extend(k);
         hash.extend(h);

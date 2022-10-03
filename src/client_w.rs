@@ -20,7 +20,7 @@ impl Client {
     }
 
     pub fn write_data(&mut self, data: Data, rws: Option<&mut WindowSize>) -> Result<(), SshError> {
-        let buf = if self.is_encryption.get() {
+        let buf = if self.is_encryption {
             if let Some(rws) = rws {
                 rws.process_remote_window_size(data.as_slice(), self)?;
             }
@@ -47,9 +47,8 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn get_encryption_data(&self, data: Data) -> SshResult<Vec<u8>> {
-        let encryption = self.encryption.clone().unwrap();
-        let mut encryption = encryption.borrow_mut();
+    pub(crate) fn get_encryption_data(&mut self, data: Data) -> SshResult<Vec<u8>> {
+        let encryption = self.encryption.as_mut().unwrap();
         let mut packet = Packet::from(data);
         packet.build(Some(encryption.deref()),true);
         let mut buf = packet.to_vec();

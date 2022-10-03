@@ -176,6 +176,8 @@
 
 
 
+extern crate core;
+
 mod client;
 mod client_r;
 mod client_w;
@@ -216,22 +218,14 @@ use crate::error::{SshError, SshResult};
 
 
 pub mod ssh {
-    use std::cell::{Cell, RefCell};
-    use std::rc::Rc;
-    use crate::h::H;
     use crate::Session;
     use crate::slog::Slog;
 
     pub fn create_session() -> Session {
         Session {
             timeout_sec: 30,
-            h: Rc::new(RefCell::new(H::new())),
             config: None,
             client: None,
-            encryption: None,
-            key_exchange: None,
-            public_key: None,
-            is_encryption: Rc::new(Cell::new(false)),
             client_channel_no: 0,
         }
     }
