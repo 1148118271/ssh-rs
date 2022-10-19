@@ -184,7 +184,7 @@ mod client_w;
 mod session;
 mod session_auth;
 mod channel;
-mod session_kex;
+mod kex;
 mod channel_shell;
 mod channel_exec;
 mod channel_scp;

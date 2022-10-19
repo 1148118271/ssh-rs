@@ -4,6 +4,7 @@ use std::ops::{Deref, DerefMut};
 use crate::algorithm::encryption::Encryption;
 use crate::error::{SshError, SshResult};
 use crate::timeout::Timeout;
+use crate::config::Config;
 
 
 pub struct Client {
@@ -12,6 +13,7 @@ pub struct Client {
     pub(crate) timeout: Timeout,
     pub(crate) encryption: Option<Box<dyn Encryption>>,
     pub(crate) is_encryption: bool,
+    pub(crate) session_id: Vec<u8>,
 }
 
 #[derive(Clone)]
@@ -53,7 +55,8 @@ impl Client {
                         },
                         timeout: Timeout::new(timeout_sec),
                         encryption: None,
-                        is_encryption: false
+                        is_encryption: false,
+                        session_id: vec![]
                     }
                 )
             }
@@ -61,6 +64,23 @@ impl Client {
         }
     }
 
+    pub(crate) fn version(&mut self, config: &mut Config) -> SshResult<()> {
+        log::info!("start for version negotiation.");
+        // 获取服务端版本
+        let vec = self.read_version();
+        let from_utf8 = crate::util::from_utf8(vec)?;
+        let sv = from_utf8.trim();
+        log::info!("server version: [{}]", sv);
+        config.version.server_version = sv.to_string();
+        // 发送客户端版本
+        let cv = config.version.client_version.clone();
+        self.write_version(format!("{}\r\n", cv.as_str()).as_bytes())?;
+        log::info!("client version: [{}]", cv);
+        // 版本验证
+        config.version.validation()?;
+        log::info!("version negotiation was successful.");
+        Ok(())
+    }
 
     pub(crate) fn close(&mut self) -> Result<(), SshError> {
         match self.stream.shutdown(Shutdown::Both) {
