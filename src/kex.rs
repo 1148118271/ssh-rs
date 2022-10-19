@@ -106,7 +106,7 @@ pub(crate) fn verify_signature_and_new_keys(client: &mut Client,
                     // 生成session_id并且获取signature
                     let sig = generate_signature(result, h, key_exchange)?;
                     // 验签
-                    session_id = hash::digest( &h.as_bytes(), key_exchange.get_hash_type());
+                    session_id = hash::digest(&h.as_bytes(), key_exchange.get_hash_type());
                     let flag = public_key.verify_signature(&h.k_s, &session_id, &sig)?;
                     if !flag {
                         log::error!("signature verification failure.");
@@ -171,9 +171,15 @@ pub(crate) fn key_agreement(h: &mut H,
     send_qc(client, key_exchange.get_public_key())?;
     let session_id = verify_signature_and_new_keys(client, &mut public_key, &mut key_exchange, h)?;
 
-    let hash_type = key_exchange.get_hash_type();
+    if client.session_id.is_empty() {
+        if session_id.is_empty() {
+            return Err(SshError::from("session id is none."))
+        }
+        client.session_id = session_id;
+    }
 
-    let hash = hash::hash::HASH::new(h.clone(), &session_id, hash_type);
+    let hash_type = key_exchange.get_hash_type();
+    let hash = hash::hash::HASH::new(h.clone(), &client.session_id, hash_type);
     // mac 算法
     let mac = client.config.algorithm.matching_mac_algorithm()?;
     // 加密算法
@@ -181,12 +187,6 @@ pub(crate) fn key_agreement(h: &mut H,
 
     client.encryption = Some(encryption);
     client.is_encryption = true;
-    if client.session_id.is_empty() {
-        if session_id.is_empty() {
-            return Err(SshError::from("session id is none."))
-        }
-        client.session_id = session_id;
-    }
 
     log::info!("key negotiation successful.");
     Ok(hash_type)

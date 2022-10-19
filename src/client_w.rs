@@ -1,9 +1,14 @@
 use std::io::Write;
 use std::ops::Deref;
+use std::thread::sleep_ms;
 use crate::client::Client;
 use crate::{
     SshError,
-    SshResult
+    SshResult,
+    constant,
+    h::H,
+    kex,
+    slog::log
 };
 use crate::data::Data;
 use crate::packet::Packet;
@@ -23,6 +28,7 @@ impl Client {
     }
 
     pub fn write_data(&mut self, data: Data, rws: Option<&mut WindowSize>) -> Result<(), SshError> {
+        self.w_size_one_gb()?;
         let buf = if self.is_encryption {
             if let Some(rws) = rws {
                 rws.process_remote_window_size(data.as_slice(), self)?;
@@ -45,6 +51,7 @@ impl Client {
                 break
             }
         }
+        self.timeout.renew();
         if let Err(e) = self.stream.flush() {
             return Err(SshError::from(e))
         }
@@ -60,14 +67,21 @@ impl Client {
         Ok(buf)
     }
 
-//    pub(crate) fn w_size_one_gb(&mut self) -> SshResult<()> {
-//        if self.w_size < constant::size::ONE_GB {
-//            return Ok(())
-//        }
-//        self.w_size = 0;
-//
-//        // kex::key_agreement(h, client, config)
-//
-//        Ok(())
-//    }
+    pub(crate) fn w_size_one_gb(&mut self) -> SshResult<()> {
+        if self.w_size < constant::size::ONE_GB {
+            return Ok(())
+        }
+        log::info!("————————————————————————————");
+        self.w_size = 0;
+
+        let mut h = H::new();
+        let cv = self.config.version.client_version.as_str();
+        let sv = self.config.version.server_version.as_str();
+        h.set_v_c(cv);
+        h.set_v_s(sv);
+        kex::key_agreement(&mut h, self)?;
+        self.w_size = 0;
+        log::info!("————————————————————————————");
+        Ok(())
+    }
 }

@@ -9,7 +9,7 @@ use crate::data::Data;
 /// H = hash algorithm(v_c | v_s | i_c | i_s | k_s | q_c | q_s | k)
 ///
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct H {
 
     /// 一下数据如果有从数据包解析的数据
