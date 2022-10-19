@@ -24,7 +24,8 @@ use crate::algorithm::public_key::PublicKey;
 /// 发送客户端的算法列表
 pub(crate) fn send_algorithm(h: &mut H,
                              client: &mut Client,
-) -> SshResult<()> {
+) -> SshResult<()>
+{
     log::info!("client algorithms: [{}]", client.config.algorithm.client_algorithm.to_string());
     let mut data = Data::new();
     data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
@@ -43,7 +44,8 @@ pub(crate) fn send_algorithm(h: &mut H,
 /// 获取服务端的算法列表
 pub(crate) fn receive_algorithm(h: &mut H,
                                 client: &mut Client,
-) -> SshResult<()> {
+) -> SshResult<()>
+{
     loop {
         let results = client.read()?;
         for result in results {
@@ -158,7 +160,8 @@ pub(crate) fn new_keys(client: &mut Client) -> Result<(), SshError> {
 
 pub(crate) fn key_agreement(h: &mut H,
                             client: &mut Client,
-) -> SshResult<hash::HashType> {
+) -> SshResult<hash::HashType>
+{
     log::info!("start for key negotiation.");
     log::info!("send client algorithm list.");
     send_algorithm(h, client)?;
@@ -170,14 +173,13 @@ pub(crate) fn key_agreement(h: &mut H,
 
     send_qc(client, key_exchange.get_public_key())?;
     let session_id = verify_signature_and_new_keys(client, &mut public_key, &mut key_exchange, h)?;
-
+    // session id 只使用第一次密钥交换时生成的
     if client.session_id.is_empty() {
         if session_id.is_empty() {
             return Err(SshError::from("session id is none."))
         }
         client.session_id = session_id;
     }
-
     let hash_type = key_exchange.get_hash_type();
     let hash = hash::hash::HASH::new(h.clone(), &client.session_id, hash_type);
     // mac 算法

@@ -1,6 +1,5 @@
 use std::io::Write;
 use std::ops::Deref;
-use std::thread::sleep_ms;
 use crate::client::Client;
 use crate::{
     SshError,
@@ -8,7 +7,6 @@ use crate::{
     constant,
     h::H,
     kex,
-    slog::log
 };
 use crate::data::Data;
 use crate::packet::Packet;
@@ -48,13 +46,14 @@ impl Client {
                 }
                 return Err(SshError::from(e))
             } else {
+                self.timeout.renew();
                 break
             }
         }
-        self.timeout.renew();
         if let Err(e) = self.stream.flush() {
             return Err(SshError::from(e))
         }
+        self.timeout.renew();
         Ok(())
     }
 
@@ -67,13 +66,12 @@ impl Client {
         Ok(buf)
     }
 
+    // 数据超过1GB密钥重新交换
     pub(crate) fn w_size_one_gb(&mut self) -> SshResult<()> {
         if self.w_size < constant::size::ONE_GB {
             return Ok(())
         }
-        log::info!("————————————————————————————");
         self.w_size = 0;
-
         let mut h = H::new();
         let cv = self.config.version.client_version.as_str();
         let sv = self.config.version.server_version.as_str();
@@ -81,7 +79,6 @@ impl Client {
         h.set_v_s(sv);
         kex::key_agreement(&mut h, self)?;
         self.w_size = 0;
-        log::info!("————————————————————————————");
         Ok(())
     }
 }

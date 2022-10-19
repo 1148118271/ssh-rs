@@ -69,42 +69,25 @@ impl WindowSize {
         if self.remote_window_size == 0 {
             return Ok(());
         }
-        let used = self.remote_max_window_size - self.remote_window_size;
         let size = match self.get_size(data) {
             None => return Ok(()),
             Some(size) => size
         };
+        // TODO window size
+        let s = self.remote_window_size as i32 - size as i32;
+        println!("s {}", s);
+        if self.remote_window_size - size <= 0 {
+            self.read_window_size(client)?;
+            self.sub_remote_window_size(size);
+            return Ok(())
+        }
         self.sub_remote_window_size(size);
-
+        if self.remote_window_size >= self.remote_max_window_size {
+            return self.read_window_size(client)
+        }
+        let used = self.remote_max_window_size - self.remote_window_size;
         if used > 0 && self.remote_max_window_size / used <= 20 {
-            let mut result = vec![0; size::BUF_SIZE as usize];
-            loop {
-                match client.stream.read(&mut result) {
-                    Ok(len) => {
-                        result.truncate(len);
-                        break
-                    }
-                    Err(e) => {
-                        if Client::is_would_block(&e) {
-                           continue
-                        }
-                        return Err(SshError::from(e))
-                    }
-                };
-            }
-            client.sequence.server_auto_increment();
-            let encryption = client.encryption.as_mut().unwrap();
-            let result = encryption.decrypt(client.sequence.server_sequence_num, &mut result)?;
-            let mut data = Packet::from(result).unpacking();
-            let mc = data.get_u8();
-            if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
-                // 接收方 通道编号 暂不处理
-                data.get_u32();
-                // 远程客户端调整的窗口大小
-                let size = data.get_u32();
-                self.add_remote_window_size(size);
-                return Ok(())
-            }
+            return self.read_window_size(client)
         }
         return Ok(())
     }
@@ -119,6 +102,24 @@ impl WindowSize {
 
     pub(crate) fn add_remote_max_window_size(&mut self, rws: u32) {
         self.remote_max_window_size = self.remote_max_window_size + rws;
+    }
+
+    fn read_window_size(&mut self, client: &mut Client) -> SshResult<()> {
+        let results = client.read()?;
+        if results.len() <= 0 {
+            return Ok(())
+        }
+        for mut data in results {
+            let mc = data.get_u8();
+            if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
+                // 接收方 通道编号 暂不处理
+                data.get_u32();
+                // 远程客户端调整的窗口大小
+                let size = data.get_u32();
+                self.add_remote_window_size(size);
+            }
+        }
+        Ok(())
     }
 }
 
