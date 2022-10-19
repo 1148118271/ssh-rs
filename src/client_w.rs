@@ -1,7 +1,10 @@
 use std::io::Write;
 use std::ops::Deref;
 use crate::client::Client;
-use crate::{SshError, SshResult};
+use crate::{
+    SshError,
+    SshResult
+};
 use crate::data::Data;
 use crate::packet::Packet;
 use crate::window_size::WindowSize;
@@ -30,6 +33,7 @@ impl Client {
             packet.build(None, false);
             packet.to_vec()
         };
+        self.w_size += buf.len();
         self.sequence.client_auto_increment();
         loop {
             if let Err(e) = self.stream.write(&buf) {
@@ -55,4 +59,15 @@ impl Client {
         encryption.encrypt(self.sequence.client_sequence_num, &mut buf);
         Ok(buf)
     }
+
+//    pub(crate) fn w_size_one_gb(&mut self) -> SshResult<()> {
+//        if self.w_size < constant::size::ONE_GB {
+//            return Ok(())
+//        }
+//        self.w_size = 0;
+//
+//        // kex::key_agreement(h, client, config)
+//
+//        Ok(())
+//    }
 }

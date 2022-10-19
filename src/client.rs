@@ -5,15 +5,19 @@ use crate::algorithm::encryption::Encryption;
 use crate::error::{SshError, SshResult};
 use crate::timeout::Timeout;
 use crate::config::Config;
+use crate::user_info::UserInfo;
+use crate::h::H;
 
 
 pub struct Client {
     pub(crate) stream: TcpStream,
     pub(crate) sequence: Sequence,
     pub(crate) timeout: Timeout,
+    pub(crate) config: Config,
     pub(crate) encryption: Option<Box<dyn Encryption>>,
     pub(crate) is_encryption: bool,
     pub(crate) session_id: Vec<u8>,
+    pub(crate) w_size: usize,
 }
 
 #[derive(Clone)]
@@ -40,7 +44,7 @@ impl Sequence {
 }
 
 impl Client {
-    pub(crate) fn connect<A: ToSocketAddrs>(addr: A, timeout_sec: u64) -> SshResult<Client> {
+    pub(crate) fn connect<A: ToSocketAddrs>(addr: A, timeout_sec: u64, user_info: UserInfo) -> SshResult<Client> {
         match TcpStream::connect(addr) {
             Ok(stream) => {
                 // default nonblocking
@@ -54,9 +58,11 @@ impl Client {
                             server_sequence_num: 0
                         },
                         timeout: Timeout::new(timeout_sec),
+                        config: Config::new(user_info),
                         encryption: None,
                         is_encryption: false,
-                        session_id: vec![]
+                        session_id: vec![],
+                        w_size: 0,
                     }
                 )
             }
@@ -64,20 +70,22 @@ impl Client {
         }
     }
 
-    pub(crate) fn version(&mut self, config: &mut Config) -> SshResult<()> {
+    pub(crate) fn version(&mut self, h: &mut H) -> SshResult<()> {
         log::info!("start for version negotiation.");
         // 获取服务端版本
         let vec = self.read_version();
         let from_utf8 = crate::util::from_utf8(vec)?;
         let sv = from_utf8.trim();
         log::info!("server version: [{}]", sv);
-        config.version.server_version = sv.to_string();
+        self.config.version.server_version = sv.to_string();
         // 发送客户端版本
-        let cv = config.version.client_version.clone();
+        let cv = self.config.version.client_version.clone();
         self.write_version(format!("{}\r\n", cv.as_str()).as_bytes())?;
         log::info!("client version: [{}]", cv);
         // 版本验证
-        config.version.validation()?;
+        self.config.version.validation()?;
+        h.set_v_s(sv);
+        h.set_v_c(&cv);
         log::info!("version negotiation was successful.");
         Ok(())
     }

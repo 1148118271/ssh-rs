@@ -224,7 +224,7 @@ pub mod ssh {
     pub fn create_session() -> Session {
         Session {
             timeout_sec: 30,
-            config: None,
+            user_info: None,
             client: None,
             client_channel_no: 0,
         }

@@ -13,6 +13,7 @@ use crate::algorithm::public_key::{Ed25519, PublicKey, RSA};
 use crate::user_info::UserInfo;
 
 
+#[derive(Clone)]
 pub struct Config {
     pub auth: UserInfo,
     pub version: VersionConfig,

@@ -9,6 +9,7 @@ use crate::algorithm::hash;
 use crate::algorithm::hash::HashType;
 use crate::h::H;
 
+#[derive(Clone)]
 pub struct KeyPair {
     pub(crate) private_key: String,
     pub(crate) key_type: String,

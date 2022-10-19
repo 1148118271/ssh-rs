@@ -7,7 +7,7 @@ use crate::{ChannelShell, ChannelScp, ChannelExec, Channel};
 use crate::algorithm::hash::HashType;
 use crate::h::H;
 use crate::client::Client;
-use crate::config::Config;
+use crate::user_info::UserInfo;
 use crate::user_info::AuthType;
 use crate::window_size::WindowSize;
 use crate::kex;
@@ -17,7 +17,7 @@ pub struct Session {
 
     pub(crate) timeout_sec: u64,
 
-    pub(crate) config: Option<Config>,
+    pub(crate) user_info: Option<UserInfo>,
 
     pub(crate) client: Option<Client>,
 
@@ -35,23 +35,20 @@ impl Session {
     where
         A: ToSocketAddrs
     {
-        if self.config.is_none() {
-            return Err(SshError::from("config is none."))
+        if self.user_info.is_none() {
+            return Err(SshError::from("user info is none."))
         }
         // 建立通道
-        self.client = Some(Client::connect(addr, self.timeout_sec)?);
+        self.client = Some(Client::connect(addr, self.timeout_sec, self.user_info.clone().unwrap())?);
         log::info!("session opened.");
 
         let mut h = H::new();
         let client = self.client.as_mut().unwrap();
-        let config = self.config.as_mut().unwrap();
 
         // 版本协商
-        client.version(config)?;
-        h.set_v_c(&config.version.client_version);
-        h.set_v_s(&config.version.server_version);
+        client.version(&mut h)?;
         // 密钥协商
-        let hash_type = kex::key_agreement(&mut h, client, config)?;
+        let hash_type = kex::key_agreement(&mut h, client)?;
         // 用户验证
         self.initiate_authentication()?;
         self.authentication(hash_type, h)
@@ -191,8 +188,8 @@ impl Session {
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
-                        let config = self.config.as_ref().unwrap();
-                        match config.auth.auth_type {
+                        let user_info = self.user_info.as_ref().unwrap();
+                        match user_info.auth_type {
                             // 开始密码验证
                             AuthType::Password => self.password_authentication()?,
                             AuthType::PublicKey => self.public_key_authentication()?

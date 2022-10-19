@@ -24,13 +24,12 @@ use crate::algorithm::public_key::PublicKey;
 /// 发送客户端的算法列表
 pub(crate) fn send_algorithm(h: &mut H,
                              client: &mut Client,
-                             config: &mut Config
 ) -> SshResult<()> {
-    log::info!("client algorithms: [{}]", config.algorithm.client_algorithm.to_string());
+    log::info!("client algorithms: [{}]", client.config.algorithm.client_algorithm.to_string());
     let mut data = Data::new();
     data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
     data.extend(util::cookie());
-    data.extend(config.algorithm.client_algorithm.as_i());
+    data.extend(client.config.algorithm.client_algorithm.as_i());
     data.put_str("")
     .put_str("")
     .put_u8(false as u8)
@@ -44,7 +43,6 @@ pub(crate) fn send_algorithm(h: &mut H,
 /// 获取服务端的算法列表
 pub(crate) fn receive_algorithm(h: &mut H,
                                 client: &mut Client,
-                                config: &mut Config
 ) -> SshResult<()> {
     loop {
         let results = client.read()?;
@@ -54,7 +52,7 @@ pub(crate) fn receive_algorithm(h: &mut H,
             match message_code {
                 ssh_msg_code::SSH_MSG_KEXINIT => {
                     h.set_i_s(result.clone().as_slice());
-                    processing_server_algorithm(config, result)?;
+                    processing_server_algorithm(&mut client.config, result)?;
                     return Ok(());
                 }
                 _ => {}
@@ -160,16 +158,15 @@ pub(crate) fn new_keys(client: &mut Client) -> Result<(), SshError> {
 
 pub(crate) fn key_agreement(h: &mut H,
                             client: &mut Client,
-                            config: &mut Config
 ) -> SshResult<hash::HashType> {
     log::info!("start for key negotiation.");
     log::info!("send client algorithm list.");
-    send_algorithm(h, client, config)?;
+    send_algorithm(h, client)?;
     log::info!("receive server algorithm list.");
-    receive_algorithm(h, client, config)?;
+    receive_algorithm(h, client)?;
 
-    let mut key_exchange = config.algorithm.matching_key_exchange_algorithm()?;
-    let mut public_key = config.algorithm.matching_public_key_algorithm()?;
+    let mut key_exchange = client.config.algorithm.matching_key_exchange_algorithm()?;
+    let mut public_key = client.config.algorithm.matching_public_key_algorithm()?;
 
     send_qc(client, key_exchange.get_public_key())?;
     let session_id = verify_signature_and_new_keys(client, &mut public_key, &mut key_exchange, h)?;
@@ -178,9 +175,9 @@ pub(crate) fn key_agreement(h: &mut H,
 
     let hash = hash::hash::HASH::new(h.clone(), &session_id, hash_type);
     // mac 算法
-    let mac = config.algorithm.matching_mac_algorithm()?;
+    let mac = client.config.algorithm.matching_mac_algorithm()?;
     // 加密算法
-    let encryption = config.algorithm.matching_encryption_algorithm(hash, mac)?;
+    let encryption = client.config.algorithm.matching_encryption_algorithm(hash, mac)?;
 
     client.encryption = Some(encryption);
     client.is_encryption = true;
@@ -190,7 +187,7 @@ pub(crate) fn key_agreement(h: &mut H,
         }
         client.session_id = session_id;
     }
-    
+
     log::info!("key negotiation successful.");
     Ok(hash_type)
 }
