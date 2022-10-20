@@ -64,7 +64,7 @@ pub(crate) fn receive_algorithm(h: &mut H,
 }
 
 /// 处理服务端的算法列表
-fn processing_server_algorithm(config: &mut Config, mut data: Data) -> SshResult<()> {
+pub(crate) fn processing_server_algorithm(config: &mut Config, mut data: Data) -> SshResult<()> {
     data.get_u8();
     // 跳过16位cookie
     data.skip(16);
@@ -100,6 +100,7 @@ pub(crate) fn verify_signature_and_new_keys(client: &mut Client,
     let mut session_id = vec![];
     loop {
         let results = client.read()?;
+        println!("results {:?}", results);
         for mut result in results {
             if result.is_empty() { continue }
             let message_code = result.get_u8();

@@ -1,10 +1,8 @@
-use std::io::Write;
 use crate::client::Client;
 use crate::constant::size::LOCAL_WINDOW_SIZE;
 use crate::constant::ssh_msg_code;
 use crate::error::SshResult;
 use crate::data::Data;
-use crate::SshError;
 
 pub struct WindowSize {
     pub(crate) server_channel_no: u32,
@@ -133,22 +131,11 @@ impl WindowSize {
         if (self.local_max_window_size / used) > 20 {
             return Ok(());
         }
-
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
             .put_u32(self.server_channel_no)
             .put_u32(used);
-
-        let buf = client.get_encryption_data(data)?;
-
-        client.sequence.client_auto_increment();
-
-        if let Err(e) = client.stream.write(&buf) {
-            return Err(SshError::from(e))
-        }
-        if let Err(e) = client.stream.flush() {
-            return Err(SshError::from(e))
-        }
+        client.write(data)?;
         self.add_local_window_size(used);
         return Ok(());
     }

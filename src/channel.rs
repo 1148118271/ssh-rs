@@ -1,4 +1,5 @@
 use std::ops::{Deref, DerefMut};
+use std::thread::{sleep, sleep_ms};
 use crate::constant::{ssh_msg_code};
 use crate::error::{SshError, SshResult};
 use crate::data::Data;
@@ -6,7 +7,8 @@ use crate::slog::log;
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
-use crate::Session;
+use crate::h::H;
+use crate::{kex, Session};
 use crate::window_size::WindowSize;
 
 pub struct Channel {
@@ -40,13 +42,34 @@ impl Channel {
                 session.client.as_mut().unwrap().write(data)?;
             }
             ssh_msg_code::SSH_MSG_KEXINIT => {
-                // TODO 密钥重新交换
+                // TODO read 1GB
+                let mut h = H::new();
+                let session = self.get_session_mut();
+                let client = session.client.as_mut().unwrap();
+                let cv = client.config.version.client_version.as_str();
+                let sv = client.config.version.server_version.as_str();
+                h.set_v_c(cv);
+                h.set_v_s(sv);
+                log::info!("receive server algorithm list.");
+                let mut data = vec![];
+                data.push(message_code);
+                data.extend(result.as_slice());
+                let data = Data::from(data);
+                h.set_i_s(data.clone().as_slice());
+                kex::processing_server_algorithm(&mut client.config, data)?;
+
+                sleep_ms(10000000);
+                // log::info!("send client algorithm list.");
+                // kex::send_algorithm(&mut h, client)?;
+                // let mut key_exchange = client.config.algorithm.matching_key_exchange_algorithm()?;
+                // let mut public_key = client.config.algorithm.matching_public_key_algorithm()?;
+                // log::info!("send qc.");
+                // kex::send_qc(client, key_exchange.get_public_key())?;
+                // log::info!("signature verification.");
+                // let session_id = kex::verify_signature_and_new_keys(client, &mut public_key, &mut key_exchange, &mut h)?;
+                // kex::key_agreement(&mut h, client)?;
             }
-            ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
-                // TODO 密钥重新交换
-            }
-            ssh_msg_code::SSH_MSG_NEWKEYS => {} //kex::new_keys()?,
-            // 通道大小 暂不处理
+            // 通道大小
             ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
                 // 接收方通道号， 暂时不需要
                 result.get_u32();

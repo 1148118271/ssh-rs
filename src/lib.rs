@@ -176,8 +176,6 @@
 
 
 
-extern crate core;
-
 mod client;
 mod client_r;
 mod client_w;
