@@ -26,11 +26,11 @@ impl Client {
     }
 
     pub fn write_data(&mut self, data: Data, rws: Option<&mut WindowSize>) -> Result<(), SshError> {
+        if let Some(rws) = rws {
+            rws.process_remote_window_size(data.as_slice(), self)?;
+        }
         self.w_size_one_gb()?;
         let buf = if self.is_encryption {
-            if let Some(rws) = rws {
-                rws.process_remote_window_size(data.as_slice(), self)?;
-            }
             self.get_encryption_data(data)?
         } else {
             let mut packet = Packet::from(data);
@@ -46,12 +46,8 @@ impl Client {
                 }
                 return Err(SshError::from(e))
             } else {
-                self.timeout.renew();
                 break
             }
-        }
-        if let Err(e) = self.stream.flush() {
-            return Err(SshError::from(e))
         }
         self.timeout.renew();
         Ok(())

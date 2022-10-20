@@ -1,10 +1,9 @@
-use std::io::{Read, Write};
+use std::io::Write;
 use crate::client::Client;
 use crate::constant::size::LOCAL_WINDOW_SIZE;
-use crate::constant::{size, ssh_msg_code};
+use crate::constant::ssh_msg_code;
 use crate::error::SshResult;
 use crate::data::Data;
-use crate::packet::Packet;
 use crate::SshError;
 
 pub struct WindowSize {
@@ -73,14 +72,6 @@ impl WindowSize {
             None => return Ok(()),
             Some(size) => size
         };
-        // TODO window size
-        let s = self.remote_window_size as i32 - size as i32;
-        println!("s {}", s);
-        if self.remote_window_size - size <= 0 {
-            self.read_window_size(client)?;
-            self.sub_remote_window_size(size);
-            return Ok(())
-        }
         self.sub_remote_window_size(size);
         if self.remote_window_size >= self.remote_max_window_size {
             return self.read_window_size(client)
