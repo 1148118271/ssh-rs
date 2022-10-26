@@ -100,7 +100,6 @@ pub(crate) fn verify_signature_and_new_keys(client: &mut Client,
     let mut session_id = vec![];
     loop {
         let results = client.read()?;
-        println!("results {:?}", results);
         for mut result in results {
             if result.is_empty() { continue }
             let message_code = result.get_u8();

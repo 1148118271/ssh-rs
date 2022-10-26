@@ -43,22 +43,22 @@ impl Channel {
             }
             ssh_msg_code::SSH_MSG_KEXINIT => {
                 // TODO read 1GB
-                let mut h = H::new();
-                let session = self.get_session_mut();
-                let client = session.client.as_mut().unwrap();
-                let cv = client.config.version.client_version.as_str();
-                let sv = client.config.version.server_version.as_str();
-                h.set_v_c(cv);
-                h.set_v_s(sv);
-                log::info!("receive server algorithm list.");
-                let mut data = vec![];
-                data.push(message_code);
-                data.extend(result.as_slice());
-                let data = Data::from(data);
-                h.set_i_s(data.clone().as_slice());
-                kex::processing_server_algorithm(&mut client.config, data)?;
+                // let mut h = H::new();
+                // let session = self.get_session_mut();
+                // let client = session.client.as_mut().unwrap();
+                // let cv = client.config.version.client_version.as_str();
+                // let sv = client.config.version.server_version.as_str();
+                // h.set_v_c(cv);
+                // h.set_v_s(sv);
+                // log::info!("receive server algorithm list.");
+                // let mut data = vec![];
+                // data.push(message_code);
+                // data.extend(result.as_slice());
+                // let data = Data::from(data);
+                // h.set_i_s(data.clone().as_slice());
+                // kex::processing_server_algorithm(&mut client.config, data)?;
 
-                sleep_ms(10000000);
+                // sleep_ms(10000000);
                 // log::info!("send client algorithm list.");
                 // kex::send_algorithm(&mut h, client)?;
                 // let mut key_exchange = client.config.algorithm.matching_key_exchange_algorithm()?;
@@ -76,7 +76,6 @@ impl Channel {
                 // 需要调整增加的窗口大小
                 let rws = result.get_u32();
                 self.window_size.add_remote_window_size(rws);
-                self.window_size.add_remote_max_window_size(rws);
             },
             ssh_msg_code::SSH_MSG_CHANNEL_EOF => {}
             ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {}

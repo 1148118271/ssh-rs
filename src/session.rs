@@ -71,7 +71,6 @@ impl Session {
         win_size.server_channel_no = server_channel_no;
         win_size.client_channel_no = self.client_channel_no;
         win_size.add_remote_window_size(rws);
-        win_size.add_remote_max_window_size(rws);
 
         self.client_channel_no += 1;
 

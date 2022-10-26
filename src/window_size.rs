@@ -11,8 +11,6 @@ pub struct WindowSize {
     local_max_window_size: u32,
     /// 本地窗口大小
     local_window_size: u32,
-    /// 远程最大窗口大小
-    remote_max_window_size : u32,
     /// 远程窗口大小
     remote_window_size : u32
 }
@@ -25,7 +23,6 @@ impl WindowSize {
             client_channel_no: 0,
             local_max_window_size: LOCAL_WINDOW_SIZE,
             local_window_size: LOCAL_WINDOW_SIZE,
-            remote_max_window_size: 0,
             remote_window_size: 0
         }
     }
@@ -63,37 +60,25 @@ impl WindowSize {
                                       client: &mut Client,
     ) -> SshResult<()>
     {
-        if self.remote_window_size == 0 {
-            return Ok(());
-        }
         let size = match self.get_size(data) {
             None => return Ok(()),
             Some(size) => size
         };
-        self.sub_remote_window_size(size);
-        if self.remote_window_size >= self.remote_max_window_size {
-            return self.read_window_size(client)
-        }
-        let used = self.remote_max_window_size - self.remote_window_size;
-        if used > 0 && self.remote_max_window_size / used <= 20 {
-            return self.read_window_size(client)
-        }
-        return Ok(())
-    }
 
-    pub(crate) fn sub_remote_window_size(&mut self, rws: u32) {
-        self.remote_window_size = self.remote_window_size - rws;
+        if size > self.remote_window_size {
+            return self.read_window_size(client);
+        }
+
+        self.remote_window_size -= size;
+
+        return Ok(())
     }
 
     pub(crate) fn add_remote_window_size(&mut self, rws: u32) {
         self.remote_window_size = self.remote_window_size + rws;
     }
 
-    pub(crate) fn add_remote_max_window_size(&mut self, rws: u32) {
-        self.remote_max_window_size = self.remote_max_window_size + rws;
-    }
-
-    fn read_window_size(&mut self, client: &mut Client) -> SshResult<()> {
+    pub(crate) fn read_window_size(&mut self, client: &mut Client) -> SshResult<()> {
         let results = client.read()?;
         if results.len() <= 0 {
             return Ok(())
@@ -105,7 +90,7 @@ impl WindowSize {
                 data.get_u32();
                 // 远程客户端调整的窗口大小
                 let size = data.get_u32();
-                self.add_remote_window_size(size);
+                self.remote_window_size += size;
             }
         }
         Ok(())

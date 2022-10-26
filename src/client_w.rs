@@ -1,5 +1,7 @@
 use std::io::Write;
 use std::ops::Deref;
+use std::thread::sleep;
+use std::time::Duration;
 use crate::client::Client;
 use crate::{
     SshError,
@@ -42,12 +44,17 @@ impl Client {
         loop {
             if let Err(e) = self.stream.write(&buf) {
                 if Client::is_would_block(&e) {
+                    println!("---");
                     continue
                 }
                 return Err(SshError::from(e))
             } else {
+                self.timeout.renew();
                 break
             }
+        }
+        if let Err(e) = self.stream.flush() {
+            return Err(SshError::from(e))
         }
         self.timeout.renew();
         Ok(())
