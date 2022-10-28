@@ -103,6 +103,7 @@ pub(crate) fn verify_signature_and_new_keys(client: &mut Client,
         for mut result in results {
             if result.is_empty() { continue }
             let message_code = result.get_u8();
+            println!("message_code {}", message_code);
             match message_code {
                 ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
                     // 生成session_id并且获取signature

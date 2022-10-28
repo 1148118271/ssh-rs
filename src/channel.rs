@@ -42,25 +42,49 @@ impl Channel {
                 session.client.as_mut().unwrap().write(data)?;
             }
             ssh_msg_code::SSH_MSG_KEXINIT => {
+                println!("SSH_MSG_KEXINIT");
+                let mut vec = vec![message_code];
+                vec.extend_from_slice(result.as_slice());
+                let result = Data::from(vec);
                 // TODO read 1GB
-                // let mut h = H::new();
-                // let session = self.get_session_mut();
-                // let client = session.client.as_mut().unwrap();
-                // let cv = client.config.version.client_version.as_str();
-                // let sv = client.config.version.server_version.as_str();
-                // h.set_v_c(cv);
-                // h.set_v_s(sv);
-                // log::info!("receive server algorithm list.");
-                // let mut data = vec![];
-                // data.push(message_code);
-                // data.extend(result.as_slice());
-                // let data = Data::from(data);
-                // h.set_i_s(data.clone().as_slice());
-                // kex::processing_server_algorithm(&mut client.config, data)?;
+                let mut h = H::new();
+                let session = self.get_session_mut();
+                let client = session.client.as_mut().unwrap();
+                let cv = client.config.version.client_version.as_str();
+                let sv = client.config.version.server_version.as_str();
+                h.set_v_c(cv);
+                h.set_v_s(sv);
+                h.set_i_s(result.clone().as_slice());
+                kex::processing_server_algorithm(&mut client.config, result)?;
+                kex::send_algorithm(&mut h, client)?;
+                let mut key_exchange = client.config.algorithm.matching_key_exchange_algorithm()?;
+                let mut public_key = client.config.algorithm.matching_public_key_algorithm()?;
+                kex::send_qc(client, key_exchange.get_public_key())?;
+                loop {
+                    let vec1 = client.read()?;
+                    println!("ve {:?}", vec1);
+                }
 
-                // sleep_ms(10000000);
+
+
+                // kex::new_keys(client)?;
+                //let session_id = kex::verify_signature_and_new_keys(client, &mut public_key, &mut key_exchange, &mut h)?;
+                // println!("ssssss");
+                // loop {
+                //     let vec1 = client.read().unwrap();
+                //     println!("vce {:?}", vec1);
+                // }
                 // log::info!("send client algorithm list.");
                 // kex::send_algorithm(&mut h, client)?;
+
+                // let mut key_exchange = client.config.algorithm.matching_key_exchange_algorithm()?;
+                // let mut public_key = client.config.algorithm.matching_public_key_algorithm()?;
+                // kex::send_qc(client, key_exchange.get_public_key())?;
+                //let session_id = kex::verify_signature_and_new_keys(client, &mut public_key, &mut key_exchange, &mut h)?;
+                // println!("session_id {:?}", session_id);
+                // loop {
+                //
+                // }
                 // let mut key_exchange = client.config.algorithm.matching_key_exchange_algorithm()?;
                 // let mut public_key = client.config.algorithm.matching_public_key_algorithm()?;
                 // log::info!("send qc.");
@@ -68,6 +92,18 @@ impl Channel {
                 // log::info!("signature verification.");
                 // let session_id = kex::verify_signature_and_new_keys(client, &mut public_key, &mut key_exchange, &mut h)?;
                 // kex::key_agreement(&mut h, client)?;
+            }
+            ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
+                println!("SSH_MSG_KEXDH_REPLY");
+                loop {
+
+                }
+            }
+            ssh_msg_code::SSH_MSG_NEWKEYS => {
+                println!("SSH_MSG_KEXDH_REPLY");
+                loop {
+
+                }
             }
             // 通道大小
             ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {

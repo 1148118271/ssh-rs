@@ -7,8 +7,6 @@ use crate::data::Data;
 pub struct WindowSize {
     pub(crate) server_channel_no: u32,
     pub(crate) client_channel_no: u32,
-    /// 本地窗口最大大小
-    local_max_window_size: u32,
     /// 本地窗口大小
     local_window_size: u32,
     /// 远程窗口大小
@@ -21,7 +19,6 @@ impl WindowSize {
         WindowSize {
             server_channel_no: 0,
             client_channel_no: 0,
-            local_max_window_size: LOCAL_WINDOW_SIZE,
             local_window_size: LOCAL_WINDOW_SIZE,
             remote_window_size: 0
         }
@@ -75,7 +72,7 @@ impl WindowSize {
     }
 
     pub(crate) fn add_remote_window_size(&mut self, rws: u32) {
-        self.remote_window_size = self.remote_window_size + rws;
+        self.remote_window_size += rws;
     }
 
     pub(crate) fn read_window_size(&mut self, client: &mut Client) -> SshResult<()> {
@@ -108,29 +105,16 @@ impl WindowSize {
             None => return Ok(()),
             Some(size) => size
         };
-        self.sub_local_window_size(size);
-        let used = self.local_max_window_size - self.local_window_size;
-        if used <= 0 {
-            return Ok(())
+        if self.local_window_size <= size {
+            let used = LOCAL_WINDOW_SIZE - self.local_window_size;
+            let mut data = Data::new();
+            data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
+                .put_u32(self.server_channel_no)
+                .put_u32(used);
+            client.write(data)?;
+            self.local_window_size += used;
         }
-        if (self.local_max_window_size / used) > 20 {
-            return Ok(());
-        }
-        let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
-            .put_u32(self.server_channel_no)
-            .put_u32(used);
-        client.write(data)?;
-        self.add_local_window_size(used);
-        return Ok(());
+        self.local_window_size -= size;
+        Ok(())
     }
-
-    pub(crate) fn sub_local_window_size(&mut self, lws: u32) {
-        self.local_window_size = self.local_window_size - lws;
-    }
-
-    pub(crate) fn add_local_window_size(&mut self, lws: u32) {
-        self.local_window_size = self.local_window_size + lws;
-    }
-
 }

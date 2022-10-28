@@ -1,7 +1,5 @@
 use std::io::Write;
 use std::ops::Deref;
-use std::thread::sleep;
-use std::time::Duration;
 use crate::client::Client;
 use crate::{
     SshError,
@@ -44,7 +42,7 @@ impl Client {
         loop {
             if let Err(e) = self.stream.write(&buf) {
                 if Client::is_would_block(&e) {
-                    println!("---");
+                    self.timeout.is_timeout()?;
                     continue
                 }
                 return Err(SshError::from(e))
@@ -74,6 +72,7 @@ impl Client {
         if self.w_size < constant::size::ONE_GB {
             return Ok(())
         }
+        println!("------------");
         self.w_size = 0;
         let mut h = H::new();
         let cv = self.config.version.client_version.as_str();
@@ -81,7 +80,6 @@ impl Client {
         h.set_v_c(cv);
         h.set_v_s(sv);
         kex::key_agreement(&mut h, self)?;
-        self.w_size = 0;
         Ok(())
     }
 }
