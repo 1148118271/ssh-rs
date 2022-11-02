@@ -8,7 +8,6 @@ use crate::{
     h::H,
     kex,
 };
-use crate::algorithm::hash;
 use crate::data::Data;
 use crate::packet::Packet;
 use crate::window_size::WindowSize;
