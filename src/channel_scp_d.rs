@@ -159,7 +159,6 @@ impl ChannelScp {
             let mut data = vec![];
             for mut result in results {
                 let message_code = result.get_u8();
-                println!("message_code {}", message_code);
                 match message_code {
                     ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                         let cc = result.get_u32();

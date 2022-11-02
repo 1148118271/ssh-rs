@@ -24,7 +24,7 @@ impl WindowSize {
         }
     }
 
-    fn get_size(&self, data: &[u8]) -> Option<u32> {
+    pub(crate) fn get_size(&self, data: &[u8]) -> Option<u32> {
         let mc = &data[0];
         match *mc {
             ssh_msg_code::SSH_MSG_CHANNEL_DATA => {

@@ -2,6 +2,7 @@ use std::io;
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
 use crate::algorithm::encryption::Encryption;
+use crate::client_r::Signature;
 use crate::error::{SshError, SshResult};
 use crate::timeout::Timeout;
 use crate::config::Config;
@@ -16,8 +17,13 @@ pub struct Client {
     pub(crate) config: Config,
     pub(crate) encryption: Option<Box<dyn Encryption>>,
     pub(crate) is_encryption: bool,
+    /// session id
+    /// 只使用第一次密钥交换生成的
     pub(crate) session_id: Vec<u8>,
     pub(crate) w_size: usize,
+    pub(crate) signature: Option<Signature>,
+    pub(crate) is_r_1_gb: bool,
+    pub(crate) is_w_1_gb: bool
 }
 
 #[derive(Clone)]
@@ -63,6 +69,9 @@ impl Client {
                         is_encryption: false,
                         session_id: vec![],
                         w_size: 0,
+                        signature: None,
+                        is_r_1_gb: false,
+                        is_w_1_gb: false
                     }
                 )
             }

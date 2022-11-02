@@ -8,6 +8,7 @@ use crate::{
     h::H,
     kex,
 };
+use crate::algorithm::hash;
 use crate::data::Data;
 use crate::packet::Packet;
 use crate::window_size::WindowSize;
@@ -15,6 +16,7 @@ use crate::window_size::WindowSize;
 impl Client {
     /// 发送客户端版本
     pub(crate) fn write_version(&mut self, buf: &[u8]) -> SshResult<()> {
+        self.w_size += buf.len();
         match self.stream.write(&buf) {
             Ok(_) => Ok(()),
             Err(e) => Err(SshError::from(e))
@@ -25,12 +27,12 @@ impl Client {
         self.write_data(data, None)
     }
 
-    pub fn write_data(&mut self, data: Data, rws: Option<&mut WindowSize>) -> Result<(), SshError> {
-        if let Some(rws) = rws {
-            rws.process_remote_window_size(data.as_slice(), self)?;
-        }
-        self.w_size_one_gb()?;
+    pub fn write_data(&mut self, data: Data, mut rws: Option<&mut WindowSize>) -> Result<(), SshError> {
         let buf = if self.is_encryption {
+            if let Some(rws) = &mut rws {
+                rws.process_remote_window_size(data.as_slice(), self)?;
+            }
+            self.w_size_one_gb(&mut rws)?;
             self.get_encryption_data(data)?
         } else {
             let mut packet = Packet::from(data);
@@ -68,18 +70,26 @@ impl Client {
     }
 
     // 数据超过1GB密钥重新交换
-    pub(crate) fn w_size_one_gb(&mut self) -> SshResult<()> {
+    fn w_size_one_gb(&mut self, rws: &mut Option<&mut WindowSize>) -> SshResult<()> {
         if self.w_size < constant::size::ONE_GB {
             return Ok(())
         }
-        println!("------------");
+        if self.is_r_1_gb {
+            return Ok(())
+        }
         self.w_size = 0;
+        self.is_w_1_gb = true;
         let mut h = H::new();
         let cv = self.config.version.client_version.as_str();
         let sv = self.config.version.server_version.as_str();
         h.set_v_c(cv);
         h.set_v_s(sv);
-        kex::key_agreement(&mut h, self)?;
+        match rws {
+            None => kex::send_algorithm(&mut h, self, None)?,
+            Some(ws) => kex::send_algorithm(&mut h, self, Some(ws))?,
+        };
+        self.is_w_1_gb = false;
+        log::info!("key negotiation successful.");
         Ok(())
     }
 }

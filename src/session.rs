@@ -48,7 +48,7 @@ impl Session {
         // 版本协商
         client.version(&mut h)?;
         // 密钥协商
-        let hash_type = kex::key_agreement(&mut h, client)?;
+        let hash_type = kex::key_agreement(&mut h, client, None)?;
         // 用户验证
         self.initiate_authentication()?;
         self.authentication(hash_type, h)
