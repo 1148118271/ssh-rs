@@ -85,8 +85,8 @@ impl Client {
         h.set_v_c(cv);
         h.set_v_s(sv);
         match rws {
-            None => kex::send_algorithm(&mut h, self, None)?,
-            Some(ws) => kex::send_algorithm(&mut h, self, Some(ws))?,
+            None => kex::key_agreement(&mut h, self, None)?,
+            Some(ws) => kex::key_agreement(&mut h, self, Some(ws))?,
         };
         self.is_w_1_gb = false;
         log::info!("key negotiation successful.");
