@@ -48,7 +48,7 @@ impl Packet {
             return Data::new();
         }
         let padding_length = self.value[4];
-        let vec = (&self.value[5..(self.value.len() - padding_length as usize)]).to_vec();
+        let vec = self.value[5..(self.value.len() - padding_length as usize)].to_vec();
         let data = Data::from(vec);
         self.data = data.clone();
         data

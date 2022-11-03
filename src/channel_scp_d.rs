@@ -287,7 +287,7 @@ fn file_time(v: Vec<u8>) -> SshResult<(i64, i64)> {
         t.push(x)
     }
     let a = t.len() / 2;
-    let ct = util::from_utf8((&t[..(a - 1)]).to_vec())?;
-    let ut = util::from_utf8((&t[a..(t.len() - 1)]).to_vec())?;
+    let ct = util::from_utf8(t[..(a - 1)].to_vec())?;
+    let ut = util::from_utf8(t[a..(t.len() - 1)].to_vec())?;
     Ok((util::str_to_i64(&ct)?, util::str_to_i64(&ut)?))
 }
