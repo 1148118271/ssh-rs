@@ -1,5 +1,3 @@
-use std::io;
-use std::io::Read;
 use crate::client::Client;
 use crate::data::Data;
 use crate::{kex, SshError, SshResult};
@@ -10,6 +8,8 @@ use crate::constant::{size, ssh_msg_code};
 use crate::h::H;
 use crate::packet::Packet;
 use crate::window_size::WindowSize;
+use std::io;
+use std::io::Read;
 
 impl Client {
     /// 发送客户端版本
@@ -17,8 +17,8 @@ impl Client {
         let mut v = [0_u8; 128];
         loop {
             match self.stream.read(&mut v) {
-                Ok(i) => { return (&v[..i]).to_vec() }
-                Err(_) => continue
+                Ok(i) => return (&v[..i]).to_vec(),
+                Err(_) => continue,
             };
         }
     }
@@ -36,8 +36,8 @@ impl Client {
         let mut result = vec![0; size::BUF_SIZE as usize];
         let len = match self.stream.read(&mut result) {
             Ok(len) => {
-                if len <= 0 {
-                    return Ok(results)
+                if len == 0 {
+                    return Ok(results);
                 }
 
                 // 从服务段正常读取到数据的话
@@ -45,12 +45,12 @@ impl Client {
                 self.timeout.renew();
 
                 len
-            },
+            }
             Err(e) => {
                 if Client::is_would_block(&e) {
-                    return Ok(results)
+                    return Ok(results);
                 }
-                return Err(SshError::from(e))
+                return Err(SshError::from(e));
             }
         };
 
@@ -58,7 +58,7 @@ impl Client {
         // 处理未加密数据
         match self.is_encryption {
             true => self.process_data_encrypt(result, &mut results, lws)?,
-            false => self.process_data(result, &mut results)
+            false => self.process_data(result, &mut results),
         }
         Ok(results)
     }
@@ -81,26 +81,32 @@ impl Client {
         results.push(data);
     }
 
-    pub fn process_data_encrypt(&mut self,
-                                mut result: Vec<u8>,
-                                results: &mut Vec<Data>,
-                                mut lws: Option<&mut WindowSize>
-    ) -> SshResult<()>
-    {
+    pub fn process_data_encrypt(
+        &mut self,
+        mut result: Vec<u8>,
+        results: &mut Vec<Data>,
+        mut lws: Option<&mut WindowSize>,
+    ) -> SshResult<()> {
         loop {
             self.sequence.server_auto_increment();
             if result.len() < 4 {
                 self.check_result_len(&mut result)?;
             }
             let data_len = {
-                self.encryption.as_mut().unwrap().data_len(self.sequence.server_sequence_num, result.as_slice())
+                self.encryption
+                    .as_mut()
+                    .unwrap()
+                    .data_len(self.sequence.server_sequence_num, result.as_slice())
             };
             if result.len() < data_len {
                 self.get_encrypt_data(&mut result, data_len)?;
             }
             let (this, remaining) = result.split_at_mut(data_len);
             let decryption_result = {
-                self.encryption.as_mut().unwrap().decrypt(self.sequence.server_sequence_num, &mut this.to_vec())
+                self.encryption
+                    .as_mut()
+                    .unwrap()
+                    .decrypt(self.sequence.server_sequence_num, &mut this.to_vec())
             }?;
             let data = Packet::from(decryption_result).unpacking();
             // 判断是否需要修改窗口大小
@@ -119,7 +125,6 @@ impl Client {
 
     fn get_encrypt_data(&mut self, result: &mut Vec<u8>, data_len: usize) -> SshResult<()> {
         loop {
-
             self.timeout.is_timeout()?;
 
             let mut buf = vec![0; data_len - result.len()];
@@ -131,14 +136,14 @@ impl Client {
                         result.extend(buf);
                     }
                     if result.len() >= data_len {
-                        return Ok(())
+                        return Ok(());
                     }
-                },
+                }
                 Err(e) => {
                     if e.kind() == io::ErrorKind::WouldBlock {
                         continue;
                     }
-                    return Err(SshError::from(e))
+                    return Err(SshError::from(e));
                 }
             };
         }
@@ -146,7 +151,6 @@ impl Client {
 
     fn check_result_len(&mut self, result: &mut Vec<u8>) -> SshResult<usize> {
         loop {
-
             self.timeout.is_timeout()?;
 
             let mut buf = vec![0; size::BUF_SIZE as usize];
@@ -159,14 +163,14 @@ impl Client {
                     }
 
                     if result.len() >= 4 {
-                        return Ok(len)
+                        return Ok(len);
                     }
-                },
+                }
                 Err(e) => {
                     if e.kind() == io::ErrorKind::WouldBlock {
                         continue;
                     }
-                    return Err(SshError::from(e))
+                    return Err(SshError::from(e));
                 }
             };
         }

@@ -14,7 +14,6 @@ use crate::kex;
 
 
 pub struct Session {
-
     pub(crate) timeout_sec: u64,
 
     pub(crate) user_info: Option<UserInfo>,
@@ -22,21 +21,19 @@ pub struct Session {
     pub(crate) client: Option<Client>,
 
     pub(crate) client_channel_no: u32,
-
 }
 
 impl Session {
-
     pub fn set_timeout(&mut self, secs: u64) {
         self.timeout_sec = secs;
     }
 
     pub fn connect<A>(&mut self, addr: A) -> SshResult<()>
     where
-        A: ToSocketAddrs
+        A: ToSocketAddrs,
     {
         if self.user_info.is_none() {
-            return Err(SshError::from("user info is none."))
+            return Err(SshError::from("user info is none."));
         }
         // 建立通道
         self.client = Some(Client::connect(addr, self.timeout_sec, self.user_info.clone().unwrap())?);
@@ -58,7 +55,6 @@ impl Session {
         log::info!("session close.");
         self.client.unwrap().close()
     }
-
 }
 
 impl Session {
@@ -78,7 +74,7 @@ impl Session {
             remote_close: false,
             local_close: false,
             window_size: win_size,
-            session: self as *mut Session
+            session: self as *mut Session,
         })
     }
 
@@ -99,7 +95,6 @@ impl Session {
 }
 
 impl Session {
-
     // 本地请求远程打开通道
     fn send_open_channel(&mut self, client_channel_no: u32) -> SshResult<()> {
         let mut data = Data::new();
@@ -116,7 +111,9 @@ impl Session {
         loop {
             let results = self.client.as_mut().unwrap().read()?;
             for mut result in results {
-                if result.is_empty() { continue }
+                if result.is_empty() {
+                    continue;
+                }
                 let message_code = result.get_u8();
                 match message_code {
                     // 打开请求通过
@@ -130,7 +127,7 @@ impl Session {
                         // 远程的最大数据包大小， 暂时不需要
                         result.get_u32();
                         return Ok((server_channel_no, rws));
-                    },
+                    }
                     /*
                         byte SSH_MSG_CHANNEL_OPEN_FAILURE
                         uint32 recipient channel
@@ -145,27 +142,27 @@ impl Session {
                         let code = result.get_u32();
                         // 消息详情 默认utf-8编码
                         let description = String::from_utf8(result.get_u8s())
-                            .unwrap_or(String::from("error"));
+                            .unwrap_or_else(|_| String::from("error"));
                         // language tag 暂不处理， 应该是 en-US
                         result.get_u8s();
 
                         let err_msg = match code {
                             ssh_msg_code::SSH_OPEN_ADMINISTRATIVELY_PROHIBITED => {
                                 format!("SSH_OPEN_ADMINISTRATIVELY_PROHIBITED: {}", description)
-                            },
+                            }
                             ssh_msg_code::SSH_OPEN_CONNECT_FAILED => {
                                 format!("SSH_OPEN_CONNECT_FAILED: {}", description)
-                            },
+                            }
                             ssh_msg_code::SSH_OPEN_UNKNOWN_CHANNEL_TYPE => {
                                 format!("SSH_OPEN_UNKNOWN_CHANNEL_TYPE: {}", description)
-                            },
+                            }
                             ssh_msg_code::SSH_OPEN_RESOURCE_SHORTAGE => {
                                 format!("SSH_OPEN_RESOURCE_SHORTAGE: {}", description)
-                            },
-                            _ => description
+                            }
+                            _ => description,
                         };
-                        return Err(SshError::from(err_msg))
-                    },
+                        return Err(SshError::from(err_msg));
+                    }
                     _ => {}
                 }
             }
@@ -183,7 +180,9 @@ impl Session {
         loop {
             let results = self.client.as_mut().unwrap().read()?;
             for mut result in results {
-                if result.is_empty() { continue }
+                if result.is_empty() {
+                    continue;
+                }
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
@@ -191,13 +190,12 @@ impl Session {
                         match user_info.auth_type {
                             // 开始密码验证
                             AuthType::Password => self.password_authentication()?,
-                            AuthType::PublicKey => self.public_key_authentication()?
+                            AuthType::PublicKey => self.public_key_authentication()?,
                         }
-
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
                         log::error!("user auth failure.");
-                        return Err(SshError::from("user auth failure, auth type is password."))
+                        return Err(SshError::from("user auth failure, auth type is password."));
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_PK_OK => {
                         log::info!("user auth support this algorithm.");
@@ -205,7 +203,7 @@ impl Session {
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_SUCCESS => {
                         log::info!("user auth successful.");
-                        return Ok(())
+                        return Ok(());
                     }
                     ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                         let mut data = Data::new();
@@ -217,8 +215,4 @@ impl Session {
             }
         }
     }
-
-
 }
-
-

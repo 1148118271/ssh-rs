@@ -10,17 +10,16 @@ pub struct WindowSize {
     /// 本地窗口大小
     local_window_size: u32,
     /// 远程窗口大小
-    remote_window_size : u32
+    remote_window_size: u32,
 }
 
 impl WindowSize {
-
     pub(crate) fn new() -> Self {
         WindowSize {
             server_channel_no: 0,
             client_channel_no: 0,
             local_window_size: LOCAL_WINDOW_SIZE,
-            remote_window_size: 0
+            remote_window_size: 0,
         }
     }
 
@@ -40,18 +39,16 @@ impl WindowSize {
                 data.get_u8(); // msg code
                 data.get_u32(); // channel serial no    4 len
                 data.get_u32(); // data type code        4 len
-                let vec = data.get_u8s();  // string data len
+                let vec = data.get_u8s(); // string data len
                 let size = vec.len() as u32;
                 Some(size)
             }
-            _ => None
+            _ => None,
         }
-
     }
 }
 
 impl WindowSize {
-
     pub(crate) fn process_remote_window_size(&mut self,
                                       data: &[u8],
                                       client: &mut Client,
@@ -59,7 +56,7 @@ impl WindowSize {
     {
         let size = match self.get_size(data) {
             None => return Ok(()),
-            Some(size) => size
+            Some(size) => size,
         };
 
         if size > self.remote_window_size {
@@ -103,7 +100,7 @@ impl WindowSize {
     {
         let size = match self.get_size(data) {
             None => return Ok(()),
-            Some(size) => size
+            Some(size) => size,
         };
         if self.local_window_size <= size {
             let used = LOCAL_WINDOW_SIZE - self.local_window_size;

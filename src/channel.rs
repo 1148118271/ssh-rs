@@ -1,13 +1,13 @@
-use std::ops::{Deref, DerefMut};
-use crate::constant::{ssh_msg_code};
-use crate::error::{SshError, SshResult};
-use crate::data::Data;
-use crate::slog::log;
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
-use crate::Session;
+use crate::constant::ssh_msg_code;
+use crate::data::Data;
+use crate::error::{SshError, SshResult};
+use crate::slog::log;
 use crate::window_size::WindowSize;
+use crate::Session;
+use std::ops::{Deref, DerefMut};
 
 pub struct Channel {
     pub(crate) remote_close: bool,
@@ -50,7 +50,9 @@ impl Channel {
             ssh_msg_code::SSH_MSG_CHANNEL_EOF => {}
             ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {}
             ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {}
-            ssh_msg_code::SSH_MSG_CHANNEL_FAILURE => return Err(SshError::from("channel failure.")),
+            ssh_msg_code::SSH_MSG_CHANNEL_FAILURE => {
+                return Err(SshError::from("channel failure."))
+            }
             ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
                 let cc = result.get_u32();
                 if cc == self.client_channel_no {
@@ -65,17 +67,17 @@ impl Channel {
 
     pub fn open_shell(self) -> SshResult<ChannelShell> {
         log::info!("shell opened.");
-        return ChannelShell::open(self)
+        ChannelShell::open(self)
     }
 
     pub fn open_exec(self) -> SshResult<ChannelExec> {
         log::info!("exec opened.");
-        return Ok(ChannelExec::open(self))
+        Ok(ChannelExec::open(self))
     }
 
     pub fn open_scp(self) -> SshResult<ChannelScp> {
         log::info!("scp opened.");
-        return Ok(ChannelScp::open(self))
+        Ok(ChannelScp::open(self))
     }
 
     pub fn close(&mut self) -> SshResult<()> {
@@ -85,7 +87,9 @@ impl Channel {
     }
 
     fn send_close(&mut self) -> SshResult<()> {
-        if self.local_close { return Ok(()); }
+        if self.local_close {
+            return Ok(());
+        }
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_CLOSE)
             .put_u32(self.server_channel_no);
@@ -96,29 +100,32 @@ impl Channel {
     }
 
     fn receive_close(&mut self) -> SshResult<()> {
-        if self.remote_close { return Ok(()); }
+        if self.remote_close {
+            return Ok(());
+        }
         loop {
             // close 时不消耗窗口空间
-            let results = {
-                self.get_session_mut().client.as_mut().unwrap().read()
-            }?;
+            let results = { self.get_session_mut().client.as_mut().unwrap().read() }?;
             for mut result in results {
-                if result.is_empty() { continue }
+                if result.is_empty() {
+                    continue;
+                }
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
                         let cc = result.get_u32();
                         if cc == self.client_channel_no {
                             self.remote_close = true;
-                            return Ok(())
+                            return Ok(());
                         }
                     }
-                    _ => self.other(message_code, result)?
+                    _ => self.other(message_code, result)?,
                 }
             }
         }
     }
 
+    #[allow(clippy::mut_from_ref)]
     pub(crate) fn get_session_mut(&self) -> &mut Session {
         unsafe { &mut *self.session }
     }

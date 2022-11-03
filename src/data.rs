@@ -1,6 +1,5 @@
 use std::ops::{Deref, DerefMut};
 
-
 /// **byte**
 /// byte 标识任意一个 8 位值（8 位字节）。固定长度的数据有时被表示为一个字节数组，写
 /// 作 byte[[n]]，其中 n 是数组中字节的数量。
@@ -43,10 +42,15 @@ use std::ops::{Deref, DerefMut};
 #[derive(Debug, Clone)]
 pub struct Data(Vec<u8>);
 
-impl Data {
+impl Default for Data {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
+impl Data {
     pub fn new() -> Data {
-        Data { 0: vec![] }
+        Data(Vec::new())
     }
 
     // 把字节数组置空
@@ -117,9 +121,7 @@ impl Data {
         // 4位字节反转后直接转成u32类型
         self.0 = (&self.0[4..]).to_vec();
         a.reverse();
-        unsafe {
-            *(a.as_ptr() as *const u32)
-        }
+        unsafe { *(a.as_ptr() as *const u32) }
     }
 
     // 获取字节数组
@@ -130,7 +132,6 @@ impl Data {
         bytes
     }
 }
-
 
 impl From<Vec<u8>> for Data {
     fn from(v: Vec<u8>) -> Self {
@@ -144,9 +145,9 @@ impl From<&[u8]> for Data {
     }
 }
 
-impl Into<Vec<u8>> for Data {
-    fn into(self) -> Vec<u8> {
-        self.0
+impl From<Data> for Vec<u8> {
+    fn from(data: Data) -> Self {
+        data.0
     }
 }
 

@@ -1,17 +1,17 @@
-use std::path::Path;
-use crate::{Session, SshError, SshResult};
 use crate::algorithm::hash::HashType;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::h::H;
 use crate::key_pair::{KeyPair, KeyPairType};
 use crate::user_info::UserInfo;
+use crate::{Session, SshError, SshResult};
+use std::path::Path;
 
 impl Session {
 
  fn get_user_info(&self) -> SshResult<&UserInfo> {
         if self.user_info.is_none() {
-            return Err(SshError::from("user info is none."))
+            return Err(SshError::from("user info is none."));
         }
         Ok(self.user_info.as_ref().unwrap())
     }

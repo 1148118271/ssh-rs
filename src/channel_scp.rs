@@ -1,11 +1,9 @@
-use std::borrow::BorrowMut;
-use std::path::{Path, PathBuf};
 use crate::constant::{scp, ssh_msg_code, ssh_str};
 use crate::data::Data;
-use crate::error::{SshResult, SshError};
+use crate::error::{SshError, SshResult};
 use crate::Channel;
-
-
+use std::borrow::BorrowMut;
+use std::path::{Path, PathBuf};
 
 pub struct ChannelScp {
     pub(crate) channel: Channel,
@@ -13,15 +11,12 @@ pub struct ChannelScp {
 }
 
 impl ChannelScp {
-
-
     pub(crate) fn open(channel: Channel) -> Self {
         ChannelScp {
             channel,
             local_path: Default::default(),
         }
     }
-
 
     pub(crate) fn send_str(&mut self, cmd: &str) -> SshResult<()> {
         self.send_bytes(cmd.as_bytes())
@@ -37,15 +32,25 @@ impl ChannelScp {
             .put_u32(self.channel.server_channel_no)
             .put_u8s(bytes);
         let session = unsafe { &mut *self.channel.session };
-        session.client.as_mut().unwrap().write_data(data, Some(self.channel.window_size.borrow_mut()))
+        session
+            .client
+            .as_mut()
+            .unwrap()
+            .write_data(data, Some(self.channel.window_size.borrow_mut()))
     }
 
     pub(crate) fn read_data(&mut self) -> SshResult<Vec<u8>> {
         let mut vec = vec![];
         loop {
-            if !vec.is_empty() { break }
+            if !vec.is_empty() {
+                break;
+            }
             let session = unsafe { &mut *self.channel.session };
-            let results = session.client.as_mut().unwrap().read_data(Some(self.channel.window_size.borrow_mut()))?;
+            let results = session
+                .client
+                .as_mut()
+                .unwrap()
+                .read_data(Some(self.channel.window_size.borrow_mut()))?;
             for mut result in results {
                 let message_code = result.get_u8();
                 match message_code {
@@ -60,10 +65,10 @@ impl ChannelScp {
                         if cc == self.channel.client_channel_no {
                             self.channel.remote_close = true;
                             self.channel.close()?;
-                            return Ok(vec)
+                            return Ok(vec);
                         }
-                    },
-                    _ => self.channel.other(message_code, result)?
+                    }
+                    _ => self.channel.other(message_code, result)?,
                 }
             }
         }
@@ -77,7 +82,12 @@ impl ChannelScp {
             .put_str(ssh_str::EXEC)
             .put_u8(true as u8)
             .put_str(command);
-        self.channel.get_session_mut().client.as_mut().unwrap().write(data)
+        self.channel
+            .get_session_mut()
+            .client
+            .as_mut()
+            .unwrap()
+            .write(data)
     }
 
     pub(crate) fn command_init(&self, remote_path: &str, arg: &str) -> String {
@@ -93,14 +103,12 @@ impl ChannelScp {
     }
 }
 
-
 pub(crate) fn check_path(path: &Path) -> SshResult<()> {
-    if let None = path.to_str() {
-        return Err(SshError::from("path is null."))
+    if path.to_str().is_none() {
+        return Err(SshError::from("path is null."));
     }
     Ok(())
 }
-
 
 pub struct ScpFile {
     pub(crate) modify_time: i64,
@@ -123,5 +131,3 @@ impl ScpFile {
         }
     }
 }
-
-

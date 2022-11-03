@@ -1,6 +1,3 @@
-use std::io;
-use std::net::{Shutdown, TcpStream, ToSocketAddrs};
-use std::ops::{Deref, DerefMut};
 use crate::algorithm::encryption::Encryption;
 use crate::client_r::Signature;
 use crate::error::{SshError, SshResult};
@@ -8,6 +5,9 @@ use crate::timeout::Timeout;
 use crate::config::Config;
 use crate::user_info::UserInfo;
 use crate::h::H;
+use std::io;
+use std::net::{Shutdown, TcpStream, ToSocketAddrs};
+use std::ops::{Deref, DerefMut};
 
 
 pub struct Client {
@@ -29,11 +29,10 @@ pub struct Client {
 #[derive(Clone)]
 pub(crate) struct Sequence {
     pub(crate) client_sequence_num: u32,
-    pub(crate) server_sequence_num: u32
+    pub(crate) server_sequence_num: u32,
 }
 
 impl Sequence {
-
     pub(crate) fn client_auto_increment(&mut self) {
         if self.client_sequence_num == u32::MAX {
             self.client_sequence_num = 0;
@@ -75,7 +74,7 @@ impl Client {
                     }
                 )
             }
-            Err(e) => Err(SshError::from(e))
+            Err(e) => Err(SshError::from(e)),
         }
     }
 
@@ -102,14 +101,13 @@ impl Client {
     pub(crate) fn close(&mut self) -> Result<(), SshError> {
         match self.stream.shutdown(Shutdown::Both) {
             Ok(o) => Ok(o),
-            Err(e) => Err(SshError::from(e))
+            Err(e) => Err(SshError::from(e)),
         }
     }
 
     pub(crate) fn is_would_block(e: &io::Error) -> bool {
         e.kind() == io::ErrorKind::WouldBlock
     }
-
 }
 
 impl Deref for Client {

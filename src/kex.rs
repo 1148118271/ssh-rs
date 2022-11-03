@@ -1,23 +1,15 @@
-use crate::constant::ssh_msg_code;
-use crate::error::{SshError, SshResult};
-use crate::data::Data;
-use crate::slog::log;
-use crate::config::{
-    Config,
-    CompressionAlgorithm,
-    EncryptionAlgorithm,
-    KeyExchangeAlgorithm,
-    MacAlgorithm,
-    PublicKeyAlgorithm
-};
-use crate::{
-    util,
-    h::H,
-    client::Client,
-};
 use crate::algorithm::hash;
 use crate::algorithm::key_exchange::KeyExchange;
 use crate::algorithm::public_key::PublicKey;
+use crate::config::{
+    CompressionAlgorithm, Config, EncryptionAlgorithm, KeyExchangeAlgorithm, MacAlgorithm,
+    PublicKeyAlgorithm,
+};
+use crate::constant::ssh_msg_code;
+use crate::data::Data;
+use crate::error::{SshError, SshResult};
+use crate::slog::log;
+use crate::{client::Client, h::H, util};
 use crate::window_size::WindowSize;
 
 
@@ -33,9 +25,9 @@ pub(crate) fn send_algorithm(h: &mut H,
     data.extend(util::cookie());
     data.extend(client.config.algorithm.client_algorithm.as_i());
     data.put_str("")
-    .put_str("")
-    .put_u8(false as u8)
-    .put_u32(0_u32);
+        .put_str("")
+        .put_u8(false as u8)
+        .put_u32(0_u32);
     // 客户端算法
     h.set_i_c(data.clone().as_slice());
     match rws {
@@ -57,13 +49,15 @@ pub(crate) fn receive_algorithm(h: &mut H,
             Some(ws) => client.read_data(Some(ws))?
         };
         for result in results {
-            if result.is_empty() { continue }
+            if result.is_empty() {
+                continue;
+            }
             let message_code = result[0];
             match message_code {
                 ssh_msg_code::SSH_MSG_KEXINIT => {
                     h.set_i_s(result.clone().as_slice());
                     processing_server_algorithm(&mut client.config, result)?;
-                    return Ok(())
+                    return Ok(());
                 }
                 _ => {}
             }
@@ -77,18 +71,23 @@ pub(crate) fn processing_server_algorithm(config: &mut Config, mut data: Data) -
     // 跳过16位cookie
     data.skip(16);
     let server_algorithm = &mut config.algorithm.server_algorithm;
-    server_algorithm.key_exchange_algorithm     =   KeyExchangeAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.public_key_algorithm       =   PublicKeyAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.c_encryption_algorithm     =   EncryptionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.s_encryption_algorithm     =   EncryptionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.c_mac_algorithm            =   MacAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.s_mac_algorithm            =   MacAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.c_compression_algorithm    =   CompressionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.s_compression_algorithm    =   CompressionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
+    server_algorithm.key_exchange_algorithm =
+        KeyExchangeAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
+    server_algorithm.public_key_algorithm =
+        PublicKeyAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
+    server_algorithm.c_encryption_algorithm =
+        EncryptionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
+    server_algorithm.s_encryption_algorithm =
+        EncryptionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
+    server_algorithm.c_mac_algorithm = MacAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
+    server_algorithm.s_mac_algorithm = MacAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
+    server_algorithm.c_compression_algorithm =
+        CompressionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
+    server_algorithm.s_compression_algorithm =
+        CompressionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
     log::info!("server algorithms: [{}]", server_algorithm.to_string());
-    return Ok(())
+    Ok(())
 }
-
 
 /// 发送客户端公钥
 pub(crate) fn send_qc(client: &mut Client,
@@ -119,7 +118,9 @@ pub(crate) fn verify_signature_and_new_keys(client: &mut Client,
             Some(ws) => client.read_data(Some(ws))?
         };
         for mut result in results {
-            if result.is_empty() { continue }
+            if result.is_empty() {
+                continue;
+            }
             let message_code = result.get_u8();
             match message_code {
                 ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
@@ -130,7 +131,7 @@ pub(crate) fn verify_signature_and_new_keys(client: &mut Client,
                     let flag = public_key.verify_signature(&h.k_s, &session_id, &sig)?;
                     if !flag {
                         log::error!("signature verification failure.");
-                        return Err(SshError::from("signature verification failure."))
+                        return Err(SshError::from("signature verification failure."));
                     }
                     log::info!("signature verification success.");
                 }
@@ -167,7 +168,6 @@ pub(crate) fn generate_signature(mut data: Data,
     let signature = hd.get_u8s();
     Ok(signature)
 }
-
 
 /// SSH_MSG_NEWKEYS 代表密钥交换完成
 pub(crate) fn new_keys(client: &mut Client, rws: Option<&mut WindowSize>) -> Result<(), SshError> {
