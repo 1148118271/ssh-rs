@@ -88,7 +88,6 @@ impl Client {
             Some(ws) => kex::key_agreement(&mut h, self, Some(ws))?,
         };
         self.is_w_1_gb = false;
-        log::info!("key negotiation successful.");
         Ok(())
     }
 }
