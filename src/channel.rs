@@ -46,7 +46,7 @@ impl Channel {
                 // 需要调整增加的窗口大小
                 let rws = result.get_u32();
                 self.window_size.add_remote_window_size(rws);
-            },
+            }
             ssh_msg_code::SSH_MSG_CHANNEL_EOF => {}
             ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {}
             ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {}

@@ -1,8 +1,8 @@
 use crate::client::Client;
 use crate::constant::size::LOCAL_WINDOW_SIZE;
 use crate::constant::ssh_msg_code;
-use crate::error::SshResult;
 use crate::data::Data;
+use crate::error::SshResult;
 
 pub struct WindowSize {
     pub(crate) server_channel_no: u32,
@@ -49,11 +49,11 @@ impl WindowSize {
 }
 
 impl WindowSize {
-    pub(crate) fn process_remote_window_size(&mut self,
-                                      data: &[u8],
-                                      client: &mut Client,
-    ) -> SshResult<()>
-    {
+    pub(crate) fn process_remote_window_size(
+        &mut self,
+        data: &[u8],
+        client: &mut Client,
+    ) -> SshResult<()> {
         let size = match self.get_size(data) {
             None => return Ok(()),
             Some(size) => size,
@@ -65,7 +65,7 @@ impl WindowSize {
 
         self.remote_window_size -= size;
 
-        return Ok(())
+        Ok(())
     }
 
     pub(crate) fn add_remote_window_size(&mut self, rws: u32) {
@@ -74,8 +74,8 @@ impl WindowSize {
 
     pub(crate) fn read_window_size(&mut self, client: &mut Client) -> SshResult<()> {
         let results = client.read()?;
-        if results.len() <= 0 {
-            return Ok(())
+        if results.is_empty() {
+            return Ok(());
         }
         for mut data in results {
             let mc = data.get_u8();
@@ -92,12 +92,11 @@ impl WindowSize {
 }
 
 impl WindowSize {
-
-    pub(crate) fn process_local_window_size(&mut self,
-                                     data: &[u8],
-                                     client: &mut Client,
-    ) -> SshResult<()>
-    {
+    pub(crate) fn process_local_window_size(
+        &mut self,
+        data: &[u8],
+        client: &mut Client,
+    ) -> SshResult<()> {
         let size = match self.get_size(data) {
             None => return Ok(()),
             Some(size) => size,

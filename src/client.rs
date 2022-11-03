@@ -1,14 +1,13 @@
 use crate::algorithm::encryption::Encryption;
 use crate::client_r::Signature;
-use crate::error::{SshError, SshResult};
-use crate::timeout::Timeout;
 use crate::config::Config;
-use crate::user_info::UserInfo;
+use crate::error::{SshError, SshResult};
 use crate::h::H;
+use crate::timeout::Timeout;
+use crate::user_info::UserInfo;
 use std::io;
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::ops::{Deref, DerefMut};
-
 
 pub struct Client {
     pub(crate) stream: TcpStream,
@@ -23,7 +22,7 @@ pub struct Client {
     pub(crate) w_size: usize,
     pub(crate) signature: Option<Signature>,
     pub(crate) is_r_1_gb: bool,
-    pub(crate) is_w_1_gb: bool
+    pub(crate) is_w_1_gb: bool,
 }
 
 #[derive(Clone)]
@@ -49,30 +48,32 @@ impl Sequence {
 }
 
 impl Client {
-    pub(crate) fn connect<A: ToSocketAddrs>(addr: A, timeout_sec: u64, user_info: UserInfo) -> SshResult<Client> {
+    pub(crate) fn connect<A: ToSocketAddrs>(
+        addr: A,
+        timeout_sec: u64,
+        user_info: UserInfo,
+    ) -> SshResult<Client> {
         match TcpStream::connect(addr) {
             Ok(stream) => {
                 // default nonblocking
                 stream.set_nonblocking(true).unwrap();
 
-                Ok(
-                    Client{
-                        stream,
-                        sequence: Sequence {
-                            client_sequence_num: 0,
-                            server_sequence_num: 0
-                        },
-                        timeout: Timeout::new(timeout_sec),
-                        config: Config::new(user_info),
-                        encryption: None,
-                        is_encryption: false,
-                        session_id: vec![],
-                        w_size: 0,
-                        signature: None,
-                        is_r_1_gb: false,
-                        is_w_1_gb: false
-                    }
-                )
+                Ok(Client {
+                    stream,
+                    sequence: Sequence {
+                        client_sequence_num: 0,
+                        server_sequence_num: 0,
+                    },
+                    timeout: Timeout::new(timeout_sec),
+                    config: Config::new(user_info),
+                    encryption: None,
+                    is_encryption: false,
+                    session_id: vec![],
+                    w_size: 0,
+                    signature: None,
+                    is_r_1_gb: false,
+                    is_w_1_gb: false,
+                })
             }
             Err(e) => Err(SshError::from(e)),
         }

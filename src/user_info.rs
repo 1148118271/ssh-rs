@@ -1,6 +1,5 @@
 use crate::key_pair::KeyPair;
 
-
 #[derive(Clone)]
 pub struct UserInfo {
     pub(crate) auth_type: AuthType,

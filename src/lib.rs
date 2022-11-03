@@ -158,28 +158,28 @@
 //!
 //! ```
 
-mod client;
-mod client_r;
-mod client_w;
-mod session;
-mod session_auth;
+mod algorithm;
 mod channel;
-mod kex;
-mod channel_shell;
 mod channel_exec;
 mod channel_scp;
 mod channel_scp_d;
 mod channel_scp_u;
+mod channel_shell;
+mod client;
+mod client_r;
+mod client_w;
 mod config;
-mod util;
-mod window_size;
-mod slog;
 mod constant;
 mod data;
+mod kex;
 mod packet;
-mod algorithm;
-mod user_info;
+mod session;
+mod session_auth;
+mod slog;
 mod timeout;
+mod user_info;
+mod util;
+mod window_size;
 
 pub mod error;
 pub(crate) mod h;

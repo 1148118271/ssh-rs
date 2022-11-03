@@ -1,17 +1,16 @@
-use std::net::ToSocketAddrs;
-use crate::data::Data;
-use crate::constant::{ssh_msg_code, size, ssh_str};
-use crate::error::{SshError, SshResult};
-use crate::slog::log;
-use crate::{ChannelShell, ChannelScp, ChannelExec, Channel};
 use crate::algorithm::hash::HashType;
-use crate::h::H;
 use crate::client::Client;
-use crate::user_info::UserInfo;
-use crate::user_info::AuthType;
-use crate::window_size::WindowSize;
+use crate::constant::{size, ssh_msg_code, ssh_str};
+use crate::data::Data;
+use crate::error::{SshError, SshResult};
+use crate::h::H;
 use crate::kex;
-
+use crate::slog::log;
+use crate::user_info::AuthType;
+use crate::user_info::UserInfo;
+use crate::window_size::WindowSize;
+use crate::{Channel, ChannelExec, ChannelScp, ChannelShell};
+use std::net::ToSocketAddrs;
 
 pub struct Session {
     pub(crate) timeout_sec: u64,
@@ -36,7 +35,11 @@ impl Session {
             return Err(SshError::from("user info is none."));
         }
         // 建立通道
-        self.client = Some(Client::connect(addr, self.timeout_sec, self.user_info.clone().unwrap())?);
+        self.client = Some(Client::connect(
+            addr,
+            self.timeout_sec,
+            self.user_info.clone().unwrap(),
+        )?);
         log::info!("session opened.");
 
         let mut h = H::new();

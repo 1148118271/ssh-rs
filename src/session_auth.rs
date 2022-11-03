@@ -8,8 +8,7 @@ use crate::{Session, SshError, SshResult};
 use std::path::Path;
 
 impl Session {
-
- fn get_user_info(&self) -> SshResult<&UserInfo> {
+    fn get_user_info(&self) -> SshResult<&UserInfo> {
         if self.user_info.is_none() {
             return Err(SshError::from("user info is none."));
         }
@@ -25,21 +24,24 @@ impl Session {
         self.auth_user_info(user_info);
     }
 
-    pub fn set_user_and_key_pair<U: ToString, K: ToString>(&mut self, username: U, key_str: K, key_type: KeyPairType) -> SshResult<()> {
+    pub fn set_user_and_key_pair<U: ToString, K: ToString>(
+        &mut self,
+        username: U,
+        key_str: K,
+        key_type: KeyPairType,
+    ) -> SshResult<()> {
         let pair = KeyPair::from_str(key_str.to_string().as_str(), key_type)?;
         let user_info = UserInfo::from_key_pair(username, pair);
         self.auth_user_info(user_info);
         Ok(())
     }
 
-    pub fn set_user_and_key_pair_path
-    <U: ToString, P: AsRef<Path>>
-    (&mut self,
-     username: U,
-     key_path: P,
-     key_type: KeyPairType)
-        -> SshResult<()>
-    {
+    pub fn set_user_and_key_pair_path<U: ToString, P: AsRef<Path>>(
+        &mut self,
+        username: U,
+        key_path: P,
+        key_type: KeyPairType,
+    ) -> SshResult<()> {
         let pair = KeyPair::from_path(key_path, key_type)?;
         let user_info = UserInfo::from_key_pair(username.to_string(), pair);
         self.auth_user_info(user_info);

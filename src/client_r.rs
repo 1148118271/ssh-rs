@@ -1,13 +1,13 @@
-use crate::client::Client;
-use crate::data::Data;
-use crate::{kex, SshError, SshResult};
 use crate::algorithm::hash;
 use crate::algorithm::key_exchange::KeyExchange;
 use crate::algorithm::public_key::PublicKey;
+use crate::client::Client;
 use crate::constant::{size, ssh_msg_code};
+use crate::data::Data;
 use crate::h::H;
 use crate::packet::Packet;
 use crate::window_size::WindowSize;
+use crate::{kex, SshError, SshResult};
 use std::io;
 use std::io::Read;
 
@@ -110,12 +110,12 @@ impl Client {
             }?;
             let data = Packet::from(decryption_result).unpacking();
             // 判断是否需要修改窗口大小
-            if !self.window_adjust(data.clone(), &mut lws)? {
-                if self.r_size_one_gb(data.clone(), &mut lws)? {
-                    results.push(data);
-                }
+            if !self.window_adjust(data.clone(), &mut lws)?
+                && self.r_size_one_gb(data.clone(), &mut lws)?
+            {
+                results.push(data);
             }
-            if remaining.len() <= 0 {
+            if remaining.is_empty() {
                 break;
             }
             result = remaining.to_vec();
@@ -176,7 +176,11 @@ impl Client {
         }
     }
 
-    fn window_adjust(&mut self, mut data: Data, lws: &mut Option<&mut WindowSize>) -> SshResult<bool> {
+    fn window_adjust(
+        &mut self,
+        mut data: Data,
+        lws: &mut Option<&mut WindowSize>,
+    ) -> SshResult<bool> {
         if let Some(v) = lws {
             v.process_local_window_size(data.as_slice(), self)?;
             let mc = data[0];
@@ -193,9 +197,13 @@ impl Client {
     }
 
     // 密钥重新交换
-    fn r_size_one_gb(&mut self, mut data: Data, lws: &mut Option<&mut WindowSize>) -> SshResult<bool> {
+    fn r_size_one_gb(
+        &mut self,
+        mut data: Data,
+        lws: &mut Option<&mut WindowSize>,
+    ) -> SshResult<bool> {
         if self.is_w_1_gb {
-            return Ok(true)
+            return Ok(true);
         }
         return match data[0] {
             ssh_msg_code::SSH_MSG_KEXINIT => {
@@ -210,18 +218,18 @@ impl Client {
                 kex::processing_server_algorithm(&mut self.config, data)?;
                 match lws {
                     None => kex::send_algorithm(&mut h, self, None)?,
-                    Some(ws) =>  kex::send_algorithm(&mut h, self, Some(ws))?
+                    Some(ws) => kex::send_algorithm(&mut h, self, Some(ws))?,
                 }
                 let key_exchange = self.config.algorithm.matching_key_exchange_algorithm()?;
                 let public_key = self.config.algorithm.matching_public_key_algorithm()?;
                 match lws {
                     None => kex::send_qc(self, key_exchange.get_public_key(), None)?,
-                    Some(ws) => kex::send_qc(self, key_exchange.get_public_key(), Some(ws))?
+                    Some(ws) => kex::send_qc(self, key_exchange.get_public_key(), Some(ws))?,
                 }
                 self.signature = Some(Signature {
                     h,
                     key_exchange,
-                    public_key
+                    public_key,
                 });
                 Ok(false)
             }
@@ -236,7 +244,7 @@ impl Client {
                 let flag = k.public_key.verify_signature(&k.h.k_s, &session_id, &sig)?;
                 if !flag {
                     log::error!("signature verification failure.");
-                    return Err(SshError::from("signature verification failure."))
+                    return Err(SshError::from("signature verification failure."));
                 }
                 log::info!("signature verification success.");
                 Ok(false)
@@ -244,15 +252,18 @@ impl Client {
             ssh_msg_code::SSH_MSG_NEWKEYS => {
                 match lws {
                     None => kex::new_keys(self, None)?,
-                    Some(ws) => kex::new_keys(self, Some(ws))?
+                    Some(ws) => kex::new_keys(self, Some(ws))?,
                 }
-                let k =  self.signature.as_mut().unwrap();
+                let k = self.signature.as_mut().unwrap();
                 let hash_type = k.key_exchange.get_hash_type();
-                let hash = hash::hash::HASH::new(k.h.clone(), &self.session_id, hash_type);
+                let hash = hash::hash::Hash::new(k.h.clone(), &self.session_id, hash_type);
                 // mac 算法
                 let mac = self.config.algorithm.matching_mac_algorithm()?;
                 // 加密算法
-                let encryption = self.config.algorithm.matching_encryption_algorithm(hash, mac)?;
+                let encryption = self
+                    .config
+                    .algorithm
+                    .matching_encryption_algorithm(hash, mac)?;
                 self.encryption = Some(encryption);
                 self.is_encryption = true;
                 self.signature = None;
@@ -261,14 +272,12 @@ impl Client {
                 Ok(false)
             }
             _ => Ok(true),
-        }
+        };
     }
-
 }
-
 
 pub(crate) struct Signature {
     h: H,
     key_exchange: Box<dyn KeyExchange>,
-    public_key: Box<dyn PublicKey>
+    public_key: Box<dyn PublicKey>,
 }

@@ -1,16 +1,9 @@
 use crate::client::Client;
-use crate::{
-    SshError,
-    SshResult,
-    constant,
-    h::H,
-    kex,
-};
 use crate::data::Data;
 use crate::packet::Packet;
 use crate::window_size::WindowSize;
+use crate::{constant, h::H, kex, SshError, SshResult};
 use std::io::Write;
-use std::ops::Deref;
 
 impl Client {
     /// 发送客户端版本
@@ -26,7 +19,11 @@ impl Client {
         self.write_data(data, None)
     }
 
-    pub fn write_data(&mut self, data: Data, mut rws: Option<&mut WindowSize>) -> Result<(), SshError> {
+    pub fn write_data(
+        &mut self,
+        data: Data,
+        mut rws: Option<&mut WindowSize>,
+    ) -> Result<(), SshError> {
         let buf = if self.is_encryption {
             if let Some(rws) = &mut rws {
                 rws.process_remote_window_size(data.as_slice(), self)?;
@@ -44,12 +41,12 @@ impl Client {
             if let Err(e) = self.stream.write(&buf) {
                 if Client::is_would_block(&e) {
                     self.timeout.is_timeout()?;
-                    continue
+                    continue;
                 }
                 return Err(SshError::from(e));
             } else {
                 self.timeout.renew();
-                break
+                break;
             }
         }
         if let Err(e) = self.stream.flush() {
@@ -71,10 +68,10 @@ impl Client {
     // 数据超过1GB密钥重新交换
     fn w_size_one_gb(&mut self, rws: &mut Option<&mut WindowSize>) -> SshResult<()> {
         if self.w_size < constant::size::ONE_GB {
-            return Ok(())
+            return Ok(());
         }
         if self.is_r_1_gb {
-            return Ok(())
+            return Ok(());
         }
         self.w_size = 0;
         self.is_w_1_gb = true;
