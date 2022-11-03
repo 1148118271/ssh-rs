@@ -1,4 +1,4 @@
-use ssh_rs::{ssh, Channel, ChannelShell, Session};
+use ssh_rs::{ssh, Channel, ChannelShell};
 use std::thread::sleep;
 use std::time::Duration;
 

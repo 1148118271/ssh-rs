@@ -90,7 +90,7 @@ impl ChannelScp {
             Some(v) => scp_file.name = v.to_string(),
         }
         scp_file.is_dir = true;
-        let buf = scp_file.local_path.join(&scp_file.name);
+        let buf = scp_file.join(&scp_file.name);
         log::debug!(
             "name: [{}] size: [0], type: [dir] start download.",
             scp_file.name
@@ -149,7 +149,7 @@ impl ChannelScp {
             scp_file.name,
             scp_file.size
         );
-        let path = scp_file.local_path.join(scp_file.name.as_str());
+        let path = scp_file.join(&scp_file.name);
         if path.exists() {
             fs::remove_file(path.as_path())?;
         }

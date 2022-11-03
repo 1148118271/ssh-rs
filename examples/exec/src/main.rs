@@ -1,4 +1,4 @@
-use ssh_rs::{ssh, ChannelExec, Session};
+use ssh_rs::{ssh, ChannelExec};
 
 fn main() {
     let mut session = ssh::create_session();
