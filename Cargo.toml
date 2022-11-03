@@ -21,14 +21,15 @@ filetime = "0.2"
 ssh-key = "0.4.2"
 
 # async
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "^1", features = ["full"] }
+# [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# tokio = { version = "^1", features = ["full"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-tokio = { version = "^1", features = [
-    "sync",
-    "macros",
-    "io-util",
-    "rt",
-    "time"
-    ]}
+getrandom = { version = "0.2", features = ["js"] }
+# tokio = { version = "^1", features = [
+#     "sync",
+#     "macros",
+#     "io-util",
+#     "rt",
+#     "time"
+#     ]}

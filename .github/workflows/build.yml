@@ -1,0 +1,29 @@
+
+name: Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Linux
+      run: cargo build
+    - name: Build Windows
+      run: rustup target add x86_64-pc-windows-gnu && cargo build --target x86_64-pc-windows-gnu
+    - name: Build wasm32
+      run: rustup target add wasm32-unknown-unknown && cargo build --target wasm32-unknown-unknown
+    - name: Test
+      run: cargo test
+    - name: Doc test
+      run: cargo test --doc
