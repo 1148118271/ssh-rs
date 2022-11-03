@@ -106,19 +106,19 @@ impl WindowSize {
                 return Ok(())
             }
         }
-        return Ok(())
+        Ok(())
     }
 
     pub(crate) fn sub_remote_window_size(&mut self, rws: u32) {
-        self.remote_window_size = self.remote_window_size - rws;
+        self.remote_window_size -= rws;
     }
 
     pub(crate) fn add_remote_window_size(&mut self, rws: u32) {
-        self.remote_window_size = self.remote_window_size + rws;
+        self.remote_window_size += rws;
     }
 
     pub(crate) fn add_remote_max_window_size(&mut self, rws: u32) {
-        self.remote_max_window_size = self.remote_max_window_size + rws;
+        self.remote_max_window_size += rws;
     }
 }
 
@@ -135,7 +135,7 @@ impl WindowSize {
         };
         self.sub_local_window_size(size);
         let used = self.local_max_window_size - self.local_window_size;
-        if used <= 0 {
+        if used == 0 {
             return Ok(())
         }
         if (self.local_max_window_size / used) > 20 {
@@ -158,15 +158,15 @@ impl WindowSize {
             return Err(SshError::from(e))
         }
         self.add_local_window_size(used);
-        return Ok(());
+        Ok(())
     }
 
     pub(crate) fn sub_local_window_size(&mut self, lws: u32) {
-        self.local_window_size = self.local_window_size - lws;
+        self.local_window_size -= lws;
     }
 
     pub(crate) fn add_local_window_size(&mut self, lws: u32) {
-        self.local_window_size = self.local_window_size + lws;
+        self.local_window_size += lws;
     }
 
 }

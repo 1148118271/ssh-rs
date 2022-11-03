@@ -5,7 +5,7 @@ mod rsa;
 
 
 pub(crate) use ed25519::Ed25519;
-pub(crate) use self::rsa::RSA;
+pub(crate) use self::rsa::Rsa;
 
 
 /// # 公钥算法

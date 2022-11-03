@@ -26,7 +26,7 @@ use crate::h::H;
 
 
 
-pub struct HASH {
+pub struct Hash {
     /// IV
     pub iv_c_s          : Vec<u8>,
     pub iv_s_c          : Vec<u8>,
@@ -45,15 +45,15 @@ pub struct HASH {
 }
 
 
-impl HASH {
+impl Hash {
     pub fn new(h: H, session_id: &[u8], hash_type: HashType) -> Self {
         let k = h.k.as_slice();
         let h_ = hash::digest(&h.as_bytes(), hash_type);
         let mut keys = vec![];
         for v in constant::ALPHABET {
-            keys.push(HASH::mix(k, &h_, v, session_id, hash_type));
+            keys.push(Hash::mix(k, &h_, v, session_id, hash_type));
         }
-        HASH {
+        Hash {
             iv_c_s: keys[0].clone(),
             iv_s_c: keys[1].clone(),
 

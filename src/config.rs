@@ -3,13 +3,13 @@ use crate::data::Data;
 use crate::slog::log;
 use crate::{SshError, SshResult};
 use crate::algorithm::encryption::{AesCtr128, ChaCha20Poly1305, Encryption};
-use crate::algorithm::hash::hash::HASH;
+use crate::algorithm::hash::hash::Hash;
 use crate::algorithm::key_exchange::curve25519::CURVE25519;
 use crate::algorithm::key_exchange::ecdh_sha2_nistp256::EcdhP256;
 use crate::algorithm::key_exchange::KeyExchange;
 use crate::algorithm::mac::hmac_sha1::HMacSha1;
 use crate::algorithm::mac::Mac;
-use crate::algorithm::public_key::{Ed25519, PublicKey, RSA};
+use crate::algorithm::public_key::{Ed25519, PublicKey, Rsa};
 use crate::user_info::UserInfo;
 
 
@@ -97,7 +97,7 @@ impl AlgorithmConfig {
     /// 目前支持:
     ///     1. chacha20-poly1305@openssh.com
     ///     2. aes128-ctr
-    pub fn matching_encryption_algorithm(&self, hash: HASH, mac: Box<dyn Mac>) -> SshResult<Box<dyn Encryption>> {
+    pub fn matching_encryption_algorithm(&self, hash: Hash, mac: Box<dyn Mac>) -> SshResult<Box<dyn Encryption>> {
         // 目前是加密和解密使用一个算法
         // 所以直接取一个算法为准
         let encryption_algorithm: String = get_algorithm(
@@ -131,7 +131,7 @@ impl AlgorithmConfig {
         );
         match public_key_algorithm.as_str() {
             algorithms::PUBLIC_KEY_ED25519 => Ok(Box::new(Ed25519::new())),
-            algorithms::PUBLIC_KEY_RSA => Ok(Box::new(RSA::new())),
+            algorithms::PUBLIC_KEY_RSA => Ok(Box::new(Rsa::new())),
             _ => {
                 log::error!("description the signature algorithm fails to match, \
                 algorithms supported by the server: {},\
@@ -170,13 +170,13 @@ impl AlgorithmConfig {
 
 }
 
-fn get_algorithm(c_algorithm: &Vec<String>, s_algorithm: &Vec<String>) -> String {
+fn get_algorithm(c_algorithm: &Vec<String>, s_algorithm: &[String]) -> String {
     for x in c_algorithm {
         if s_algorithm.contains(x) {
             return x.clone()
         }
     }
-    return String::new();
+    String::new()
 }
 
 #[derive(Clone)]

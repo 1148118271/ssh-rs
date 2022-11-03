@@ -100,7 +100,7 @@ impl ChannelScp {
         loop {
             let mut s = [0u8; 20480];
             let i = file.read(&mut s)?;
-            count = count + i;
+            count += i;
             self.send_bytes(&s[..i])?;
             if count == scp_file.size as usize {
                 self.send_bytes(&[0])?;
@@ -111,7 +111,7 @@ impl ChannelScp {
 
         log::debug!("file: [{}] upload completed.", scp_file.name);
 
-        return Ok(())
+        Ok(())
     }
 
     fn send_dir(&mut self, scp_file: &ScpFile) -> SshResult<()> {
@@ -124,7 +124,7 @@ impl ChannelScp {
 
         log::debug!("dir: [{}] upload completed.", scp_file.name);
 
-        return Ok(())
+        Ok(())
     }
 
 
@@ -160,7 +160,7 @@ impl ChannelScp {
 
     fn get_end(&mut self) -> SshResult<()> {
         let vec = self.read_data()?;
-        match *&vec[0] {
+        match vec[0] {
             scp::END => Ok(()),
             // error
             scp::ERR | scp::FATAL_ERR => {

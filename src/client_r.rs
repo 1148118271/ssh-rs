@@ -32,7 +32,7 @@ impl Client {
         let mut result = vec![0; size::BUF_SIZE as usize];
         let len = match self.stream.read(&mut result) {
             Ok(len) => {
-                if len <= 0 {
+                if len == 0 {
                     return Ok(results)
                 }
 
@@ -104,7 +104,7 @@ impl Client {
                 v.process_local_window_size(data.as_slice(), self)?
             }
             results.push(data);
-            if remaining.len() <= 0 {
+            if remaining.is_empty() {
                 break;
             }
             result = remaining.to_vec();

@@ -1,7 +1,6 @@
 use crate::algorithm::encryption::Encryption;
 use crate::data::Data;
 
-
 /// ## 数据包整体结构
 ///
 /// ### uint32 `packet_length`
@@ -40,17 +39,15 @@ use crate::data::Data;
 #[derive(Debug)]
 pub struct Packet {
     data: Data,
-    value: Vec<u8>
+    value: Vec<u8>,
 }
 
-
 impl Packet {
-
     pub fn unpacking(&mut self) -> Data {
         if self.value.is_empty() {
-            return Data::new()
+            return Data::new();
         }
-        let padding_length = *(&self.value[4]);
+        let padding_length = self.value[4];
         let vec = (&self.value[5..(self.value.len() - padding_length as usize)]).to_vec();
         let data = Data::from(vec);
         self.data = data.clone();
@@ -64,17 +61,20 @@ impl Packet {
     }
 
     // 封包
-    pub fn build(&mut self, encryption: Option<&Box<dyn Encryption>>, is_encrypt: bool) {
-        let data_len =  self.data.len() as u32;
+    pub fn build(&mut self, encryption: Option<&dyn Encryption>, is_encrypt: bool) {
+        let data_len = self.data.len() as u32;
         let bsize = match is_encrypt {
-                true => encryption.unwrap().bsize() as i32,
-                // 未加密的填充: 整个包的总长度是8的倍数，并且填充长度不能小于4
-                false => 8,
+            true => encryption.unwrap().bsize() as i32,
+            // 未加密的填充: 整个包的总长度是8的倍数，并且填充长度不能小于4
+            false => 8,
         };
         let padding_len = {
-            let mut pad = (-((data_len +
-                if is_encrypt && encryption.unwrap().is_cp() { 1 }
-                else { 5 }) as i32))
+            let mut pad = (-((data_len
+                + if is_encrypt && encryption.unwrap().is_cp() {
+                    1
+                } else {
+                    5
+                }) as i32))
                 & (bsize - 1) as i32;
             if pad < bsize {
                 pad += bsize;
@@ -92,7 +92,7 @@ impl Packet {
         buf.extend(vec![0; padding_len as usize]);
         // 获取总长度
         let packet_len = buf.len() as u32;
-        let mut packet_len_u8s= packet_len.to_be_bytes().to_vec();
+        let mut packet_len_u8s = packet_len.to_be_bytes().to_vec();
         // [packet_length, padding_length, payload, randomPadding]
         packet_len_u8s.extend(buf);
         self.value = packet_len_u8s;
@@ -106,14 +106,13 @@ impl Packet {
     pub fn to_vec(&self) -> Vec<u8> {
         self.value.to_vec()
     }
-
 }
 
 impl From<Vec<u8>> for Packet {
     fn from(v: Vec<u8>) -> Self {
         Packet {
             data: Data::from(v.as_slice()),
-            value: v
+            value: v,
         }
     }
 }
@@ -122,7 +121,7 @@ impl From<&[u8]> for Packet {
     fn from(v: &[u8]) -> Self {
         Packet {
             data: Data::from(v),
-            value: v.to_vec()
+            value: v.to_vec(),
         }
     }
 }
@@ -132,7 +131,7 @@ impl From<Data> for Packet {
         let vec = d.as_slice().to_vec();
         Packet {
             data: d,
-            value: vec
+            value: vec,
         }
     }
 }

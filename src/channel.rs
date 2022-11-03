@@ -73,17 +73,17 @@ impl Channel {
 
     pub fn open_shell(self) -> SshResult<ChannelShell> {
         log::info!("shell opened.");
-        return ChannelShell::open(self)
+        ChannelShell::open(self)
     }
 
     pub fn open_exec(self) -> SshResult<ChannelExec> {
         log::info!("exec opened.");
-        return Ok(ChannelExec::open(self))
+        Ok(ChannelExec::open(self))
     }
 
     pub fn open_scp(self) -> SshResult<ChannelScp> {
         log::info!("scp opened.");
-        return Ok(ChannelScp::open(self))
+        Ok(ChannelScp::open(self))
     }
 
     pub fn close(&mut self) -> SshResult<()> {
@@ -127,6 +127,7 @@ impl Channel {
         }
     }
 
+    #[allow(clippy::mut_from_ref)]
     pub(crate) fn get_session_mut(&self) -> &mut Session {
         unsafe { &mut *self.session }
     }

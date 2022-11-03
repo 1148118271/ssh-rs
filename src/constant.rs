@@ -1,39 +1,39 @@
 
 /// 客户端版本
-pub const CLIENT_VERSION            :&'static str = "SSH-2.0-SSH_RS-0.2.1";
+pub const CLIENT_VERSION            :&str = "SSH-2.0-SSH_RS-0.2.1";
 
 
 /// ssh通讯时用到的常量字符串
 #[allow(dead_code)]
 pub mod ssh_str {
     /// 准备认证
-    pub const SSH_USERAUTH              :&'static str = "ssh-userauth";
+    pub const SSH_USERAUTH              :&str = "ssh-userauth";
     /// 开始认证
-    pub const SSH_CONNECTION            :&'static str = "ssh-connection";
+    pub const SSH_CONNECTION            :&str = "ssh-connection";
     /// 公钥验证方式
-    pub const PUBLIC_KEY                :&'static str = "publickey";
+    pub const PUBLIC_KEY                :&str = "publickey";
     /// 密码认证方式
-    pub const PASSWORD                  :&'static str = "password";
+    pub const PASSWORD                  :&str = "password";
     /// 打开一个会话
-    pub const SESSION                   :&'static str = "session";
+    pub const SESSION                   :&str = "session";
     /// 启动一个命令解释程序
-    pub const SHELL                     :&'static str = "shell";
+    pub const SHELL                     :&str = "shell";
     /// 执行一个命令
-    pub const EXEC                      :&'static str = "exec";
+    pub const EXEC                      :&str = "exec";
     /// 执行文件传输
-    pub const SCP                       :&'static str = "scp";
+    pub const SCP                       :&str = "scp";
     /// 请求一个伪终端
-    pub const PTY_REQ                   :&'static str = "pty-req";
+    pub const PTY_REQ                   :&str = "pty-req";
     /// 伪终端的样式
-    pub const XTERM_VAR                 :&'static str = "xterm-256color";
+    pub const XTERM_VAR                 :&str = "xterm-256color";
 }
 
 #[allow(dead_code)]
 pub mod permission {
     /// 文件夹默认权限
-    pub const DIR                       :&'static str = "775";
+    pub const DIR                       :&str = "775";
     /// 文件默认权限
-    pub const FILE                      :&'static str = "664";
+    pub const FILE                      :&str = "664";
 }
 
 
@@ -42,33 +42,33 @@ pub mod permission {
 pub mod scp {
     // scp 参数常量
     /// 意味着当前机器上的scp，将本地文件传输到另一个scp上
-    pub const SOURCE                    :&'static str = "-f";
+    pub const SOURCE                    :&str = "-f";
     /// 意味着当前机器上的scp，即将收到另一个scp传输过来的文件
-    pub const SINK                      :&'static str = "-t";
+    pub const SINK                      :&str = "-t";
     /// 递归复制整个目录
-    pub const RECURSIVE                 :&'static str = "-r";
+    pub const RECURSIVE                 :&str = "-r";
     /// 详细方式显示输出
-    pub const VERBOSE                   :&'static str = "-v";
+    pub const VERBOSE                   :&str = "-v";
     /// 保留原文件的修改时间，访问时间和访问权限
-    pub const PRESERVE_TIMES            :&'static str = "-p";
+    pub const PRESERVE_TIMES            :&str = "-p";
     /// 不显示传输进度条
-    pub const QUIET                     :&'static str = "-q";
+    pub const QUIET                     :&str = "-q";
     /// 限定用户所能使用的带宽
-    pub const LIMIT                     :&'static str = "-l";
+    pub const LIMIT                     :&str = "-l";
 
     // scp传输时的状态常量
     /// 代表当前接收的数据是文件的最后修改时间和最后访问时间
     /// "T1647767946 0 1647767946 0\n";
-    pub const T                         :u8   = 'T' as u8;
+    pub const T                         :u8   = b'T';
     /// 代表当前接收的数据是文件夹
     /// "D0775 0 dirName\n"
-    pub const D                         :u8   = 'D' as u8;
+    pub const D                         :u8   = b'D';
     /// 代表当前接收的数据是文件
     /// "C0664 200 fileName.js\n"
-    pub const C                         :u8   = 'C' as u8;
+    pub const C                         :u8   = b'C';
     /// 代表当前文件夹传输结束，需要返回上层文件夹
     /// "D\n"
-    pub const E                         :u8   = 'E' as u8;
+    pub const E                         :u8   = b'E';
 
     /// 代表结束当前操作
     // '\0'
@@ -154,22 +154,22 @@ pub mod ssh_msg_code {
 #[allow(dead_code)]
 pub mod algorithms {
     /// 密钥交换算法
-    pub const DH_CURVE25519_SHA256                              :&'static str = "curve25519-sha256";
-    pub const DH_ECDH_SHA2_NISTP256                             :&'static str = "ecdh-sha2-nistp256";
+    pub const DH_CURVE25519_SHA256                              :&str = "curve25519-sha256";
+    pub const DH_ECDH_SHA2_NISTP256                             :&str = "ecdh-sha2-nistp256";
 
     /// 非对称签名算法
-    pub const PUBLIC_KEY_ED25519                                :&'static str = "ssh-ed25519";
-    pub const PUBLIC_KEY_RSA                                    :&'static str = "ssh-rsa";
+    pub const PUBLIC_KEY_ED25519                                :&str = "ssh-ed25519";
+    pub const PUBLIC_KEY_RSA                                    :&str = "ssh-rsa";
 
     /// 对称加密算法
-    pub const ENCRYPTION_CHACHA20_POLY1305_OPENSSH              :&'static str = "chacha20-poly1305@openssh.com";
-    pub const ENCRYPTION_AES128_CTR                             :&'static str = "aes128-ctr";
+    pub const ENCRYPTION_CHACHA20_POLY1305_OPENSSH              :&str = "chacha20-poly1305@openssh.com";
+    pub const ENCRYPTION_AES128_CTR                             :&str = "aes128-ctr";
 
     /// MAC（消息验证码）算法
-    pub const MAC_HMAC_SHA1                                     :&'static str = "hmac-sha1";
+    pub const MAC_HMAC_SHA1                                     :&str = "hmac-sha1";
 
     /// 压缩算法
-    pub const COMPRESSION_ALGORITHMS                            :&'static str = "none";
+    pub const COMPRESSION_ALGORITHMS                            :&str = "none";
 }
 
 /// 密钥交换后进行HASH时候需要的常量值

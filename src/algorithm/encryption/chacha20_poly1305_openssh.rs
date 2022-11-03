@@ -1,6 +1,6 @@
 use ring::aead::chacha20_poly1305_openssh::{OpeningKey, SealingKey};
 use crate::algorithm::encryption::Encryption;
-use crate::algorithm::hash::hash::HASH;
+use crate::algorithm::hash::hash::Hash;
 use crate::algorithm::mac::Mac;
 use crate::error::SshError;
 
@@ -22,7 +22,7 @@ impl Encryption for ChaCha20Poly1305 {
     }
 
 
-    fn new(hash: HASH, _mac: Box<dyn Mac>) -> ChaCha20Poly1305 {
+    fn new(hash: Hash, _mac: Box<dyn Mac>) -> ChaCha20Poly1305 {
         let (ck, sk) = hash.extend_key(BSIZE);
         let mut sealing_key = [0_u8; BSIZE];
         let mut opening_key = [0_u8; BSIZE];

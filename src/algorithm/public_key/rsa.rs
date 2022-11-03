@@ -4,9 +4,9 @@ use crate::data::Data;
 use crate::SshError;
 
 
-pub struct RSA;
+pub struct Rsa;
 
-impl PubK for RSA {
+impl PubK for Rsa {
     fn new() -> Self where Self: Sized {
         Self
     }

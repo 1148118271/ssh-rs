@@ -95,7 +95,7 @@ impl ChannelScp {
 
 
 pub(crate) fn check_path(path: &Path) -> SshResult<()> {
-    if let None = path.to_str() {
+    if path.to_str().is_none() {
         return Err(SshError::from("path is null."))
     }
     Ok(())

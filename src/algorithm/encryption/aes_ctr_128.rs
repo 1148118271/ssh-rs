@@ -2,7 +2,7 @@ use aes::Aes128Ctr;
 use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
 use crate::{SshError, SshResult};
 use crate::algorithm::encryption::Encryption;
-use crate::algorithm::hash::hash::HASH;
+use crate::algorithm::hash::hash::Hash;
 use crate::algorithm::mac::Mac;
 
 
@@ -14,7 +14,7 @@ pub struct AesCtr128 {
     pub(crate) client_key: Aes128Ctr,
     pub(crate) server_key: Aes128Ctr,
 
-    hash: HASH,
+    hash: Hash,
     mac: Box<dyn Mac>,
 }
 
@@ -26,7 +26,7 @@ impl Encryption for AesCtr128 {
         IV_SIZE
     }
 
-    fn new(hash: HASH, mac: Box<dyn Mac>) -> Self {
+    fn new(hash: Hash, mac: Box<dyn Mac>) -> Self {
         let (ck, sk) = hash.extend_key(BSIZE);
         let mut ckey = [0u8; BSIZE];
         let mut skey = [0u8; BSIZE];

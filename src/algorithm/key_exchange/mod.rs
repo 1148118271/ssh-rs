@@ -29,7 +29,7 @@ pub(crate) fn agree_ephemeral<B: AsRef<[u8]>>(
 {
     match agreement::agree_ephemeral(
         private_key,
-        &peer_public_key,
+        peer_public_key,
         ring::error::Unspecified,
         |_key_material| {
             Ok(_key_material.to_vec())

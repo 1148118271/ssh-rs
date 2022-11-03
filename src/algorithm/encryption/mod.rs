@@ -5,7 +5,7 @@ pub(crate) use {
     chacha20_poly1305_openssh::ChaCha20Poly1305,
     aes_ctr_128::AesCtr128
 };
-use crate::algorithm::hash::hash::HASH;
+use crate::algorithm::hash::hash::Hash;
 use crate::algorithm::mac::Mac;
 use crate::SshResult;
 
@@ -23,7 +23,7 @@ use crate::SshResult;
 pub trait Encryption {
     fn bsize(&self) -> usize;
     fn iv_size(&self) -> usize;
-    fn new(hash: HASH, mac: Box<dyn Mac>) -> Self where Self: Sized;
+    fn new(hash: Hash, mac: Box<dyn Mac>) -> Self where Self: Sized;
     fn encrypt(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>);
     fn decrypt(&mut self, sequence_number: u32, buf: &mut [u8]) -> SshResult<Vec<u8>>;
     fn packet_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize;
