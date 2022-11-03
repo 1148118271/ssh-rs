@@ -1,10 +1,9 @@
-use std::str::FromStr;
-use std::time::{SystemTime, UNIX_EPOCH};
-use rand::Rng;
-use rand::rngs::OsRng;
 use crate::error::{SshError, SshResult};
 use crate::slog::log;
-
+use rand::rngs::OsRng;
+use rand::Rng;
+use std::str::FromStr;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
     match String::from_utf8(v) {
@@ -17,23 +16,21 @@ pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
     }
 }
 
-
 pub(crate) fn sys_time_to_secs(time: SystemTime) -> SshResult<u64> {
-     match time.duration_since(UNIX_EPOCH) {
+    match time.duration_since(UNIX_EPOCH) {
         Ok(t) => Ok(t.as_secs()),
-        Err(e) => {
-            Err(SshError::from(format!("SystemTimeError difference: {:?}", e.duration())))
-        }
+        Err(e) => Err(SshError::from(format!(
+            "SystemTimeError difference: {:?}",
+            e.duration()
+        ))),
     }
 }
-
 
 // 十六位随机数
 pub(crate) fn cookie() -> Vec<u8> {
     let cookie: [u8; 16] = OsRng.gen();
     cookie.to_vec()
 }
-
 
 #[allow(dead_code)]
 pub(crate) fn vec_u8_to_string(v: Vec<u8>, pat: &str) -> SshResult<Vec<String>> {
@@ -46,24 +43,18 @@ pub(crate) fn vec_u8_to_string(v: Vec<u8>, pat: &str) -> SshResult<Vec<String>> 
     Ok(vec)
 }
 
-
 #[allow(dead_code)]
 pub(crate) fn str_to_u32(v: &str) -> SshResult<u32> {
     match u32::from_str(v) {
         Ok(v) => Ok(v),
-        Err(_) => {
-            Err(SshError::from("str to u32 error"))
-        }
+        Err(_) => Err(SshError::from("str to u32 error")),
     }
 }
-
 
 #[allow(dead_code)]
 pub(crate) fn str_to_i64(v: &str) -> SshResult<i64> {
     match i64::from_str(v) {
         Ok(v) => Ok(v),
-        Err(_) => {
-            Err(SshError::from("str to i64 error"))
-        }
+        Err(_) => Err(SshError::from("str to i64 error")),
     }
 }

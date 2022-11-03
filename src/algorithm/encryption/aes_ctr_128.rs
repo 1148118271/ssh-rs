@@ -1,20 +1,18 @@
-use aes::Aes128Ctr;
-use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
-use crate::{SshError, SshResult};
 use crate::algorithm::encryption::Encryption;
-use crate::algorithm::hash::hash::HASH;
+use crate::algorithm::hash::hash::Hash;
 use crate::algorithm::mac::Mac;
-
+use crate::{SshError, SshResult};
+use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
+use aes::Aes128Ctr;
 
 const BSIZE: usize = 16;
 const IV_SIZE: usize = 16;
-
 
 pub struct AesCtr128 {
     pub(crate) client_key: Aes128Ctr,
     pub(crate) server_key: Aes128Ctr,
 
-    hash: HASH,
+    hash: Hash,
     mac: Box<dyn Mac>,
 }
 
@@ -26,7 +24,7 @@ impl Encryption for AesCtr128 {
         IV_SIZE
     }
 
-    fn new(hash: HASH, mac: Box<dyn Mac>) -> Self {
+    fn new(hash: Hash, mac: Box<dyn Mac>) -> Self {
         let (ck, sk) = hash.extend_key(BSIZE);
         let mut ckey = [0u8; BSIZE];
         let mut skey = [0u8; BSIZE];
@@ -48,13 +46,17 @@ impl Encryption for AesCtr128 {
             client_key: c,
             server_key: r,
             hash,
-            mac
+            mac,
         }
     }
 
     fn encrypt(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>) {
         let vec = buf.clone();
-        let tag = self.mac.sign(&self.hash.ik_c_s[..self.mac.bsize()], client_sequence_num, vec.as_slice());
+        let tag = self.mac.sign(
+            &self.hash.ik_c_s[..self.mac.bsize()],
+            client_sequence_num,
+            vec.as_slice(),
+        );
         self.client_key.apply_keystream(buf);
         buf.extend(tag.as_ref())
     }
@@ -64,10 +66,14 @@ impl Encryption for AesCtr128 {
         let data = &mut buf[..(pl + 20)];
         let (d, m) = data.split_at_mut(pl);
         self.server_key.apply_keystream(d);
-        let tag = self.mac.sign(&self.hash.ik_s_c[..self.mac.bsize()], server_sequence_number, d);
+        let tag = self.mac.sign(
+            &self.hash.ik_s_c[..self.mac.bsize()],
+            server_sequence_number,
+            d,
+        );
         let t = tag.as_ref();
         if m != t {
-            return Err(SshError::from("encryption error."))
+            return Err(SshError::from("encryption error."));
         }
         Ok(d.to_vec())
     }

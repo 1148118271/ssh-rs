@@ -1,12 +1,11 @@
+use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::{fmt, io};
-use std::error::Error;
-
 
 pub type SshResult<I> = Result<I, SshError>;
 
 pub struct SshError {
-    inner: SshErrorKind
+    inner: SshErrorKind,
 }
 
 impl SshError {
@@ -15,14 +14,19 @@ impl SshError {
     }
 }
 
-
 impl Debug for SshError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match &self.inner {
             SshErrorKind::IoError(ie) => {
-                write!(f, r"IoError: {{ Kind({:?}), Message({}) }}", ie.kind(), ie.to_string())
+                write!(f, r"IoError: {{ Kind({:?}), Message({}) }}", ie.kind(), ie)
             }
-            _ => { write!(f, r"Error: {{ Kind({:?}), Message({}) }}", self.inner, self.inner.to_string()) }
+            _ => {
+                write!(
+                    f,
+                    r"Error: {{ Kind({:?}), Message({}) }}",
+                    self.inner, self.inner
+                )
+            }
         }
     }
 }
@@ -33,21 +37,19 @@ impl Display for SshError {
             SshErrorKind::IoError(ie) => {
                 write!(f, r"IoError: {{ Kind({:?}) }}", ie.kind())
             }
-            _ => { write!(f, r"Error: {{ Kind({:?}) }}", self.inner) }
+            _ => {
+                write!(f, r"Error: {{ Kind({:?}) }}", self.inner)
+            }
         }
-
     }
 }
-
 
 #[derive(Debug)]
 pub enum SshErrorKind {
     IoError(io::Error),
     SshError(String),
-    Timeout
+    Timeout,
 }
-
-
 
 impl PartialEq<Self> for SshErrorKind {
     fn eq(&self, other: &Self) -> bool {
@@ -55,40 +57,33 @@ impl PartialEq<Self> for SshErrorKind {
             (&SshErrorKind::SshError(v1), &SshErrorKind::SshError(v2)) => v1.eq(v2),
             (&SshErrorKind::IoError(io1), &SshErrorKind::IoError(io2)) => io1.kind() == io2.kind(),
             (&SshErrorKind::Timeout, &SshErrorKind::Timeout) => true,
-            _ => false
+            _ => false,
         }
     }
 }
 
-
-
-
-impl SshErrorKind {
-    fn to_string(&self) -> String {
+impl fmt::Display for SshErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self {
-            SshErrorKind::SshError(e) => e.to_string(),
-            SshErrorKind::IoError(v) => v.to_string(),
-            SshErrorKind::Timeout => "time out.".to_string()
+            SshErrorKind::SshError(e) => write!(f, "{}", e),
+            SshErrorKind::IoError(v) => write!(f, "{}", v),
+            SshErrorKind::Timeout => write!(f, "time out."),
         }
     }
 }
 
-
-impl Error for SshError {
-}
+impl Error for SshError {}
 
 impl From<SshErrorKind> for SshError {
     fn from(kind: SshErrorKind) -> SshError {
-        SshError {
-            inner: kind
-        }
+        SshError { inner: kind }
     }
 }
 
 impl From<&str> for SshError {
     fn from(kind: &str) -> SshError {
         SshError {
-            inner: SshErrorKind::SshError(kind.to_string())
+            inner: SshErrorKind::SshError(kind.to_string()),
         }
     }
 }
@@ -96,7 +91,7 @@ impl From<&str> for SshError {
 impl From<String> for SshError {
     fn from(kind: String) -> SshError {
         SshError {
-            inner: SshErrorKind::SshError(kind)
+            inner: SshErrorKind::SshError(kind),
         }
     }
 }
@@ -104,7 +99,7 @@ impl From<String> for SshError {
 impl From<io::Error> for SshError {
     fn from(kind: io::Error) -> Self {
         SshError {
-            inner: SshErrorKind::IoError(io::Error::from(kind.kind()))
+            inner: SshErrorKind::IoError(io::Error::from(kind.kind())),
         }
     }
 }

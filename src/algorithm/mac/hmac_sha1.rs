@@ -1,13 +1,12 @@
+use crate::algorithm::mac::Mac;
 use ring::hmac;
 use ring::hmac::{Context, Tag};
-use crate::algorithm::mac::Mac;
 
 const BSIZE: usize = 20;
 
 pub(crate) struct HMacSha1;
 
 impl Mac for HMacSha1 {
-
     fn sign(&self, ik: &[u8], sequence_num: u32, buf: &[u8]) -> Tag {
         let ik = &ik[..BSIZE];
         let key = hmac::Key::new(hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY, ik);
@@ -17,7 +16,10 @@ impl Mac for HMacSha1 {
         c.sign()
     }
 
-    fn new() -> Self where Self: Sized {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
         HMacSha1
     }
 

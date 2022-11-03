@@ -1,14 +1,11 @@
-use crate::error::SshResult;
-use crate::data::Data;
-use crate::constant::{ssh_msg_code, ssh_str};
 use crate::channel::Channel;
-
-
+use crate::constant::{ssh_msg_code, ssh_str};
+use crate::data::Data;
+use crate::error::SshResult;
 
 pub struct ChannelShell(pub(crate) Channel);
 
 impl ChannelShell {
-
     pub(crate) fn open(mut channel: Channel) -> SshResult<Self> {
         // shell 形式需要一个伪终端
         ChannelShell::request_pty(&channel)?;
@@ -16,13 +13,13 @@ impl ChannelShell {
         loop {
             let results = { channel.get_session_mut().client.as_mut().unwrap().read() }?;
             for mut result in results {
-                if result.is_empty() { continue }
+                if result.is_empty() {
+                    continue;
+                }
                 let message_code = result.get_u8();
                 match message_code {
-                    ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {
-                        return Ok(ChannelShell(channel))
-                    }
-                    _ => channel.other(message_code, result)?
+                    ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => return Ok(ChannelShell(channel)),
+                    _ => channel.other(message_code, result)?,
                 }
             }
         }
@@ -40,14 +37,19 @@ impl ChannelShell {
             .put_u32(640)
             .put_u32(480);
         let model = [
-            128,                  // TTY_OP_ISPEED
-            0, 1, 0xc2, 0,        // 115200
-            129,                  // TTY_OP_OSPEED
-            0, 1, 0xc2, 0,        // 115200 again
-            0_u8,                 // TTY_OP_END
+            128, // TTY_OP_ISPEED
+            0, 1, 0xc2, 0,   // 115200
+            129, // TTY_OP_OSPEED
+            0, 1, 0xc2, 0,    // 115200 again
+            0_u8, // TTY_OP_END
         ];
         data.put_u8s(&model);
-        channel.get_session_mut().client.as_mut().unwrap().write(data)
+        channel
+            .get_session_mut()
+            .client
+            .as_mut()
+            .unwrap()
+            .write(data)
     }
 
     fn get_shell(channel: &Channel) -> SshResult<()> {
@@ -56,15 +58,26 @@ impl ChannelShell {
             .put_u32(channel.server_channel_no)
             .put_str(ssh_str::SHELL)
             .put_u8(true as u8);
-        channel.get_session_mut().client.as_mut().unwrap().write(data)
+        channel
+            .get_session_mut()
+            .client
+            .as_mut()
+            .unwrap()
+            .write(data)
     }
 
     pub fn read(&mut self) -> SshResult<Vec<u8>> {
         let mut buf = vec![];
         let session = unsafe { &mut *self.0.session };
-        let results = session.client.as_mut().unwrap().read_data(Some(&mut self.0.window_size))?;
+        let results = session
+            .client
+            .as_mut()
+            .unwrap()
+            .read_data(Some(&mut self.0.window_size))?;
         for mut result in results {
-            if result.is_empty() { continue }
+            if result.is_empty() {
+                continue;
+            }
             let message_code = result.get_u8();
             match message_code {
                 ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
@@ -74,7 +87,7 @@ impl ChannelShell {
                         buf.append(&mut vec);
                     }
                 }
-                _ => self.0.other(message_code, result)?
+                _ => self.0.other(message_code, result)?,
             }
         }
         Ok(buf)
@@ -86,11 +99,14 @@ impl ChannelShell {
             .put_u32(self.0.server_channel_no)
             .put_u8s(buf);
         let session = unsafe { &mut *self.0.session };
-        session.client.as_mut().unwrap().write_data(data, Some(&mut self.0.window_size))
+        session
+            .client
+            .as_mut()
+            .unwrap()
+            .write_data(data, Some(&mut self.0.window_size))
     }
 
     pub fn close(mut self) -> SshResult<()> {
         self.0.close()
     }
-
 }

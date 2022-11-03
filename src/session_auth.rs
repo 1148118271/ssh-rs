@@ -1,5 +1,3 @@
-use std::path::Path;
-use crate::{Session, SshError, SshResult};
 use crate::algorithm::hash::HashType;
 use crate::config::Config;
 use crate::constant::{ssh_msg_code, ssh_str};
@@ -7,12 +5,13 @@ use crate::data::Data;
 use crate::h::H;
 use crate::key_pair::{KeyPair, KeyPairType};
 use crate::user_info::UserInfo;
+use crate::{Session, SshError, SshResult};
+use std::path::Path;
 
 impl Session {
-
     fn get_config(&self) -> SshResult<&Config> {
         if self.config.is_none() {
-            return Err(SshError::from("config is none."))
+            return Err(SshError::from("config is none."));
         }
         Ok(self.config.as_ref().unwrap())
     }
@@ -26,21 +25,24 @@ impl Session {
         self.auth_user_info(user_info);
     }
 
-    pub fn set_user_and_key_pair<U: ToString, K: ToString>(&mut self, username: U, key_str: K, key_type: KeyPairType) -> SshResult<()> {
+    pub fn set_user_and_key_pair<U: ToString, K: ToString>(
+        &mut self,
+        username: U,
+        key_str: K,
+        key_type: KeyPairType,
+    ) -> SshResult<()> {
         let pair = KeyPair::from_str(key_str.to_string().as_str(), key_type)?;
         let user_info = UserInfo::from_key_pair(username, pair);
         self.auth_user_info(user_info);
         Ok(())
     }
 
-    pub fn set_user_and_key_pair_path
-    <U: ToString, P: AsRef<Path>>
-    (&mut self,
-     username: U,
-     key_path: P,
-     key_type: KeyPairType)
-        -> SshResult<()>
-    {
+    pub fn set_user_and_key_pair_path<U: ToString, P: AsRef<Path>>(
+        &mut self,
+        username: U,
+        key_path: P,
+        key_type: KeyPairType,
+    ) -> SshResult<()> {
         let pair = KeyPair::from_path(key_path, key_type)?;
         let user_info = UserInfo::from_key_pair(username.to_string(), pair);
         self.auth_user_info(user_info);
