@@ -3,5 +3,5 @@
 #[derive(Copy, Clone)]
 pub enum HashType {
     SHA1,
-    SHA256
+    SHA256,
 }

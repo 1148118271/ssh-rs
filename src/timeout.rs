@@ -1,27 +1,24 @@
-use std::time::{Duration, SystemTime};
-use crate::{slog::log, SshError, SshResult};
 use crate::error::SshErrorKind;
+use crate::{slog::log, SshError, SshResult};
+use std::time::{Duration, SystemTime};
 
 pub(crate) struct Timeout {
     time: SystemTime,
-    timeout_sec: u64
+    timeout_sec: u64,
 }
 
 impl Timeout {
     pub(crate) fn new(timeout_sec: u64) -> Self {
         let time = SystemTime::now();
         let time = time + Duration::from_secs(timeout_sec);
-        Timeout {
-            time,
-            timeout_sec
-        }
+        Timeout { time, timeout_sec }
     }
 
     pub(crate) fn is_timeout(&self) -> SshResult<()> {
         let time = SystemTime::now();
         if time > self.time {
             log::error!("time out.");
-            return Err(SshError::from(SshErrorKind::Timeout))
+            return Err(SshError::from(SshErrorKind::Timeout));
         }
         Ok(())
     }

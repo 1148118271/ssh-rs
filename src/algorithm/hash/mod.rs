@@ -1,8 +1,6 @@
-
 #[allow(clippy::module_inception)]
 pub mod hash;
 mod hash_type;
-
 
 pub use hash_type::HashType;
 

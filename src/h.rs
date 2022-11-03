@@ -11,7 +11,6 @@ use crate::data::Data;
 ///
 #[derive(Clone)]
 pub struct H {
-
     /// 一下数据如果有从数据包解析的数据
     /// 统一不包含数据包里面的 PacketLength PaddingLength  PaddingString
 
@@ -23,7 +22,6 @@ pub struct H {
     /// 数据    [str]
     pub v_c: Vec<u8>,
     pub v_s: Vec<u8>,
-
 
     /// 双方(客户端/服务端)交换的算法，
     /// 数据长度 + 数据
@@ -45,7 +43,7 @@ pub struct H {
 
     /// 共享密钥
     /// 二进制补码 + 数据
-    pub k  : Vec<u8>,
+    pub k: Vec<u8>,
 }
 
 impl H {
@@ -58,10 +56,9 @@ impl H {
             k_s: vec![],
             q_c: vec![],
             q_s: vec![],
-            k: vec![]
+            k: vec![],
         }
     }
-
 
     pub fn set_v_c(&mut self, vc: &str) {
         let mut data = Data::new();
@@ -104,18 +101,16 @@ impl H {
         self.k = data.to_vec();
     }
 
-
     pub fn as_bytes(&self) -> Vec<u8> {
         let mut v = vec![];
-        v.extend(& self.v_c);
-        v.extend(& self.v_s);
-        v.extend(& self.i_c);
-        v.extend(& self.i_s);
-        v.extend(& self.k_s);
-        v.extend(& self.q_c);
-        v.extend(& self.q_s);
-        v.extend(& self.k);
+        v.extend(&self.v_c);
+        v.extend(&self.v_s);
+        v.extend(&self.i_c);
+        v.extend(&self.i_s);
+        v.extend(&self.k_s);
+        v.extend(&self.q_c);
+        v.extend(&self.q_s);
+        v.extend(&self.k);
         v
     }
-
 }

@@ -3,7 +3,6 @@ use crate::algorithm::hash::HashType;
 use crate::constant;
 use crate::h::H;
 
-
 /// 加密密钥必须是对一个已知值和 K 的 HASH 结果，方法如下：
 /// ○ 客户端到服务器的初始 IV：HASH(K || H || "A" || session_id)（这里 K 为 mpint
 /// 格式，"A"为 byte 格式，session_id 为原始数据（raw data）。"A"是单个字母 A，
@@ -24,26 +23,22 @@ use crate::h::H;
 /// key = K1 || K2 || K3 || ...
 /// 如果 K 的熵比 HASH 的内状态（internal state）大小要大，则该过程将造成熵的丢失。
 
-
-
 pub struct Hash {
     /// IV
-    pub iv_c_s          : Vec<u8>,
-    pub iv_s_c          : Vec<u8>,
+    pub iv_c_s: Vec<u8>,
+    pub iv_s_c: Vec<u8>,
 
     /// 数据加密的 key
-    pub ek_c_s          : Vec<u8>,
-    pub ek_s_c          : Vec<u8>,
+    pub ek_c_s: Vec<u8>,
+    pub ek_s_c: Vec<u8>,
 
     /// Hmac时候用到的 key
-    pub ik_c_s          : Vec<u8>,
-    pub ik_s_c          : Vec<u8>,
+    pub ik_c_s: Vec<u8>,
+    pub ik_s_c: Vec<u8>,
 
-    
     hash_type: HashType,
-    h: H
+    h: H,
 }
-
 
 impl Hash {
     pub fn new(h: H, session_id: &[u8], hash_type: HashType) -> Self {
@@ -64,7 +59,7 @@ impl Hash {
             ik_s_c: keys[5].clone(),
 
             hash_type,
-            h
+            h,
         }
     }
 
@@ -96,5 +91,4 @@ impl Hash {
         hash.extend(key);
         hash::digest(hash.as_slice(), self.hash_type)
     }
-
 }

@@ -10,7 +10,11 @@ use std::path::Path;
 use std::time::SystemTime;
 
 impl ChannelScp {
-    pub fn upload<S: AsRef<OsStr> + ?Sized>(mut self, local_path: &S, remote_path: &S) -> SshResult<()> {
+    pub fn upload<S: AsRef<OsStr> + ?Sized>(
+        mut self,
+        local_path: &S,
+        remote_path: &S,
+    ) -> SshResult<()> {
         let local_path = Path::new(local_path);
         let remote_path = Path::new(remote_path);
 
@@ -20,8 +24,12 @@ impl ChannelScp {
         let remote_path_str = remote_path.to_str().unwrap();
         let local_path_str = local_path.to_str().unwrap();
 
-        log::info!("start to upload files, \
-        local [{}] files will be synchronized to the remote [{}] folder.", local_path_str, remote_path_str);
+        log::info!(
+            "start to upload files, \
+        local [{}] files will be synchronized to the remote [{}] folder.",
+            local_path_str,
+            remote_path_str
+        );
 
         self.exec_scp(self.command_init(remote_path_str, scp::SINK).as_str())?;
         self.get_end()?;
@@ -34,7 +42,6 @@ impl ChannelScp {
         self.channel.close()
     }
 
-
     fn file_all(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
         // 如果获取不到文件或者目录名的话，就不处理该数据
         // 如果文件不是有效的Unicode数据的话，也不处理
@@ -42,8 +49,8 @@ impl ChannelScp {
             None => return Ok(()),
             Some(name) => match name.to_str() {
                 None => return Ok(()),
-                Some(name) => name.to_string()
-            }
+                Some(name) => name.to_string(),
+            },
         };
         self.send_time(scp_file)?;
         if scp_file.local_path.is_dir() {
@@ -51,7 +58,7 @@ impl ChannelScp {
             // 详细的错误信息请查看 read_dir 方法介绍
             if let Err(e) = read_dir(scp_file.local_path.as_path()) {
                 log::error!("read dir error, error info: {}", e);
-                return Ok(())
+                return Ok(());
             }
             self.send_dir(scp_file)?;
             for p in read_dir(scp_file.local_path.as_path()).unwrap() {
@@ -76,23 +83,34 @@ impl ChannelScp {
         Ok(())
     }
 
-
     fn send_file(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
         let mut file = match File::open(scp_file.local_path.as_path()) {
             Ok(f) => f,
             // 文件打开异常，不影响后续操作
             Err(e) => {
-                log::error!("failed to open the folder, \
+                log::error!(
+                    "failed to open the folder, \
             it is possible that the path does not exist, \
             which does not affect subsequent operations. \
-            error info: {:?}", e);
-                return Ok(())
+            error info: {:?}",
+                    e
+                );
+                return Ok(());
             }
         };
 
-        log::debug!("name: [{}] size: [{}] type: [file] start upload.", scp_file.name, scp_file.size);
+        log::debug!(
+            "name: [{}] size: [{}] type: [file] start upload.",
+            scp_file.name,
+            scp_file.size
+        );
 
-        let cmd = format!("C0{} {} {}\n", permission::FILE, scp_file.size, scp_file.name);
+        let cmd = format!(
+            "C0{} {} {}\n",
+            permission::FILE,
+            scp_file.size,
+            scp_file.name
+        );
         self.send_str(&cmd)?;
         self.get_end()?;
 
@@ -104,7 +122,7 @@ impl ChannelScp {
             self.send_bytes(&s[..i])?;
             if count == scp_file.size as usize {
                 self.send_bytes(&[0])?;
-                break
+                break;
             }
         }
         self.get_end()?;
@@ -115,8 +133,10 @@ impl ChannelScp {
     }
 
     fn send_dir(&mut self, scp_file: &ScpFile) -> SshResult<()> {
-
-        log::debug!("name: [{}] size: [0], type: [dir] start upload.", scp_file.name);
+        log::debug!(
+            "name: [{}] size: [0], type: [dir] start upload.",
+            scp_file.name
+        );
 
         let cmd = format!("D0{} 0 {}\n", permission::DIR, scp_file.name);
         self.send_str(&cmd)?;
@@ -127,7 +147,6 @@ impl ChannelScp {
         Ok(())
     }
 
-
     fn send_time(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
         self.get_time(scp_file)?;
         // "T1647767946 0 1647767946 0\n";
@@ -135,7 +154,6 @@ impl ChannelScp {
         self.send_str(&cmd)?;
         self.get_end()
     }
-
 
     fn get_time(&self, scp_file: &mut ScpFile) -> SshResult<()> {
         let metadata = scp_file.local_path.as_path().metadata()?;
@@ -163,10 +181,8 @@ impl ChannelScp {
         match vec[0] {
             scp::END => Ok(()),
             // error
-            scp::ERR | scp::FATAL_ERR => {
-                Err(SshError::from(util::from_utf8(vec)?))
-            },
-            _ => Err(SshError::from("unknown error."))
+            scp::ERR | scp::FATAL_ERR => Err(SshError::from(util::from_utf8(vec)?)),
+            _ => Err(SshError::from("unknown error.")),
         }
     }
 }

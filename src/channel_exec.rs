@@ -1,14 +1,11 @@
-use crate::constant::{ssh_msg_code, ssh_str};
-use crate::error::SshResult;
-use crate::data::Data;
 use crate::channel::Channel;
-
+use crate::constant::{ssh_msg_code, ssh_str};
+use crate::data::Data;
+use crate::error::SshResult;
 
 pub struct ChannelExec(pub(crate) Channel);
 
 impl ChannelExec {
-
-
     pub(crate) fn open(channel: Channel) -> Self {
         ChannelExec(channel)
     }
@@ -20,14 +17,25 @@ impl ChannelExec {
             .put_str(ssh_str::EXEC)
             .put_u8(true as u8)
             .put_str(command);
-        self.0.get_session_mut().client.as_mut().unwrap().write(data)
+        self.0
+            .get_session_mut()
+            .client
+            .as_mut()
+            .unwrap()
+            .write(data)
     }
 
     fn get_data(&mut self, v: &mut Vec<u8>) -> SshResult<()> {
         let session = unsafe { &mut *self.0.session };
-        let results = session.client.as_mut().unwrap().read_data(Some( &mut self.0.window_size))?;
+        let results = session
+            .client
+            .as_mut()
+            .unwrap()
+            .read_data(Some(&mut self.0.window_size))?;
         for mut result in results {
-            if result.is_empty() { continue }
+            if result.is_empty() {
+                continue;
+            }
             let message_code = result.get_u8();
             match message_code {
                 ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
@@ -43,7 +51,7 @@ impl ChannelExec {
                         self.0.close()?;
                     }
                 }
-                _ => self.0.other(message_code, result)?
+                _ => self.0.other(message_code, result)?,
             }
         }
         Ok(())
@@ -54,10 +62,8 @@ impl ChannelExec {
         let mut r = vec![];
         loop {
             self.get_data(&mut r)?;
-            if self.0.remote_close
-                && self.0.local_close
-            {
-                break
+            if self.0.remote_close && self.0.local_close {
+                break;
             }
         }
         Ok(r)

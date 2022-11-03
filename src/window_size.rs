@@ -1,11 +1,11 @@
-use std::io::{Read, Write};
 use crate::client::Client;
 use crate::constant::size::LOCAL_WINDOW_SIZE;
 use crate::constant::{size, ssh_msg_code};
-use crate::error::SshResult;
 use crate::data::Data;
+use crate::error::SshResult;
 use crate::packet::Packet;
 use crate::SshError;
+use std::io::{Read, Write};
 
 pub struct WindowSize {
     pub(crate) server_channel_no: u32,
@@ -15,13 +15,12 @@ pub struct WindowSize {
     /// 本地窗口大小
     local_window_size: u32,
     /// 远程最大窗口大小
-    remote_max_window_size : u32,
+    remote_max_window_size: u32,
     /// 远程窗口大小
-    remote_window_size : u32
+    remote_window_size: u32,
 }
 
 impl WindowSize {
-
     pub(crate) fn new() -> Self {
         WindowSize {
             server_channel_no: 0,
@@ -29,7 +28,7 @@ impl WindowSize {
             local_max_window_size: LOCAL_WINDOW_SIZE,
             local_window_size: LOCAL_WINDOW_SIZE,
             remote_max_window_size: 0,
-            remote_window_size: 0
+            remote_window_size: 0,
         }
     }
 
@@ -49,30 +48,28 @@ impl WindowSize {
                 data.get_u8(); // msg code
                 data.get_u32(); // channel serial no    4 len
                 data.get_u32(); // data type code        4 len
-                let vec = data.get_u8s();  // string data len
+                let vec = data.get_u8s(); // string data len
                 let size = vec.len() as u32;
                 Some(size)
             }
-            _ => None
+            _ => None,
         }
-
     }
 }
 
 impl WindowSize {
-
-    pub(crate) fn process_remote_window_size(&mut self,
-                                      data: &[u8],
-                                      client: &mut Client,
-    ) -> SshResult<()>
-    {
+    pub(crate) fn process_remote_window_size(
+        &mut self,
+        data: &[u8],
+        client: &mut Client,
+    ) -> SshResult<()> {
         if self.remote_window_size == 0 {
             return Ok(());
         }
         let used = self.remote_max_window_size - self.remote_window_size;
         let size = match self.get_size(data) {
             None => return Ok(()),
-            Some(size) => size
+            Some(size) => size,
         };
         self.sub_remote_window_size(size);
 
@@ -82,13 +79,13 @@ impl WindowSize {
                 match client.stream.read(&mut result) {
                     Ok(len) => {
                         result.truncate(len);
-                        break
+                        break;
                     }
                     Err(e) => {
                         if Client::is_would_block(&e) {
-                           continue
+                            continue;
                         }
-                        return Err(SshError::from(e))
+                        return Err(SshError::from(e));
                     }
                 };
             }
@@ -103,7 +100,7 @@ impl WindowSize {
                 // 远程客户端调整的窗口大小
                 let size = data.get_u32();
                 self.add_remote_window_size(size);
-                return Ok(())
+                return Ok(());
             }
         }
         Ok(())
@@ -123,20 +120,19 @@ impl WindowSize {
 }
 
 impl WindowSize {
-
-    pub(crate) fn process_local_window_size(&mut self,
-                                     data: &[u8],
-                                     client: &mut Client,
-    ) -> SshResult<()>
-    {
+    pub(crate) fn process_local_window_size(
+        &mut self,
+        data: &[u8],
+        client: &mut Client,
+    ) -> SshResult<()> {
         let size = match self.get_size(data) {
             None => return Ok(()),
-            Some(size) => size
+            Some(size) => size,
         };
         self.sub_local_window_size(size);
         let used = self.local_max_window_size - self.local_window_size;
         if used == 0 {
-            return Ok(())
+            return Ok(());
         }
         if (self.local_max_window_size / used) > 20 {
             return Ok(());
@@ -152,10 +148,10 @@ impl WindowSize {
         client.sequence.client_auto_increment();
 
         if let Err(e) = client.stream.write(&buf) {
-            return Err(SshError::from(e))
+            return Err(SshError::from(e));
         }
         if let Err(e) = client.stream.flush() {
-            return Err(SshError::from(e))
+            return Err(SshError::from(e));
         }
         self.add_local_window_size(used);
         Ok(())
@@ -168,5 +164,4 @@ impl WindowSize {
     pub(crate) fn add_local_window_size(&mut self, lws: u32) {
         self.local_window_size += lws;
     }
-
 }

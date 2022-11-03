@@ -5,7 +5,6 @@ use crate::window_size::WindowSize;
 use crate::{SshError, SshResult};
 use std::io::Write;
 
-
 impl Client {
     /// 发送客户端版本
     pub(crate) fn write_version(&mut self, buf: &[u8]) -> SshResult<()> {

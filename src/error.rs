@@ -24,8 +24,7 @@ impl Debug for SshError {
                 write!(
                     f,
                     r"Error: {{ Kind({:?}), Message({}) }}",
-                    self.inner,
-                    self.inner
+                    self.inner, self.inner
                 )
             }
         }
