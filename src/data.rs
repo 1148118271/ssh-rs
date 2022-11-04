@@ -107,7 +107,7 @@ impl Data {
 
     // 跳过多少位数据
     pub fn skip(&mut self, size: usize) {
-        self.0 = (&self.0[size..]).to_vec();
+        self.0 = self.0[size..].to_vec();
     }
 
     // 获取字节
@@ -117,9 +117,9 @@ impl Data {
 
     // 获取32位无符号整型
     pub fn get_u32(&mut self) -> u32 {
-        let mut a = (&self.0[0..4]).to_vec();
+        let mut a = self.0[0..4].to_vec();
         // 4位字节反转后直接转成u32类型
-        self.0 = (&self.0[4..]).to_vec();
+        self.0 = self.0[4..].to_vec();
         a.reverse();
         unsafe { *(a.as_ptr() as *const u32) }
     }
@@ -127,8 +127,8 @@ impl Data {
     // 获取字节数组
     pub fn get_u8s(&mut self) -> Vec<u8> {
         let len = self.get_u32() as usize;
-        let bytes = (&self.0[0_usize..len]).to_vec();
-        self.0 = (&self.0[len..]).to_vec();
+        let bytes = self.0[0_usize..len].to_vec();
+        self.0 = self.0[len..].to_vec();
         bytes
     }
 }

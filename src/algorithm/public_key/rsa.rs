@@ -14,7 +14,7 @@ impl PubK for Rsa {
     }
 
     fn verify_signature(&self, ks: &[u8], message: &[u8], sig: &[u8]) -> Result<bool, SshError> {
-        let mut data = Data::from((&ks[4..]).to_vec());
+        let mut data = Data::from(ks[4..].to_vec());
         data.get_u8s();
 
         let e = rsa::BigUint::from_bytes_be(data.get_u8s().as_slice());

@@ -130,4 +130,12 @@ impl ScpFile {
             local_path: Default::default(),
         }
     }
+
+    pub(crate) fn join(&self, filename: &str) -> PathBuf {
+        if self.local_path.is_dir() {
+            self.local_path.join(filename)
+        } else {
+            self.local_path.clone()
+        }
+    }
 }

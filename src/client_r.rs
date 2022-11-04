@@ -13,7 +13,7 @@ impl Client {
         let mut v = [0_u8; 128];
         loop {
             match self.stream.read(&mut v) {
-                Ok(i) => return (&v[..i]).to_vec(),
+                Ok(i) => return v[..i].to_vec(),
                 Err(_) => continue,
             };
         }
