@@ -12,19 +12,19 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-pub struct Channel<IO>
+pub struct Channel<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
     pub(crate) remote_close: bool,
     pub(crate) local_close: bool,
     pub(crate) window_size: WindowSize,
-    pub(crate) session: *mut Session<IO>,
+    pub(crate) session: *mut Session<S>,
 }
 
-impl<IO> Deref for Channel<IO>
+impl<S> Deref for Channel<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
     type Target = WindowSize;
 
@@ -33,18 +33,18 @@ where
     }
 }
 
-impl<IO> DerefMut for Channel<IO>
+impl<S> DerefMut for Channel<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.window_size
     }
 }
 
-impl<IO> Channel<IO>
+impl<S> Channel<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
     pub(crate) fn other(&mut self, message_code: u8, mut result: Data) -> SshResult<()> {
         match message_code {
@@ -80,17 +80,17 @@ where
         Ok(())
     }
 
-    pub fn open_shell(self) -> SshResult<ChannelShell<IO>> {
+    pub fn open_shell(self) -> SshResult<ChannelShell<S>> {
         log::info!("shell opened.");
         ChannelShell::open(self)
     }
 
-    pub fn open_exec(self) -> SshResult<ChannelExec<IO>> {
+    pub fn open_exec(self) -> SshResult<ChannelExec<S>> {
         log::info!("exec opened.");
         Ok(ChannelExec::open(self))
     }
 
-    pub fn open_scp(self) -> SshResult<ChannelScp<IO>> {
+    pub fn open_scp(self) -> SshResult<ChannelScp<S>> {
         log::info!("scp opened.");
         Ok(ChannelScp::open(self))
     }
@@ -141,7 +141,7 @@ where
     }
 
     #[allow(clippy::mut_from_ref)]
-    pub(crate) fn get_session_mut(&self) -> &mut Session<IO> {
+    pub(crate) fn get_session_mut(&self) -> &mut Session<S> {
         unsafe { &mut *self.session }
     }
 

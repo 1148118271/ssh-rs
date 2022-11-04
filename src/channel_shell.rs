@@ -5,13 +5,13 @@ use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::error::SshResult;
 
-pub struct ChannelShell<IO: Read + Write>(pub(crate) Channel<IO>);
+pub struct ChannelShell<S: Read + Write>(pub(crate) Channel<S>);
 
-impl<IO> ChannelShell<IO>
+impl<S> ChannelShell<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
-    pub(crate) fn open(mut channel: Channel<IO>) -> SshResult<Self> {
+    pub(crate) fn open(mut channel: Channel<S>) -> SshResult<Self> {
         // shell 形式需要一个伪终端
         ChannelShell::request_pty(&channel)?;
         ChannelShell::get_shell(&channel)?;
@@ -30,7 +30,7 @@ where
         }
     }
 
-    fn request_pty(channel: &Channel<IO>) -> SshResult<()> {
+    fn request_pty(channel: &Channel<S>) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(channel.server_channel_no)
@@ -57,7 +57,7 @@ where
             .write(data)
     }
 
-    fn get_shell(channel: &Channel<IO>) -> SshResult<()> {
+    fn get_shell(channel: &Channel<S>) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(channel.server_channel_no)

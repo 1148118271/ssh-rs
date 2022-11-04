@@ -10,9 +10,9 @@ use std::{
     path::Path,
 };
 
-impl<IO> Session<IO>
+impl<S> Session<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
     fn get_user_info(&self) -> SshResult<&UserInfo> {
         if self.user_info.is_none() {

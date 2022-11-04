@@ -5,13 +5,13 @@ use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::error::SshResult;
 
-pub struct ChannelExec<IO: Read + Write>(pub(crate) Channel<IO>);
+pub struct ChannelExec<S: Read + Write>(pub(crate) Channel<S>);
 
-impl<IO> ChannelExec<IO>
+impl<S> ChannelExec<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
-    pub(crate) fn open(channel: Channel<IO>) -> Self {
+    pub(crate) fn open(channel: Channel<S>) -> Self {
         ChannelExec(channel)
     }
 

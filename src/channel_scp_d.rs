@@ -9,15 +9,15 @@ use std::io::Write;
 use std::path::Path;
 use std::{ffi::OsStr, io::Read};
 
-impl<IO> ChannelScp<IO>
+impl<S> ChannelScp<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
     ///   download
-    pub fn download<S: AsRef<OsStr> + ?Sized>(
+    pub fn download<P: AsRef<OsStr> + ?Sized>(
         mut self,
-        local_path: &S,
-        remote_path: &S,
+        local_path: &P,
+        remote_path: &P,
     ) -> SshResult<()> {
         let local_path = Path::new(local_path);
         let remote_path = Path::new(remote_path);

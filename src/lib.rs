@@ -255,9 +255,9 @@ pub mod ssh {
     use crate::slog::Slog;
     use crate::Session;
 
-    pub fn create_session<IO>() -> Session<IO>
+    pub fn create_session<S>() -> Session<S>
     where
-        IO: Read + Write,
+        S: Read + Write,
     {
         Session {
             timeout_sec: 30,

@@ -8,11 +8,11 @@ use crate::user_info::UserInfo;
 use std::io::{self, Read, Write};
 use std::ops::{Deref, DerefMut};
 
-pub struct Client<IO>
+pub struct Client<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
-    pub(crate) stream: IO,
+    pub(crate) stream: S,
     pub(crate) sequence: Sequence,
     pub(crate) timeout: Timeout,
     pub(crate) config: Config,
@@ -49,15 +49,15 @@ impl Sequence {
     }
 }
 
-impl<IO> Client<IO>
+impl<S> Client<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
     pub(crate) fn connect(
-        stream: IO,
+        stream: S,
         timeout_sec: u64,
         user_info: UserInfo,
-    ) -> SshResult<Client<IO>> {
+    ) -> SshResult<Client<S>> {
         Ok(Client {
             stream,
             sequence: Sequence {
@@ -107,29 +107,29 @@ where
     }
 }
 
-impl<IO> Drop for Client<IO>
+impl<S> Drop for Client<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
     fn drop(&mut self) {
         log::info!("client close");
     }
 }
 
-impl<IO> Deref for Client<IO>
+impl<S> Deref for Client<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
-    type Target = IO;
+    type Target = S;
 
     fn deref(&self) -> &Self::Target {
         &self.stream
     }
 }
 
-impl<IO> DerefMut for Client<IO>
+impl<S> DerefMut for Client<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.stream

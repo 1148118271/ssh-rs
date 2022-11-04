@@ -10,9 +10,9 @@ use crate::window_size::WindowSize;
 use crate::{kex, SshError, SshResult};
 use std::io::{self, Read, Write};
 
-impl<IO> Client<IO>
+impl<S> Client<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
     /// 发送客户端版本
     pub(crate) fn read_version(&mut self) -> Vec<u8> {
@@ -49,7 +49,7 @@ where
                 len
             }
             Err(e) => {
-                if Client::<IO>::is_would_block(&e) {
+                if Client::<S>::is_would_block(&e) {
                     return Ok(results);
                 }
                 return Err(SshError::from(e));

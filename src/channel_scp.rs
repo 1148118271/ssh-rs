@@ -8,19 +8,19 @@ use std::{
     io::{Read, Write},
 };
 
-pub struct ChannelScp<IO>
+pub struct ChannelScp<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
-    pub(crate) channel: Channel<IO>,
+    pub(crate) channel: Channel<S>,
     pub(crate) local_path: PathBuf,
 }
 
-impl<IO> ChannelScp<IO>
+impl<S> ChannelScp<S>
 where
-    IO: Read + Write,
+    S: Read + Write,
 {
-    pub(crate) fn open(channel: Channel<IO>) -> Self {
+    pub(crate) fn open(channel: Channel<S>) -> Self {
         ChannelScp {
             channel,
             local_path: Default::default(),
