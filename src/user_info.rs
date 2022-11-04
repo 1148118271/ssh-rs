@@ -1,5 +1,6 @@
 use crate::key_pair::KeyPair;
 
+#[derive(Clone)]
 pub struct UserInfo {
     pub(crate) auth_type: AuthType,
     pub(crate) username: String,
@@ -27,6 +28,7 @@ impl UserInfo {
     }
 }
 
+#[derive(Clone)]
 pub enum AuthType {
     Password,
     PublicKey,

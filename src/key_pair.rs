@@ -9,7 +9,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct KeyPair {
     pub(crate) private_key: String,
     pub(crate) key_type: String,

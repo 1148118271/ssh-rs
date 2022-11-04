@@ -39,21 +39,13 @@ impl Channel {
                 let session = self.get_session_mut();
                 session.client.as_mut().unwrap().write(data)?;
             }
-            ssh_msg_code::SSH_MSG_KEXINIT => {
-                // TODO 密钥重新交换
-            }
-            ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
-                // TODO 密钥重新交换
-            }
-            ssh_msg_code::SSH_MSG_NEWKEYS => {} //kex::new_keys()?,
-            // 通道大小 暂不处理
+            // 通道大小
             ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
                 // 接收方通道号， 暂时不需要
                 result.get_u32();
                 // 需要调整增加的窗口大小
                 let rws = result.get_u32();
                 self.window_size.add_remote_window_size(rws);
-                self.window_size.add_remote_max_window_size(rws);
             }
             ssh_msg_code::SSH_MSG_CHANNEL_EOF => {}
             ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {}

@@ -12,6 +12,7 @@ use crate::slog::log;
 use crate::user_info::UserInfo;
 use crate::{SshError, SshResult};
 
+#[derive(Clone)]
 pub struct Config {
     pub auth: UserInfo,
     pub version: VersionConfig,

@@ -116,7 +116,7 @@ impl ChannelScp {
 
         let mut count = 0;
         loop {
-            let mut s = [0u8; 20480];
+            let mut s = [0u8; 3072];
             let i = file.read(&mut s)?;
             count += i;
             self.send_bytes(&s[..i])?;

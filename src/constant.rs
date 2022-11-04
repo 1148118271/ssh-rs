@@ -79,7 +79,7 @@ pub mod scp {
 /// 一些默认大小
 #[allow(dead_code)]
 pub mod size {
-    pub const ONE_GB: u32 = 1073741824;
+    pub const ONE_GB: usize = 1073741824;
     /// 最大数据包大小
     pub const BUF_SIZE: usize = 32768;
     /// 默认客户端的窗口大小
