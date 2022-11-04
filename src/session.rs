@@ -10,23 +10,25 @@ use crate::user_info::AuthType;
 use crate::user_info::UserInfo;
 use crate::window_size::WindowSize;
 use crate::{Channel, ChannelExec, ChannelScp, ChannelShell};
-use std::net::ToSocketAddrs;
+use std::{
+    io::{Read, Write},
+    net::{TcpStream, ToSocketAddrs},
+};
 
-pub struct Session {
+pub struct Session<IO>
+where
+    IO: Read + Write,
+{
     pub(crate) timeout_sec: u64,
 
     pub(crate) user_info: Option<UserInfo>,
 
-    pub(crate) client: Option<Client>,
+    pub(crate) client: Option<Client<IO>>,
 
     pub(crate) client_channel_no: u32,
 }
 
-impl Session {
-    pub fn set_timeout(&mut self, secs: u64) {
-        self.timeout_sec = secs;
-    }
-
+impl Session<TcpStream> {
     pub fn connect<A>(&mut self, addr: A) -> SshResult<()>
     where
         A: ToSocketAddrs,
@@ -35,13 +37,38 @@ impl Session {
             return Err(SshError::from("user info is none."));
         }
         // 建立通道
-        self.client = Some(Client::connect(
-            addr,
+        let tcp = TcpStream::connect(addr)?;
+        // default nonblocking
+        tcp.set_nonblocking(true).unwrap();
+
+        log::info!("session opened.");
+        self.connect_bio(tcp)
+    }
+}
+
+impl<IO> Session<IO>
+where
+    IO: Read + Write,
+{
+    pub fn set_timeout(&mut self, secs: u64) {
+        self.timeout_sec = secs;
+    }
+
+    pub fn connect_bio(&mut self, stream: IO) -> SshResult<()> {
+        if self.user_info.is_none() {
+            return Err(SshError::from("user info is none."));
+        }
+        // 建立通道
+        self.client = Some(Client::<IO>::connect(
+            stream,
             self.timeout_sec,
             self.user_info.clone().unwrap(),
         )?);
         log::info!("session opened.");
+        self.post_connect()
+    }
 
+    fn post_connect(&mut self) -> SshResult<()> {
         let mut h = H::new();
         let client = self.client.as_mut().unwrap();
 
@@ -60,8 +87,11 @@ impl Session {
     }
 }
 
-impl Session {
-    pub fn open_channel(&mut self) -> SshResult<Channel> {
+impl<IO> Session<IO>
+where
+    IO: Read + Write,
+{
+    pub fn open_channel(&mut self) -> SshResult<Channel<IO>> {
         log::info!("channel opened.");
         self.send_open_channel(self.client_channel_no)?;
         let (server_channel_no, rws) = self.receive_open_channel()?;
@@ -77,27 +107,30 @@ impl Session {
             remote_close: false,
             local_close: false,
             window_size: win_size,
-            session: self as *mut Session,
+            session: self as *mut Session<IO>,
         })
     }
 
-    pub fn open_exec(&mut self) -> SshResult<ChannelExec> {
+    pub fn open_exec(&mut self) -> SshResult<ChannelExec<IO>> {
         let channel = self.open_channel()?;
         channel.open_exec()
     }
 
-    pub fn open_shell(&mut self) -> SshResult<ChannelShell> {
+    pub fn open_shell(&mut self) -> SshResult<ChannelShell<IO>> {
         let channel = self.open_channel()?;
         channel.open_shell()
     }
 
-    pub fn open_scp(&mut self) -> SshResult<ChannelScp> {
+    pub fn open_scp(&mut self) -> SshResult<ChannelScp<IO>> {
         let channel = self.open_channel()?;
         channel.open_scp()
     }
 }
 
-impl Session {
+impl<IO> Session<IO>
+where
+    IO: Read + Write,
+{
     // 本地请求远程打开通道
     fn send_open_channel(&mut self, client_channel_no: u32) -> SshResult<()> {
         let mut data = Data::new();

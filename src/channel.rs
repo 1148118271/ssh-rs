@@ -7,16 +7,25 @@ use crate::error::{SshError, SshResult};
 use crate::slog::log;
 use crate::window_size::WindowSize;
 use crate::Session;
-use std::ops::{Deref, DerefMut};
+use std::{
+    io::{Read, Write},
+    ops::{Deref, DerefMut},
+};
 
-pub struct Channel {
+pub struct Channel<IO>
+where
+    IO: Read + Write,
+{
     pub(crate) remote_close: bool,
     pub(crate) local_close: bool,
     pub(crate) window_size: WindowSize,
-    pub(crate) session: *mut Session,
+    pub(crate) session: *mut Session<IO>,
 }
 
-impl Deref for Channel {
+impl<IO> Deref for Channel<IO>
+where
+    IO: Read + Write,
+{
     type Target = WindowSize;
 
     fn deref(&self) -> &Self::Target {
@@ -24,13 +33,19 @@ impl Deref for Channel {
     }
 }
 
-impl DerefMut for Channel {
+impl<IO> DerefMut for Channel<IO>
+where
+    IO: Read + Write,
+{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.window_size
     }
 }
 
-impl Channel {
+impl<IO> Channel<IO>
+where
+    IO: Read + Write,
+{
     pub(crate) fn other(&mut self, message_code: u8, mut result: Data) -> SshResult<()> {
         match message_code {
             ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
@@ -65,17 +80,17 @@ impl Channel {
         Ok(())
     }
 
-    pub fn open_shell(self) -> SshResult<ChannelShell> {
+    pub fn open_shell(self) -> SshResult<ChannelShell<IO>> {
         log::info!("shell opened.");
         ChannelShell::open(self)
     }
 
-    pub fn open_exec(self) -> SshResult<ChannelExec> {
+    pub fn open_exec(self) -> SshResult<ChannelExec<IO>> {
         log::info!("exec opened.");
         Ok(ChannelExec::open(self))
     }
 
-    pub fn open_scp(self) -> SshResult<ChannelScp> {
+    pub fn open_scp(self) -> SshResult<ChannelScp<IO>> {
         log::info!("scp opened.");
         Ok(ChannelScp::open(self))
     }
@@ -126,7 +141,7 @@ impl Channel {
     }
 
     #[allow(clippy::mut_from_ref)]
-    pub(crate) fn get_session_mut(&self) -> &mut Session {
+    pub(crate) fn get_session_mut(&self) -> &mut Session<IO> {
         unsafe { &mut *self.session }
     }
 

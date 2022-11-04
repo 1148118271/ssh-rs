@@ -195,10 +195,15 @@ pub use user_info::UserInfo;
 use crate::error::{SshError, SshResult};
 
 pub mod ssh {
+    use std::io::{Read, Write};
+
     use crate::slog::Slog;
     use crate::Session;
 
-    pub fn create_session() -> Session {
+    pub fn create_session<IO>() -> Session<IO>
+    where
+        IO: Read + Write,
+    {
         Session {
             timeout_sec: 30,
             user_info: None,

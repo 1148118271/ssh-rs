@@ -1,3 +1,5 @@
+use std::io::{Read, Write};
+
 use crate::client::Client;
 use crate::constant::size::LOCAL_WINDOW_SIZE;
 use crate::constant::ssh_msg_code;
@@ -49,11 +51,14 @@ impl WindowSize {
 }
 
 impl WindowSize {
-    pub(crate) fn process_remote_window_size(
+    pub(crate) fn process_remote_window_size<IO>(
         &mut self,
         data: &[u8],
-        client: &mut Client,
-    ) -> SshResult<()> {
+        client: &mut Client<IO>,
+    ) -> SshResult<()>
+    where
+        IO: Read + Write,
+    {
         let size = match self.get_size(data) {
             None => return Ok(()),
             Some(size) => size,
@@ -72,7 +77,10 @@ impl WindowSize {
         self.remote_window_size += rws;
     }
 
-    pub(crate) fn read_window_size(&mut self, client: &mut Client) -> SshResult<()> {
+    pub(crate) fn read_window_size<IO>(&mut self, client: &mut Client<IO>) -> SshResult<()>
+    where
+        IO: Read + Write,
+    {
         let results = client.read()?;
         if results.is_empty() {
             return Ok(());
@@ -92,11 +100,14 @@ impl WindowSize {
 }
 
 impl WindowSize {
-    pub(crate) fn process_local_window_size(
+    pub(crate) fn process_local_window_size<IO>(
         &mut self,
         data: &[u8],
-        client: &mut Client,
-    ) -> SshResult<()> {
+        client: &mut Client<IO>,
+    ) -> SshResult<()>
+    where
+        IO: Read + Write,
+    {
         let size = match self.get_size(data) {
             None => return Ok(()),
             Some(size) => size,

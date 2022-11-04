@@ -5,12 +5,14 @@ use crate::error::{SshError, SshResult};
 use crate::h::H;
 use crate::timeout::Timeout;
 use crate::user_info::UserInfo;
-use std::io;
-use std::net::{Shutdown, TcpStream, ToSocketAddrs};
+use std::io::{self, Read, Write};
 use std::ops::{Deref, DerefMut};
 
-pub struct Client {
-    pub(crate) stream: TcpStream,
+pub struct Client<IO>
+where
+    IO: Read + Write,
+{
+    pub(crate) stream: IO,
     pub(crate) sequence: Sequence,
     pub(crate) timeout: Timeout,
     pub(crate) config: Config,
@@ -47,36 +49,31 @@ impl Sequence {
     }
 }
 
-impl Client {
-    pub(crate) fn connect<A: ToSocketAddrs>(
-        addr: A,
+impl<IO> Client<IO>
+where
+    IO: Read + Write,
+{
+    pub(crate) fn connect(
+        stream: IO,
         timeout_sec: u64,
         user_info: UserInfo,
-    ) -> SshResult<Client> {
-        match TcpStream::connect(addr) {
-            Ok(stream) => {
-                // default nonblocking
-                stream.set_nonblocking(true).unwrap();
-
-                Ok(Client {
-                    stream,
-                    sequence: Sequence {
-                        client_sequence_num: 0,
-                        server_sequence_num: 0,
-                    },
-                    timeout: Timeout::new(timeout_sec),
-                    config: Config::new(user_info),
-                    encryption: None,
-                    is_encryption: false,
-                    session_id: vec![],
-                    w_size: 0,
-                    signature: None,
-                    is_r_1_gb: false,
-                    is_w_1_gb: false,
-                })
-            }
-            Err(e) => Err(SshError::from(e)),
-        }
+    ) -> SshResult<Client<IO>> {
+        Ok(Client {
+            stream,
+            sequence: Sequence {
+                client_sequence_num: 0,
+                server_sequence_num: 0,
+            },
+            timeout: Timeout::new(timeout_sec),
+            config: Config::new(user_info),
+            encryption: None,
+            is_encryption: false,
+            session_id: vec![],
+            w_size: 0,
+            signature: None,
+            is_r_1_gb: false,
+            is_w_1_gb: false,
+        })
     }
 
     pub(crate) fn version(&mut self, h: &mut H) -> SshResult<()> {
@@ -99,11 +96,10 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn close(&mut self) -> Result<(), SshError> {
-        match self.stream.shutdown(Shutdown::Both) {
-            Ok(o) => Ok(o),
-            Err(e) => Err(SshError::from(e)),
-        }
+    pub(crate) fn close(self) -> Result<(), SshError> {
+        // Just drop self
+        drop(self);
+        Ok(())
     }
 
     pub(crate) fn is_would_block(e: &io::Error) -> bool {
@@ -111,15 +107,30 @@ impl Client {
     }
 }
 
-impl Deref for Client {
-    type Target = TcpStream;
+impl<IO> Drop for Client<IO>
+where
+    IO: Read + Write,
+{
+    fn drop(&mut self) {
+        log::info!("client close");
+    }
+}
+
+impl<IO> Deref for Client<IO>
+where
+    IO: Read + Write,
+{
+    type Target = IO;
 
     fn deref(&self) -> &Self::Target {
         &self.stream
     }
 }
 
-impl DerefMut for Client {
+impl<IO> DerefMut for Client<IO>
+where
+    IO: Read + Write,
+{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.stream
     }

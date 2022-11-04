@@ -1,12 +1,17 @@
+use std::io::{Read, Write};
+
 use crate::channel::Channel;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::error::SshResult;
 
-pub struct ChannelExec(pub(crate) Channel);
+pub struct ChannelExec<IO: Read + Write>(pub(crate) Channel<IO>);
 
-impl ChannelExec {
-    pub(crate) fn open(channel: Channel) -> Self {
+impl<IO> ChannelExec<IO>
+where
+    IO: Read + Write,
+{
+    pub(crate) fn open(channel: Channel<IO>) -> Self {
         ChannelExec(channel)
     }
 

@@ -3,9 +3,12 @@ use crate::data::Data;
 use crate::packet::Packet;
 use crate::window_size::WindowSize;
 use crate::{constant, h::H, kex, SshError, SshResult};
-use std::io::Write;
+use std::io::{Read, Write};
 
-impl Client {
+impl<IO> Client<IO>
+where
+    IO: Write + Read,
+{
     /// 发送客户端版本
     pub(crate) fn write_version(&mut self, buf: &[u8]) -> SshResult<()> {
         self.w_size += buf.len();
@@ -39,7 +42,7 @@ impl Client {
         self.sequence.client_auto_increment();
         loop {
             if let Err(e) = self.stream.write(&buf) {
-                if Client::is_would_block(&e) {
+                if Client::<IO>::is_would_block(&e) {
                     self.timeout.is_timeout()?;
                     continue;
                 }
