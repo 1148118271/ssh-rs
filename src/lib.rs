@@ -7,9 +7,9 @@
 //!
 //! ### 1. Password:
 //! ```no_run
-//! use ssh_rs::{Session, ssh};
+//! use ssh_rs::ssh;
 //!
-//! let mut session: Session = ssh::create_session();
+//! let mut session = ssh::create_session();
 //! session.set_user_and_password("user", "password");
 //! session.connect("ip:port").unwrap();
 //! ```
@@ -19,10 +19,10 @@
 //!
 //! #### 1. Use key file path：
 //! ```no_run
-//! use ssh_rs::{Session, ssh};
+//! use ssh_rs::ssh;
 //! use ssh_rs::key_pair::KeyPairType;
 //!
-//! let mut session: Session = ssh::create_session();
+//! let mut session = ssh::create_session();
 //! // pem format key path -> /xxx/xxx/id_rsa
 //! // KeyPairType::SshRsa -> Rsa type algorithm, currently only supports rsa.
 //! session.set_user_and_key_pair_path("user", "pem format key path", KeyPairType::SshRsa).unwrap();
@@ -31,10 +31,10 @@
 //!
 //! #### 2. Use key string：
 //! ```no_run
-//! use ssh_rs::{Session, ssh};
+//! use ssh_rs::ssh;
 //! use ssh_rs::key_pair::KeyPairType;
 //!
-//! let mut session: Session = ssh::create_session();
+//! let mut session = ssh::create_session();
 //! // pem format key string:
 //! //      -----BEGIN RSA PRIVATE KEY-----
 //! //          xxxxxxxxxxxxxxxxxxxxx
@@ -47,14 +47,14 @@
 //! ## Enable global logging：
 //!
 //! ```no_run
-//! use ssh_rs::{Session, ssh};
+//! use ssh_rs::ssh;
 //!
 //! // is_enable_log Whether to enable global logging
 //! // The default is false(Do not enable)
 //! // Can be set as true (enable)
 //! ssh::is_enable_log(true);
 //!
-//! let mut session: Session = ssh::create_session();
+//! let mut session = ssh::create_session();
 //! session.set_user_and_password("user", "password");
 //! session.connect("ip:port").unwrap();
 //! ```
@@ -63,9 +63,9 @@
 //! ## Set timeout：
 //!
 //! ```no_run
-//! use ssh_rs::{Session, ssh};
+//! use ssh_rs::ssh;
 //!
-//! let mut session: Session = ssh::create_session();
+//! let mut session = ssh::create_session();
 //! // set_timeout
 //! // The unit is seconds
 //! // The default timeout is 30 seconds
@@ -82,11 +82,11 @@
 //! ### 1. exec
 //!
 //! ```no_run
-//! use ssh_rs::{ChannelExec, Session, ssh};
+//! use ssh_rs::{Session, ssh};
 //!
-//! let mut session: Session = ssh::create_session();
+//! let mut session: Session<std::net::TcpStream> = ssh::create_session();
 //! // Usage 1
-//! let exec: ChannelExec = session.open_exec().unwrap();
+//! let exec = session.open_exec().unwrap();
 //! let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
 //! println!("{}", String::from_utf8(vec).unwrap());
 //! // Usage 2
@@ -103,14 +103,14 @@
 //! ```no_run
 //! use std::thread::sleep;
 //! use std::time::Duration;
-//! use ssh_rs::{Channel, ChannelShell, Session, ssh};
+//! use ssh_rs::{ChannelShell, ssh};
 //!
-//! let mut session: Session = ssh::create_session();
+//! let mut session = ssh::create_session();
 //! // Usage 1
-//! let mut shell: ChannelShell = session.open_shell().unwrap();
+//! let mut shell = session.open_shell().unwrap();
 //! run_shell(&mut shell);
 //! // Usage 2
-//! let channel: Channel = session.open_channel().unwrap();
+//! let channel = session.open_channel().unwrap();
 //! let mut shell = channel.open_shell().unwrap();
 //! run_shell(&mut shell);
 //! // Close channel.
@@ -118,7 +118,7 @@
 //! // Close session.
 //! session.close().unwrap();
 //!
-//! fn run_shell(shell: &mut ChannelShell) {
+//! fn run_shell(shell: &mut ChannelShell<std::net::TcpStream>) {
 //!     sleep(Duration::from_millis(500));
 //!     let vec = shell.read().unwrap();
 //!     println!("{}", String::from_utf8(vec).unwrap());
@@ -135,28 +135,83 @@
 //! ### 3. scp
 //!
 //! ```no_run
-//! use ssh_rs::{Channel, ChannelScp, Session, ssh};
+//! use ssh_rs::{Session, ssh};
 //!
-//! let mut session: Session = ssh::create_session();
+//! let mut session: Session<std::net::TcpStream> = ssh::create_session();
 //! // Usage 1
-//! let scp: ChannelScp = session.open_scp().unwrap();
+//! let scp = session.open_scp().unwrap();
 //! scp.upload("local path", "remote path").unwrap();
 //!
-//! let scp: ChannelScp = session.open_scp().unwrap();
+//! let scp = session.open_scp().unwrap();
 //! scp.download("local path", "remote path").unwrap();
 //!
 //! // Usage 2
-//! let channel: Channel = session.open_channel().unwrap();
-//! let scp: ChannelScp = channel.open_scp().unwrap();
+//! let channel = session.open_channel().unwrap();
+//! let scp = channel.open_scp().unwrap();
 //! scp.upload("local path", "remote path").unwrap();
 //!
-//! let channel: Channel = session.open_channel().unwrap();
-//! let scp: ChannelScp = channel.open_scp().unwrap();
+//! let channel = session.open_channel().unwrap();
+//! let scp = channel.open_scp().unwrap();
 //! scp.download("local path", "remote path").unwrap();
 //!
 //! session.close().unwrap();
 //!
 //! ```
+//!
+//! ### 4.bio
+//!
+//! ```no_run
+//! use ssh_rs::ssh;
+//! use std::net::{TcpStream, ToSocketAddrs};
+//!
+//! let mut session = ssh::create_session();
+//! let bio = MyProxy::new("127.0.0.1:22");
+//! session.set_user_and_password("ubuntu", "password");
+//! session.connect_bio(bio).unwrap();
+//! // Usage 1
+//! let exec = session.open_exec().unwrap();
+//! let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
+//! println!("{}", String::from_utf8(vec).unwrap());
+//! // Usage 2
+//! let channel = session.open_channel().unwrap();
+//! let exec = channel.open_exec().unwrap();
+//! let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
+//! println!("{}", String::from_utf8(vec).unwrap());
+//! // Close session.
+//! session.close().unwrap();
+//!
+//! // Use a real ssh server since I don't wanna implement a ssh-server in the example codes
+//! struct MyProxy {
+//!     server: TcpStream,
+//! }
+//!
+//! impl MyProxy {
+//!     fn new<A>(addr: A) -> Self
+//!     where
+//!         A: ToSocketAddrs,
+//!     {
+//!         Self {
+//!             server: TcpStream::connect(addr).unwrap(),
+//!         }
+//!     }
+//! }
+//!
+//! impl std::io::Read for MyProxy {
+//!     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+//!         self.server.read(buf)
+//!     }
+//! }
+//!
+//! impl std::io::Write for MyProxy {
+//!     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+//!         self.server.write(buf)
+//!     }
+//!
+//!     fn flush(&mut self) -> std::io::Result<()> {
+//!         self.server.flush()
+//!     }
+//! }
+//!
 
 mod algorithm;
 mod channel;
@@ -195,10 +250,15 @@ pub use user_info::UserInfo;
 use crate::error::{SshError, SshResult};
 
 pub mod ssh {
+    use std::io::{Read, Write};
+
     use crate::slog::Slog;
     use crate::Session;
 
-    pub fn create_session() -> Session {
+    pub fn create_session<S>() -> Session<S>
+    where
+        S: Read + Write,
+    {
         Session {
             timeout_sec: 30,
             user_info: None,

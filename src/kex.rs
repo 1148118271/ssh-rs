@@ -1,3 +1,5 @@
+use std::io::{Read, Write};
+
 use crate::algorithm::hash;
 use crate::algorithm::key_exchange::KeyExchange;
 use crate::algorithm::public_key::PublicKey;
@@ -13,11 +15,14 @@ use crate::window_size::WindowSize;
 use crate::{client::Client, h::H, util};
 
 /// 发送客户端的算法列表
-pub(crate) fn send_algorithm(
+pub(crate) fn send_algorithm<S>(
     h: &mut H,
-    client: &mut Client,
+    client: &mut Client<S>,
     rws: Option<&mut WindowSize>,
-) -> SshResult<()> {
+) -> SshResult<()>
+where
+    S: Read + Write,
+{
     log::info!(
         "client algorithms: [{}]",
         client.config.algorithm.client_algorithm.to_string()
@@ -40,11 +45,14 @@ pub(crate) fn send_algorithm(
 }
 
 /// 获取服务端的算法列表
-pub(crate) fn receive_algorithm(
+pub(crate) fn receive_algorithm<S>(
     h: &mut H,
-    client: &mut Client,
+    client: &mut Client<S>,
     mut rws: Option<&mut WindowSize>,
-) -> SshResult<()> {
+) -> SshResult<()>
+where
+    S: Read + Write,
+{
     loop {
         let results = match &mut rws {
             None => client.read()?,
@@ -89,11 +97,14 @@ pub(crate) fn processing_server_algorithm(config: &mut Config, mut data: Data) -
 }
 
 /// 发送客户端公钥
-pub(crate) fn send_qc(
-    client: &mut Client,
+pub(crate) fn send_qc<S>(
+    client: &mut Client<S>,
     public_key: &[u8],
     rws: Option<&mut WindowSize>,
-) -> SshResult<()> {
+) -> SshResult<()>
+where
+    S: Read + Write,
+{
     let mut data = Data::new();
     data.put_u8(ssh_msg_code::SSH_MSG_KEXDH_INIT);
     data.put_u8s(public_key);
@@ -104,13 +115,16 @@ pub(crate) fn send_qc(
 }
 
 /// 接收服务端公钥和签名，并验证签名的正确性
-pub(crate) fn verify_signature_and_new_keys(
-    client: &mut Client,
+pub(crate) fn verify_signature_and_new_keys<S>(
+    client: &mut Client<S>,
     public_key: &mut Box<dyn PublicKey>,
     key_exchange: &mut Box<dyn KeyExchange>,
     h: &mut H,
     mut rws: Option<&mut WindowSize>,
-) -> SshResult<Vec<u8>> {
+) -> SshResult<Vec<u8>>
+where
+    S: Read + Write,
+{
     let mut session_id = vec![];
     loop {
         let results = match &mut rws {
@@ -170,7 +184,13 @@ pub(crate) fn generate_signature(
 }
 
 /// SSH_MSG_NEWKEYS 代表密钥交换完成
-pub(crate) fn new_keys(client: &mut Client, rws: Option<&mut WindowSize>) -> Result<(), SshError> {
+pub(crate) fn new_keys<S>(
+    client: &mut Client<S>,
+    rws: Option<&mut WindowSize>,
+) -> Result<(), SshError>
+where
+    S: Read + Write,
+{
     let mut data = Data::new();
     data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
     match rws {
@@ -181,11 +201,14 @@ pub(crate) fn new_keys(client: &mut Client, rws: Option<&mut WindowSize>) -> Res
     Ok(())
 }
 
-pub(crate) fn key_agreement(
+pub(crate) fn key_agreement<S>(
     h: &mut H,
-    client: &mut Client,
+    client: &mut Client<S>,
     mut rws: Option<&mut WindowSize>,
-) -> SshResult<hash::HashType> {
+) -> SshResult<hash::HashType>
+where
+    S: Read + Write,
+{
     log::info!("start for key negotiation.");
     log::info!("send client algorithm list.");
     match &mut rws {

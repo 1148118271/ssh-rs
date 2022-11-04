@@ -1,12 +1,17 @@
+use std::io::{Read, Write};
+
 use crate::channel::Channel;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::error::SshResult;
 
-pub struct ChannelShell(pub(crate) Channel);
+pub struct ChannelShell<S: Read + Write>(pub(crate) Channel<S>);
 
-impl ChannelShell {
-    pub(crate) fn open(mut channel: Channel) -> SshResult<Self> {
+impl<S> ChannelShell<S>
+where
+    S: Read + Write,
+{
+    pub(crate) fn open(mut channel: Channel<S>) -> SshResult<Self> {
         // shell 形式需要一个伪终端
         ChannelShell::request_pty(&channel)?;
         ChannelShell::get_shell(&channel)?;
@@ -25,7 +30,7 @@ impl ChannelShell {
         }
     }
 
-    fn request_pty(channel: &Channel) -> SshResult<()> {
+    fn request_pty(channel: &Channel<S>) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(channel.server_channel_no)
@@ -52,7 +57,7 @@ impl ChannelShell {
             .write(data)
     }
 
-    fn get_shell(channel: &Channel) -> SshResult<()> {
+    fn get_shell(channel: &Channel<S>) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(channel.server_channel_no)

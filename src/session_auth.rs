@@ -5,9 +5,15 @@ use crate::h::H;
 use crate::key_pair::{KeyPair, KeyPairType};
 use crate::user_info::UserInfo;
 use crate::{Session, SshError, SshResult};
-use std::path::Path;
+use std::{
+    io::{Read, Write},
+    path::Path,
+};
 
-impl Session {
+impl<S> Session<S>
+where
+    S: Read + Write,
+{
     fn get_user_info(&self) -> SshResult<&UserInfo> {
         if self.user_info.is_none() {
             return Err(SshError::from("user info is none."));

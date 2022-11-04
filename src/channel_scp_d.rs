@@ -3,18 +3,21 @@ use crate::constant::{scp, ssh_msg_code};
 use crate::error::{SshError, SshResult};
 use crate::slog::log;
 use crate::util;
-use std::ffi::OsStr;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
+use std::{ffi::OsStr, io::Read};
 
-impl ChannelScp {
+impl<S> ChannelScp<S>
+where
+    S: Read + Write,
+{
     ///   download
-    pub fn download<S: AsRef<OsStr> + ?Sized>(
+    pub fn download<P: AsRef<OsStr> + ?Sized>(
         mut self,
-        local_path: &S,
-        remote_path: &S,
+        local_path: &P,
+        remote_path: &P,
     ) -> SshResult<()> {
         let local_path = Path::new(local_path);
         let remote_path = Path::new(remote_path);

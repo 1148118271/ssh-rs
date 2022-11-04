@@ -2,16 +2,25 @@ use crate::constant::{scp, ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::error::{SshError, SshResult};
 use crate::Channel;
-use std::borrow::BorrowMut;
 use std::path::{Path, PathBuf};
+use std::{
+    borrow::BorrowMut,
+    io::{Read, Write},
+};
 
-pub struct ChannelScp {
-    pub(crate) channel: Channel,
+pub struct ChannelScp<S>
+where
+    S: Read + Write,
+{
+    pub(crate) channel: Channel<S>,
     pub(crate) local_path: PathBuf,
 }
 
-impl ChannelScp {
-    pub(crate) fn open(channel: Channel) -> Self {
+impl<S> ChannelScp<S>
+where
+    S: Read + Write,
+{
+    pub(crate) fn open(channel: Channel<S>) -> Self {
         ChannelScp {
             channel,
             local_path: Default::default(),

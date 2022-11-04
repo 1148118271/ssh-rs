@@ -3,17 +3,20 @@ use crate::constant::{permission, scp};
 use crate::error::{SshError, SshResult};
 use crate::slog::log;
 use crate::util;
-use std::ffi::OsStr;
 use std::fs::{read_dir, File};
 use std::io::Read;
 use std::path::Path;
 use std::time::SystemTime;
+use std::{ffi::OsStr, io::Write};
 
-impl ChannelScp {
-    pub fn upload<S: AsRef<OsStr> + ?Sized>(
+impl<S> ChannelScp<S>
+where
+    S: Read + Write,
+{
+    pub fn upload<P: AsRef<OsStr> + ?Sized>(
         mut self,
-        local_path: &S,
-        remote_path: &S,
+        local_path: &P,
+        remote_path: &P,
     ) -> SshResult<()> {
         let local_path = Path::new(local_path);
         let remote_path = Path::new(remote_path);
