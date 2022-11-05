@@ -11,10 +11,8 @@ rust实现的ssh2.0客户端。
 
 ### 1. 密码连接:
 ```rust
-use ssh_rs::{Session, ssh};
-
 fn main() {
-    let mut session: Session = ssh::create_session();
+    let mut session: Session<TcpStream> = ssh::create_session();
     session.set_user_and_password("用户", "密码");
     session.connect("ip:port").unwrap();
 }
@@ -25,11 +23,8 @@ fn main() {
 
 #### 1. 使用密钥文件地址：
 ```rust
-use ssh_rs::{Session, ssh};
-use ssh_rs::key_pair::KeyPairType;
-
 fn main() {
-    let mut session: Session = ssh::create_session();
+    let mut session: Session<TcpStream> = ssh::create_session();
     // pem格式密钥地址 -> /xxx/xxx/id_rsa
     // KeyPairType::SshRsa rsa类型算法，目前只支持rsa
     session.set_user_and_key_pair_path("用户", "pem格式密钥地址", KeyPairType::SshRsa).unwrap();
@@ -39,11 +34,8 @@ fn main() {
 
 #### 2. 使用密钥字符串：
 ```rust
-use ssh_rs::{Session, ssh};
-use ssh_rs::key_pair::KeyPairType;
-
 fn main() {
-    let mut session: Session = ssh::create_session();
+    let mut session: Session<TcpStream> = ssh::create_session();
     // pem格式密钥字符串:
     //      -----BEGIN RSA PRIVATE KEY-----
     //          xxxxxxxxxxxxxxxxxxxxx
@@ -58,15 +50,13 @@ fn main() {
 ## 启用全局日志：
 
 ```rust
-use ssh_rs::{Session, ssh};
-
 fn main() {
     // is_enable_log 是否启用全局日志
     // 默认为 false（不启用）
     // 可设置为 true（启用）
     ssh::is_enable_log(true);
     
-    let mut session: Session = ssh::create_session();
+    let mut session: Session<TcpStream> = ssh::create_session();
     session.set_user_and_password("用户", "密码");
     session.connect("ip:port").unwrap();
 }
@@ -76,10 +66,8 @@ fn main() {
 ## 设置超时时间：
 
 ```rust
-use ssh_rs::{Session, ssh};
-
 fn main() {
-    let mut session: Session = ssh::create_session();
+    let mut session: Session<TcpStream> = ssh::create_session();
     // set_timeout 设置超时时间
     // 单位为 秒
     // 默认超时时间是 30秒
@@ -97,12 +85,10 @@ fn main() {
 ### 1. exec
 
 ```rust
-use ssh_rs::{ChannelExec, Session, ssh};
-
 fn main() {
-    let mut session: Session = session();
+    let mut session = session();
     // 方式一
-    let exec: ChannelExec = session.open_exec().unwrap();
+    let exec = session.open_exec().unwrap();
     let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
     println!("{}", String::from_utf8(vec).unwrap());
     // 方式二
@@ -118,17 +104,13 @@ fn main() {
 ### 2. shell
 
 ```rust
-use std::thread::sleep;
-use std::time::Duration;
-use ssh_rs::{Channel, ChannelShell, Session, ssh};
-
 fn main() {
-    let mut session: Session = session();
+    let mut session = session();
     // 方式一
-    let mut shell: ChannelShell = session.open_shell().unwrap();
+    let mut shell = session.open_shell().unwrap();
     run_shell(&mut shell);
     // 方式二
-    let channel: Channel = session.open_channel().unwrap();
+    let channel = session.open_channel().unwrap();
     let mut shell = channel.open_shell().unwrap();
     run_shell(&mut shell);
     // 关闭通道
@@ -137,7 +119,7 @@ fn main() {
     session.close().unwrap();
 }
 
-fn run_shell(shell: &mut ChannelShell) {
+fn run_shell(shell: &mut ChannelShell<TcpStream>) {
     sleep(Duration::from_millis(500));
     let vec = shell.read().unwrap();
     println!("{}", String::from_utf8(vec).unwrap());
@@ -154,29 +136,81 @@ fn run_shell(shell: &mut ChannelShell) {
 ### 3. scp
 
 ```rust
-use ssh_rs::{Channel, ChannelScp, Session, ssh};
-
 fn main() {
-    let mut session: Session = session();
+    let mut session = session();
     // 方式一
     // 上传
-    let scp: ChannelScp = session.open_scp().unwrap();
+    let scp = session.open_scp().unwrap();
     scp.upload("本地路径", "远程路径").unwrap();
     // 下载
-    let scp: ChannelScp = session.open_scp().unwrap();
+    let scp = session.open_scp().unwrap();
     scp.download("本地路径", "远程路径").unwrap();
 
     // 方式二
     // 上传
-    let channel: Channel = session.open_channel().unwrap();
-    let scp: ChannelScp = channel.open_scp().unwrap();
+    let channel = session.open_channel().unwrap();
+    let scp = channel.open_scp().unwrap();
     scp.upload("本地路径", "远程路径").unwrap();
     // 下载
-    let channel: Channel = session.open_channel().unwrap();
-    let scp: ChannelScp = channel.open_scp().unwrap();
+    let channel = session.open_channel().unwrap();
+    let scp = channel.open_scp().unwrap();
     scp.download("本地路径", "远程路径").unwrap();
 
     session.close().unwrap();
+}
+
+```
+
+## bio:
+```rust
+fn main() {
+    let mut session = ssh::create_session();
+    let bio = MyProxy::new("ip:port");
+    session.set_user_and_password("用户", "密码");
+    session.connect_bio(bio).unwrap();
+    // Usage 1
+    let exec = session.open_exec().unwrap();
+    let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
+    println!("{}", String::from_utf8(vec).unwrap());
+    // Usage 2
+    let channel = session.open_channel().unwrap();
+    let exec = channel.open_exec().unwrap();
+    let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
+    println!("{}", String::from_utf8(vec).unwrap());
+    // Close session.
+    session.close().unwrap();
+}
+
+// Use a real ssh server since I don't wanna implement a ssh-server in the example codes
+struct MyProxy {
+    server: TcpStream,
+}
+
+impl MyProxy {
+    fn new<A>(addr: A) -> Self
+    where
+        A: ToSocketAddrs,
+    {
+        Self {
+            server: TcpStream::connect(addr).unwrap(),
+        }
+    }
+}
+
+impl std::io::Read for MyProxy {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.server.read(buf)
+    }
+}
+
+impl std::io::Write for MyProxy {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.server.write(buf)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.server.flush()
+    }
 }
 
 ```
