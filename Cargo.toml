@@ -2,7 +2,10 @@
 name = "ssh-rs"
 version = "0.2.2"
 edition = "2021"
-authors = ["Gao Xiang Kang <1148118271@qq.com>"]
+authors = [
+    "Gao Xiang Kang <1148118271@qq.com>",
+    "Jovi Hsu <jv.hsu@outlook.com>"
+]
 description = "In addition to encryption library, pure RUST implementation of SSH-2.0 client protocol"
 keywords = ["ssh", "sshAgreement", "sshClient"]
 readme = "README.md"
