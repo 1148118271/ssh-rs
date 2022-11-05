@@ -20,9 +20,9 @@ impl PubK for Rsa {
         let e = rsa::BigUint::from_bytes_be(data.get_u8s().as_slice());
         let n = rsa::BigUint::from_bytes_be(data.get_u8s().as_slice());
         let public_key = rsa::RsaPublicKey::new(n, e).unwrap();
-        let scheme = rsa::PaddingScheme::new_pkcs1v15_sign::<sha1::Sha1>();
+        let scheme = rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha256>();
 
-        let digest = ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, message);
+        let digest = ring::digest::digest(&ring::digest::SHA256, message);
         let msg = digest.as_ref();
 
         Ok(public_key.verify(scheme, msg, sig).is_ok())

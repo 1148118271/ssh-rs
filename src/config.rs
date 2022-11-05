@@ -135,7 +135,7 @@ impl AlgorithmConfig {
         );
         match public_key_algorithm.as_str() {
             algorithms::PUBLIC_KEY_ED25519 => Ok(Box::new(Ed25519::new())),
-            algorithms::PUBLIC_KEY_RSA => Ok(Box::new(Rsa::new())),
+            algorithms::PUBLIC_KEY_RSA_256 => Ok(Box::new(Rsa::new())),
             _ => {
                 log::error!(
                     "description the signature algorithm fails to match, \
@@ -275,7 +275,7 @@ impl PublicKeyAlgorithm {
     pub fn get_client() -> Self {
         PublicKeyAlgorithm(vec![
             algorithms::PUBLIC_KEY_ED25519.to_string(),
-            algorithms::PUBLIC_KEY_RSA.to_string(),
+            algorithms::PUBLIC_KEY_RSA_256.to_string(),
         ])
     }
 }
