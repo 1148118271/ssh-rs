@@ -3,7 +3,7 @@ use crate::algorithm::hash::HashType;
 use crate::data::Data;
 use crate::h::H;
 use crate::{SshError, SshResult};
-use rsa::pkcs1::FromRsaPrivateKey;
+use rsa::pkcs1::DecodeRsaPrivateKey;
 use rsa::PublicKeyParts;
 use std::fs::File;
 use std::io::Read;
@@ -61,9 +61,7 @@ impl KeyPair {
         let mut sd = Data::new();
         sd.put_u8s(session_id.as_slice());
         sd.extend_from_slice(buf);
-        let scheme = rsa::PaddingScheme::PKCS1v15Sign {
-            hash: Some(rsa::Hash::SHA1),
-        };
+        let scheme = rsa::PaddingScheme::new_pkcs1v15_sign::<sha1::Sha1>();
         let digest = ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, sd.as_slice());
         let msg = digest.as_ref();
 
