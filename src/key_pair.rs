@@ -60,8 +60,17 @@ impl KeyPair {
         let mut sd = Data::new();
         sd.put_u8s(session_id.as_slice());
         sd.extend_from_slice(buf);
-        let scheme = rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha256>();
-        let digest = ring::digest::digest(&ring::digest::SHA256, sd.as_slice());
+        let (scheme, digest) = match self.key_type {
+            KeyPairType::SshRsa => (
+                rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha256>(),
+                ring::digest::digest(&ring::digest::SHA256, sd.as_slice()),
+            ),
+            #[cfg(feature = "dangerous-rsa-sha1")]
+            KeyPairType::SshRsaSha1 => (
+                rsa::PaddingScheme::new_pkcs1v15_sign::<sha1::Sha1>(),
+                ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, sd.as_slice()),
+            ),
+        };
         let msg = digest.as_ref();
 
         let rprk = rsa::RsaPrivateKey::from_pkcs1_pem(self.private_key.as_str()).unwrap();
@@ -77,6 +86,8 @@ impl KeyPair {
 #[derive(Clone)]
 pub enum KeyPairType {
     SshRsa,
+    #[cfg(feature = "dangerous-rsa-sha1")]
+    SshRsaSha1,
 }
 
 impl Default for KeyPairType {
@@ -90,9 +101,9 @@ impl KeyPairType {
         match self {
             // use to rsa-sha2-256 by default according to
             // https://www.rfc-editor.org/rfc/rfc8332#section-3
-            // My todo:
-            //    Add an API to support old server that only allows ssh-rsa
             KeyPairType::SshRsa => crate::constant::algorithms::PUBLIC_KEY_RSA_256,
+            #[cfg(feature = "dangerous-rsa-sha1")]
+            KeyPairType::SshRsaSha1 => crate::constant::algorithms::PUBLIC_KEY_RSA,
         }
     }
 }

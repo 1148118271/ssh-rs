@@ -5,7 +5,9 @@ use crate::algorithm::key_exchange::ecdh_sha2_nistp256::EcdhP256;
 use crate::algorithm::key_exchange::KeyExchange;
 use crate::algorithm::mac::hmac_sha1::HMacSha1;
 use crate::algorithm::mac::Mac;
-use crate::algorithm::public_key::{Ed25519, PublicKey, Rsa};
+#[cfg(feature = "dangerous-rsa-sha1")]
+use crate::algorithm::public_key::RsaSha1;
+use crate::algorithm::public_key::{Ed25519, PublicKey, RsaSha256};
 use crate::constant::{algorithms, CLIENT_VERSION};
 use crate::data::Data;
 use crate::slog::log;
@@ -124,10 +126,11 @@ impl AlgorithmConfig {
         }
     }
 
-    /// 匹配合适的公钥签名算法
-    /// 目前支持:
+    /// PubkeyAcceptedAlgorithms
+    /// Currently support:
     ///     1. ed25519.rs
-    ///     2. ssh-rsa
+    ///     2. rsa-sha2-256
+    ///     3. rsa-sha (behind feature "dangerous-rsa-sha1")
     pub fn matching_public_key_algorithm(&self) -> SshResult<Box<dyn PublicKey>> {
         let public_key_algorithm: String = get_algorithm(
             &self.client_algorithm.public_key_algorithm.0,
@@ -135,7 +138,9 @@ impl AlgorithmConfig {
         );
         match public_key_algorithm.as_str() {
             algorithms::PUBLIC_KEY_ED25519 => Ok(Box::new(Ed25519::new())),
-            algorithms::PUBLIC_KEY_RSA_256 => Ok(Box::new(Rsa::new())),
+            algorithms::PUBLIC_KEY_RSA_256 => Ok(Box::new(RsaSha256::new())),
+            #[cfg(feature = "dangerous-rsa-sha1")]
+            algorithms::PUBLIC_KEY_RSA => Ok(Box::new(RsaSha1::new())),
             _ => {
                 log::error!(
                     "description the signature algorithm fails to match, \
@@ -276,6 +281,12 @@ impl PublicKeyAlgorithm {
         PublicKeyAlgorithm(vec![
             algorithms::PUBLIC_KEY_ED25519.to_string(),
             algorithms::PUBLIC_KEY_RSA_256.to_string(),
+            // for old ssh servers
+            // which require ssh-rsa sha1 as their HostkeyAlgorithms/PubkeyAcceptedAlgorithms
+            // SHA1 is a hash algorithm which is confirmed cryptographically broken
+            // So we by default disable it and remove it from our HostkeyAlgorithms/PubkeyAcceptedAlgorithms
+            #[cfg(feature = "dangerous-rsa-sha1")]
+            algorithms::PUBLIC_KEY_RSA.to_string(),
         ])
     }
 }
