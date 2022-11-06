@@ -11,10 +11,9 @@ or [PR](https://github.com/1148118271/ssh-rs/pulls) .
 
 ### 1. Password:
 ```rust
-use ssh_rs::ssh;
-
 fn main() {
-    let mut session = ssh::create_session();
+    let mut session: Session<TcpStream> = ssh::create_session();
+
     session.set_user_and_password("user", "password");
     session.connect("ip:port").unwrap();
 }
@@ -25,11 +24,9 @@ fn main() {
 
 #### 1. Use key file path：
 ```rust
-use ssh_rs::ssh;
-use ssh_rs::key_pair::KeyPairType;
 
 fn main() {
-    let mut session = ssh::create_session();
+    let mut session: Session<TcpStream> = ssh::create_session();
     // pem format key path -> /xxx/xxx/id_rsa
     // the content of the keyfile shall begin with
     //      -----BEGIN RSA PRIVATE KEY-----
@@ -44,11 +41,8 @@ fn main() {
 
 #### 2. Use key string：
 ```rust
-use ssh_rs::ssh;
-use ssh_rs::key_pair::KeyPairType;
-
 fn main() {
-    let mut session = ssh::create_session();
+    let mut session: Session<TcpStream> = ssh::create_session();
     // pem format key string:
     //      -----BEGIN RSA PRIVATE KEY-----
     //          xxxxxxxxxxxxxxxxxxxxx
@@ -62,15 +56,12 @@ fn main() {
 ## Enable global logging：
 
 ```rust
-use ssh_rs::ssh;
-
 fn main() {
     // is_enable_log Whether to enable global logging
     // The default is false(Do not enable)
     // Can be set as true (enable)
     ssh::is_enable_log(true);
-    
-    let mut session = ssh::create_session();
+    let mut session: Session<TcpStream> = ssh::create_session();
     session.set_user_and_password("user", "password");
     session.connect("ip:port").unwrap();
 }
@@ -80,10 +71,9 @@ fn main() {
 ## Set timeout：
 
 ```rust
-use ssh_rs::ssh;
 
 fn main() {
-    let mut session = ssh::create_session();
+    let mut session: Session<TcpStream> = ssh::create_session();
     // set_timeout
     // The unit is seconds
     // The default timeout is 30 seconds
@@ -101,8 +91,6 @@ fn main() {
 ### 1. exec
 
 ```rust
-use ssh_rs::ssh;
-
 fn main() {
     let mut session = session();
     // Usage 1
@@ -122,10 +110,6 @@ fn main() {
 ### 2. shell
 
 ```rust
-use ssh_rs::{ssh, ChannelShell};
-use std::thread::sleep;
-use std::time::Duration;
-
 fn main() {
     let mut session = session();
     // Usage 1
@@ -141,7 +125,7 @@ fn main() {
     session.close().unwrap();
 }
 
-fn run_shell(shell: &mut ChannelShell<std::net::TcpStream>) {
+fn run_shell(shell: &mut ChannelShell<TcpStream>) {
     sleep(Duration::from_millis(500));
     let vec = shell.read().unwrap();
     println!("{}", String::from_utf8(vec).unwrap());
@@ -158,8 +142,6 @@ fn run_shell(shell: &mut ChannelShell<std::net::TcpStream>) {
 ### 3. scp
 
 ```rust
-use ssh_rs::ssh;
-
 fn main() {
     let mut session = session();
     // Usage 1
@@ -179,6 +161,61 @@ fn main() {
     scp.download("local path", "remote path").unwrap();
 
     session.close().unwrap();
+}
+
+```
+
+
+## bio:
+```rust
+fn main() {
+    let mut session = ssh::create_session();
+    let bio = MyProxy::new("ip:port");
+    session.set_user_and_password("user", "password");
+    session.connect_bio(bio).unwrap();
+    // Usage 1
+    let exec = session.open_exec().unwrap();
+    let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
+    println!("{}", String::from_utf8(vec).unwrap());
+    // Usage 2
+    let channel = session.open_channel().unwrap();
+    let exec = channel.open_exec().unwrap();
+    let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
+    println!("{}", String::from_utf8(vec).unwrap());
+    // Close session.
+    session.close().unwrap();
+}
+
+// Use a real ssh server since I don't wanna implement a ssh-server in the example codes
+struct MyProxy {
+    server: TcpStream,
+}
+
+impl MyProxy {
+    fn new<A>(addr: A) -> Self
+    where
+        A: ToSocketAddrs,
+    {
+        Self {
+            server: TcpStream::connect(addr).unwrap(),
+        }
+    }
+}
+
+impl std::io::Read for MyProxy {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.server.read(buf)
+    }
+}
+
+impl std::io::Write for MyProxy {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.server.write(buf)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.server.flush()
+    }
 }
 
 ```
