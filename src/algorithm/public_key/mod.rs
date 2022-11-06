@@ -3,7 +3,9 @@ use crate::SshError;
 mod ed25519;
 mod rsa;
 
-pub(crate) use self::rsa::Rsa;
+#[cfg(feature = "dangerous-rsa-sha1")]
+pub(crate) use self::rsa::RsaSha1;
+pub(crate) use self::rsa::RsaSha256;
 pub(crate) use ed25519::Ed25519;
 
 /// # 公钥算法

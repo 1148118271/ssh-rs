@@ -3,7 +3,7 @@ use crate::algorithm::hash::HashType;
 use crate::data::Data;
 use crate::h::H;
 use crate::{SshError, SshResult};
-use rsa::pkcs1::FromRsaPrivateKey;
+use rsa::pkcs1::DecodeRsaPrivateKey;
 use rsa::PublicKeyParts;
 use std::fs::File;
 use std::io::Read;
@@ -12,7 +12,7 @@ use std::path::Path;
 #[derive(Clone, Default)]
 pub struct KeyPair {
     pub(crate) private_key: String,
-    pub(crate) key_type: String,
+    pub(crate) key_type: KeyPairType,
     pub(crate) blob: Vec<u8>,
 }
 
@@ -31,7 +31,6 @@ impl KeyPair {
     }
 
     pub fn from_str(key_str: &str, key_type: KeyPairType) -> SshResult<Self> {
-        let key_type_str = KeyPairType::get_string(key_type);
         let rprk = match rsa::RsaPrivateKey::from_pkcs1_pem(key_str) {
             Ok(e) => e,
             Err(e) => return Err(SshError::from(e.to_string())),
@@ -40,13 +39,13 @@ impl KeyPair {
         let es = rpuk.e().to_bytes_be();
         let ns = rpuk.n().to_bytes_be();
         let mut blob = Data::new();
-        blob.put_str(key_type_str);
+        blob.put_str(key_type.as_str());
         blob.put_mpint(&es);
         blob.put_mpint(&ns);
         let blob = blob.to_vec();
         let pair = KeyPair {
             private_key: key_str.to_string(),
-            key_type: key_type_str.to_string(),
+            key_type,
             blob,
         };
         Ok(pair)
@@ -61,10 +60,17 @@ impl KeyPair {
         let mut sd = Data::new();
         sd.put_u8s(session_id.as_slice());
         sd.extend_from_slice(buf);
-        let scheme = rsa::PaddingScheme::PKCS1v15Sign {
-            hash: Some(rsa::Hash::SHA1),
+        let (scheme, digest) = match self.key_type {
+            KeyPairType::SshRsa => (
+                rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha256>(),
+                ring::digest::digest(&ring::digest::SHA256, sd.as_slice()),
+            ),
+            #[cfg(feature = "dangerous-rsa-sha1")]
+            KeyPairType::SshRsaSha1 => (
+                rsa::PaddingScheme::new_pkcs1v15_sign::<sha1::Sha1>(),
+                ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, sd.as_slice()),
+            ),
         };
-        let digest = ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, sd.as_slice());
         let msg = digest.as_ref();
 
         let rprk = rsa::RsaPrivateKey::from_pkcs1_pem(self.private_key.as_str()).unwrap();
@@ -77,14 +83,27 @@ impl KeyPair {
     }
 }
 
+#[derive(Clone)]
 pub enum KeyPairType {
     SshRsa,
+    #[cfg(feature = "dangerous-rsa-sha1")]
+    SshRsaSha1,
+}
+
+impl Default for KeyPairType {
+    fn default() -> Self {
+        KeyPairType::SshRsa
+    }
 }
 
 impl KeyPairType {
-    pub(crate) fn get_string<'a>(key_type: KeyPairType) -> &'a str {
-        match key_type {
-            KeyPairType::SshRsa => "ssh-rsa",
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            // use to rsa-sha2-256 by default according to
+            // https://www.rfc-editor.org/rfc/rfc8332#section-3
+            KeyPairType::SshRsa => crate::constant::algorithms::PUBLIC_KEY_RSA_256,
+            #[cfg(feature = "dangerous-rsa-sha1")]
+            KeyPairType::SshRsaSha1 => crate::constant::algorithms::PUBLIC_KEY_RSA,
         }
     }
 }

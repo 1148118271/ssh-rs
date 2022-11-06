@@ -26,6 +26,11 @@ fn main() {
 fn main() {
     let mut session: Session<TcpStream> = ssh::create_session();
     // pem格式密钥地址 -> /xxx/xxx/id_rsa
+    // 密钥文件的开头需为
+    //      -----BEGIN RSA PRIVATE KEY-----
+    // 结尾为
+    //       -----END RSA PRIVATE KEY-----
+    // 一般可以使用命令 `ssh-keygen -t rsa -m PEM` 生成
     // KeyPairType::SshRsa rsa类型算法，目前只支持rsa
     session.set_user_and_key_pair_path("用户", "pem格式密钥地址", KeyPairType::SshRsa).unwrap();
     session.connect("ip:port").unwrap();
@@ -118,6 +123,7 @@ fn main() {
     // 关闭会话
     session.close().unwrap();
 }
+
 
 fn run_shell(shell: &mut ChannelShell<TcpStream>) {
     sleep(Duration::from_millis(500));
@@ -224,7 +230,8 @@ impl std::io::Write for MyProxy {
 
 ### 2. 主机密钥算法
 `ssh-ed25519`
-`ssh-rsa`
+`rsa-sha2-256`
+`rsa-sha` (behind feature "dangerous-rsa-sha1")
 
 ### 3. 加密算法（客户端到服务端）
 `chacha20-poly1305@openssh.com`

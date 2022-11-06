@@ -152,6 +152,8 @@ pub mod algorithms {
     /// 非对称签名算法
     pub const PUBLIC_KEY_ED25519: &str = "ssh-ed25519";
     pub const PUBLIC_KEY_RSA: &str = "ssh-rsa";
+    pub const PUBLIC_KEY_RSA_256: &str = "rsa-sha2-256";
+    pub const PUBLIC_KEY_RSA_512: &str = "rsa-sha2-512";
 
     /// 对称加密算法
     pub const ENCRYPTION_CHACHA20_POLY1305_OPENSSH: &str = "chacha20-poly1305@openssh.com";
