@@ -110,7 +110,7 @@ where
             remote_close: false,
             local_close: false,
             window_size: win_size,
-            client: self.get_client()?.clone(),
+            client: self.get_client()?,
         })
     }
 
