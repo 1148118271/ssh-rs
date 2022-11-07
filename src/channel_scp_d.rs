@@ -177,11 +177,11 @@ where
             if self.channel.is_close() {
                 return Ok(());
             }
-            let session = unsafe { &mut *self.channel.session };
-            let results = session
+            let results = self
+                .channel
                 .client
-                .as_mut()
-                .unwrap()
+                .as_ref()
+                .borrow_mut()
                 .read_data(Some(&mut self.channel.window_size))?;
             let mut data = vec![];
             for mut result in results {

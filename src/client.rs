@@ -1,7 +1,7 @@
 use crate::algorithm::encryption::Encryption;
 use crate::client_r::Signature;
 use crate::config::Config;
-use crate::error::{SshError, SshResult};
+use crate::error::SshResult;
 use crate::h::H;
 use crate::timeout::Timeout;
 use crate::user_info::UserInfo;
@@ -93,12 +93,6 @@ where
         h.set_v_s(sv);
         h.set_v_c(&cv);
         log::info!("version negotiation was successful.");
-        Ok(())
-    }
-
-    pub(crate) fn close(self) -> Result<(), SshError> {
-        // Just drop self
-        drop(self);
         Ok(())
     }
 

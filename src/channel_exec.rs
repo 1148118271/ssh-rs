@@ -1,9 +1,8 @@
-use std::io::{Read, Write};
-
 use crate::channel::Channel;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::error::SshResult;
+use std::io::{Read, Write};
 
 pub struct ChannelExec<S: Read + Write>(pub(crate) Channel<S>);
 
@@ -15,27 +14,22 @@ where
         ChannelExec(channel)
     }
 
-    fn exec_command(&self, command: &str) -> SshResult<()> {
+    fn exec_command(&mut self, command: &str) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.0.server_channel_no)
             .put_str(ssh_str::EXEC)
             .put_u8(true as u8)
             .put_str(command);
-        self.0
-            .get_session_mut()
-            .client
-            .as_mut()
-            .unwrap()
-            .write(data)
+        self.0.client.as_ref().borrow_mut().write(data)
     }
 
     fn get_data(&mut self, v: &mut Vec<u8>) -> SshResult<()> {
-        let session = unsafe { &mut *self.0.session };
-        let results = session
+        let results = self
+            .0
             .client
-            .as_mut()
-            .unwrap()
+            .as_ref()
+            .borrow_mut()
             .read_data(Some(&mut self.0.window_size))?;
         for mut result in results {
             if result.is_empty() {
