@@ -1,12 +1,14 @@
 use crate::channel_exec::ChannelExec;
 use crate::channel_scp::ChannelScp;
 use crate::channel_shell::ChannelShell;
+use crate::client::Client;
 use crate::constant::ssh_msg_code;
 use crate::data::Data;
 use crate::error::{SshError, SshResult};
 use crate::slog::log;
 use crate::window_size::WindowSize;
-use crate::Session;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::{
     io::{Read, Write},
     ops::{Deref, DerefMut},
@@ -19,7 +21,7 @@ where
     pub(crate) remote_close: bool,
     pub(crate) local_close: bool,
     pub(crate) window_size: WindowSize,
-    pub(crate) session: *mut Session<S>,
+    pub(crate) client: Rc<RefCell<Client<S>>>,
 }
 
 impl<S> Deref for Channel<S>
@@ -51,8 +53,7 @@ where
             ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
                 data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                let session = self.get_session_mut();
-                session.client.as_mut().unwrap().write(data)?;
+                self.client.as_ref().borrow_mut().write(data)?;
             }
             // 通道大小
             ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
@@ -108,8 +109,7 @@ where
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_CLOSE)
             .put_u32(self.server_channel_no);
-        let session = self.get_session_mut();
-        session.client.as_mut().unwrap().write(data)?;
+        self.client.as_ref().borrow_mut().write(data)?;
         self.local_close = true;
         Ok(())
     }
@@ -120,7 +120,7 @@ where
         }
         loop {
             // close 时不消耗窗口空间
-            let results = { self.get_session_mut().client.as_mut().unwrap().read() }?;
+            let results = self.client.as_ref().borrow_mut().read()?;
             for mut result in results {
                 if result.is_empty() {
                     continue;
@@ -138,11 +138,6 @@ where
                 }
             }
         }
-    }
-
-    #[allow(clippy::mut_from_ref)]
-    pub(crate) fn get_session_mut(&self) -> &mut Session<S> {
-        unsafe { &mut *self.session }
     }
 
     pub(crate) fn is_close(&self) -> bool {
