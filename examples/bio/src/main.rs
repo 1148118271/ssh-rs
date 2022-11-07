@@ -2,9 +2,11 @@ use ssh_rs::ssh;
 use std::net::{TcpStream, ToSocketAddrs};
 
 fn main() {
-    let mut session = ssh::create_session();
     let bio = MyProxy::new("127.0.0.1:22");
-    session.set_user_and_password("ubuntu", "password");
+    let mut session = ssh::create_session()
+        .username("ubuntu")
+        .password("password")
+        .build();
     session.connect_bio(bio).unwrap();
     // Usage 1
     let exec = session.open_exec().unwrap();

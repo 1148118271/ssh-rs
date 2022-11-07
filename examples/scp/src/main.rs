@@ -1,8 +1,10 @@
 use ssh_rs::ssh;
 
 fn main() {
-    let mut session = ssh::create_session();
-    session.set_user_and_password("ubuntu", "password");
+    let mut session = ssh::create_session()
+        .username("ubuntu")
+        .password("password")
+        .build();
     session.connect("127.0.0.1:22").unwrap();
     // Usage 1
 

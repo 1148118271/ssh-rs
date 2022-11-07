@@ -1,5 +1,5 @@
 /// 客户端版本
-pub(crate) const CLIENT_VERSION: &str = "SSH-2.0-SSH_RS-0.2.2";
+pub(crate) const CLIENT_VERSION: &str = "SSH-2.0-SSH_RS-0.3.0";
 
 /// ssh通讯时用到的常量字符串
 #[allow(dead_code)]

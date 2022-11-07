@@ -1,6 +1,6 @@
 //! Dependencies
 //! ```toml
-//! ssh-rs = "0.2.2"
+//! ssh-rs = "0.3.0"
 //! ```
 //!
 //! ## Connection method：

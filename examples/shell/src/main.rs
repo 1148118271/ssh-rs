@@ -3,8 +3,10 @@ use std::thread::sleep;
 use std::time::Duration;
 
 fn main() {
-    let mut session = ssh::create_session();
-    session.set_user_and_password("ubuntu", "password");
+    let mut session = ssh::create_session()
+        .username("ubuntu")
+        .password("password")
+        .build();
     session.connect("127.0.0.1:22").unwrap();
     // Usage 1
     let mut shell = session.open_shell().unwrap();
