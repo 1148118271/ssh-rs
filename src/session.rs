@@ -212,7 +212,7 @@ where
             stream,
             self.timeout_sec,
             self.config.clone(),
-        )?);
+        )?)));
         log::info!("session opened.");
         self.post_connect()
     }
