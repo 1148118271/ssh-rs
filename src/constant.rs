@@ -1,9 +1,9 @@
 /// 客户端版本
-pub const CLIENT_VERSION: &str = "SSH-2.0-SSH_RS-0.2.2";
+pub(crate) const CLIENT_VERSION: &str = "SSH-2.0-SSH_RS-0.2.2";
 
 /// ssh通讯时用到的常量字符串
 #[allow(dead_code)]
-pub mod ssh_str {
+pub(crate) mod ssh_str {
     /// 准备认证
     pub const SSH_USERAUTH: &str = "ssh-userauth";
     /// 开始认证
@@ -27,7 +27,7 @@ pub mod ssh_str {
 }
 
 #[allow(dead_code)]
-pub mod permission {
+pub(crate) mod permission {
     /// 文件夹默认权限
     pub const DIR: &str = "775";
     /// 文件默认权限
@@ -36,7 +36,7 @@ pub mod permission {
 
 /// scp 操作时用到的常量
 #[allow(dead_code)]
-pub mod scp {
+pub(crate) mod scp {
     // scp 参数常量
     /// 意味着当前机器上的scp，将本地文件传输到另一个scp上
     pub const SOURCE: &str = "-f";
@@ -78,7 +78,7 @@ pub mod scp {
 
 /// 一些默认大小
 #[allow(dead_code)]
-pub mod size {
+pub(crate) mod size {
     pub const ONE_GB: usize = 1073741824;
     /// 最大数据包大小
     pub const BUF_SIZE: usize = 32768;
@@ -88,7 +88,7 @@ pub mod size {
 
 /// ssh 消息码
 #[allow(dead_code)]
-pub mod ssh_msg_code {
+pub(crate) mod ssh_msg_code {
     pub const SSH_MSG_DISCONNECT: u8 = 1;
     pub const SSH_MSG_IGNORE: u8 = 2;
     pub const SSH_MSG_UNIMPLEMENTED: u8 = 3;
@@ -146,13 +146,27 @@ pub mod ssh_msg_code {
 #[allow(dead_code)]
 pub mod algorithms {
     /// key exchange algorithm
-    pub mod kex {
+    pub(crate) mod kex {
         pub const CURVE25519_SHA256: &str = "curve25519-sha256";
         pub const ECDH_SHA2_NISTP256: &str = "ecdh-sha2-nistp256";
     }
 
+    pub enum Kex {
+        Curve25519Sha256,
+        EcdhSha2Nistrp256,
+    }
+
+    impl Kex {
+        pub(crate) fn as_str(&self) -> &'static str {
+            match self {
+                Kex::Curve25519Sha256 => kex::CURVE25519_SHA256,
+                Kex::EcdhSha2Nistrp256 => kex::ECDH_SHA2_NISTP256,
+            }
+        }
+    }
+
     /// pubkey hash algorithm
-    pub mod pubkey {
+    pub(crate) mod pubkey {
         pub const SSH_ED25519: &str = "ssh-ed25519";
         #[cfg(feature = "dangerous-rsa-sha1")]
         pub const SSH_RSA: &str = "ssh-rsa";
@@ -160,20 +174,76 @@ pub mod algorithms {
         // pub const RSA_SHA2_512: &str = "rsa-sha2-512";
     }
 
+    pub enum PubKey {
+        SshEd25519,
+        #[cfg(feature = "dangerous-rsa-sha1")]
+        SshRsa,
+        RsaSha2_256,
+    }
+
+    impl PubKey {
+        pub(crate) fn as_str(&self) -> &'static str {
+            match self {
+                PubKey::SshEd25519 => pubkey::SSH_ED25519,
+                #[cfg(feature = "dangerous-rsa-sha1")]
+                PubKey::SshRsa => pubkey::SSH_RSA,
+                PubKey::RsaSha2_256 => pubkey::RSA_SHA2_256,
+            }
+        }
+    }
+
     /// symmetrical encryption algorithm
-    pub mod sym {
+    pub(crate) mod enc {
         pub const CHACHA20_POLY1305_OPENSSH: &str = "chacha20-poly1305@openssh.com";
         pub const AES128_CTR: &str = "aes128-ctr";
     }
 
+    pub enum Enc {
+        Chacha20Poly1305Openssh,
+        Aes128Ctr,
+    }
+
+    impl Enc {
+        pub(crate) fn as_str(&self) -> &'static str {
+            match self {
+                Enc::Chacha20Poly1305Openssh => enc::CHACHA20_POLY1305_OPENSSH,
+                Enc::Aes128Ctr => enc::AES128_CTR,
+            }
+        }
+    }
+
     /// MAC(message authentication code) algorithm
-    pub mod mac {
+    pub(crate) mod mac {
         pub const HMAC_SHA1: &str = "hmac-sha1";
     }
 
+    pub enum Mac {
+        HmacSha1,
+    }
+
+    impl Mac {
+        pub(crate) fn as_str(&self) -> &'static str {
+            match self {
+                Mac::HmacSha1 => mac::HMAC_SHA1,
+            }
+        }
+    }
+
     /// compression algorithm
-    pub mod compress {
+    pub(crate) mod compress {
         pub const NONE: &str = "none";
+    }
+
+    pub enum Compress {
+        None,
+    }
+
+    impl Compress {
+        pub(crate) fn as_str(&self) -> &'static str {
+            match self {
+                Compress::None => compress::NONE,
+            }
+        }
     }
 }
 

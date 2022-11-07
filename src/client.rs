@@ -4,7 +4,6 @@ use crate::config::Config;
 use crate::error::{SshError, SshResult};
 use crate::h::H;
 use crate::timeout::Timeout;
-use crate::user_info::UserInfo;
 use std::io::{self, Read, Write};
 use std::ops::{Deref, DerefMut};
 
@@ -53,11 +52,7 @@ impl<S> Client<S>
 where
     S: Read + Write,
 {
-    pub(crate) fn connect(
-        stream: S,
-        timeout_sec: u64,
-        user_info: UserInfo,
-    ) -> SshResult<Client<S>> {
+    pub(crate) fn connect(stream: S, timeout_sec: u64, config: Config) -> SshResult<Client<S>> {
         Ok(Client {
             stream,
             sequence: Sequence {
@@ -65,7 +60,7 @@ where
                 server_sequence_num: 0,
             },
             timeout: Timeout::new(timeout_sec),
-            config: Config::new(user_info),
+            config,
             encryption: None,
             is_encryption: false,
             session_id: vec![],

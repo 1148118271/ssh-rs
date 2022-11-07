@@ -23,14 +23,11 @@ pub(crate) fn send_algorithm<S>(
 where
     S: Read + Write,
 {
-    log::info!(
-        "client algorithms: [{}]",
-        client.config.algorithm.client_algorithm.to_string()
-    );
+    log::info!("client algorithms: [{:?}]", client.config.algorithm.client);
     let mut data = Data::new();
     data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
     data.extend(util::cookie());
-    data.extend(client.config.algorithm.client_algorithm.as_i());
+    data.extend(client.config.algorithm.client.as_i());
     data.put_str("")
         .put_str("")
         .put_u8(false as u8)
@@ -77,22 +74,21 @@ pub(crate) fn processing_server_algorithm(config: &mut Config, mut data: Data) -
     data.get_u8();
     // 跳过16位cookie
     data.skip(16);
-    let server_algorithm = &mut config.algorithm.server_algorithm;
-    server_algorithm.key_exchange_algorithm =
+    let server_algorithm = &mut config.algorithm.server;
+    server_algorithm.key_exchange =
         KeyExchangeAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.public_key_algorithm =
-        PublicKeyAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.c_encryption_algorithm =
+    server_algorithm.public_key = PublicKeyAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
+    server_algorithm.c_encryption =
         EncryptionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.s_encryption_algorithm =
+    server_algorithm.s_encryption =
         EncryptionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.c_mac_algorithm = MacAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.s_mac_algorithm = MacAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.c_compression_algorithm =
+    server_algorithm.c_mac = MacAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
+    server_algorithm.s_mac = MacAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
+    server_algorithm.c_compression =
         CompressionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.s_compression_algorithm =
+    server_algorithm.s_compression =
         CompressionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    log::info!("server algorithms: [{}]", server_algorithm.to_string());
+    log::info!("server algorithms: [{:?}]", server_algorithm);
     Ok(())
 }
 

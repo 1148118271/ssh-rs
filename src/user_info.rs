@@ -1,35 +1,17 @@
+use std::fmt::Debug;
+
 use crate::key_pair::KeyPair;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct UserInfo {
-    pub(crate) auth_type: AuthType,
     pub(crate) username: String,
     pub(crate) password: String,
-    pub(crate) key_pair: KeyPair,
+    pub(crate) key_pair: Option<KeyPair>,
 }
 
-impl UserInfo {
-    pub fn from_key_pair<S: ToString>(user_name: S, key_pair: KeyPair) -> Self {
-        UserInfo {
-            auth_type: AuthType::PublicKey,
-            username: user_name.to_string(),
-            password: "".to_string(),
-            key_pair,
-        }
+impl Debug for UserInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "username: {}", self.username)?;
+        Ok(())
     }
-
-    pub fn from_password<S: ToString>(user_name: S, password: S) -> Self {
-        UserInfo {
-            auth_type: AuthType::Password,
-            username: user_name.to_string(),
-            password: password.to_string(),
-            key_pair: KeyPair::new(),
-        }
-    }
-}
-
-#[derive(Clone)]
-pub enum AuthType {
-    Password,
-    PublicKey,
 }

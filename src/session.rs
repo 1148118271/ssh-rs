@@ -1,19 +1,173 @@
-use crate::algorithm::hash::HashType;
 use crate::client::Client;
-use crate::constant::{size, ssh_msg_code, ssh_str};
 use crate::data::Data;
-use crate::error::{SshError, SshResult};
 use crate::h::H;
 use crate::kex;
 use crate::slog::log;
-use crate::user_info::AuthType;
-use crate::user_info::UserInfo;
 use crate::window_size::WindowSize;
+use crate::{algorithm::hash::HashType, Config};
+use crate::{
+    constant::algorithms::{Compress, Enc, Kex, Mac, PubKey},
+    error::{SshError, SshResult},
+};
+use crate::{
+    constant::{size, ssh_msg_code, ssh_str},
+    key_pair::{KeyPair, KeyType},
+};
 use crate::{Channel, ChannelExec, ChannelScp, ChannelShell};
 use std::{
     io::{Read, Write},
     net::{TcpStream, ToSocketAddrs},
+    path::Path,
 };
+
+#[derive(Default)]
+pub struct SessionBuilder {
+    timeout_sec: u64,
+    config: Config,
+}
+
+impl SessionBuilder {
+    pub fn new() -> Self {
+        Self {
+            timeout_sec: 30,
+            ..Default::default()
+        }
+    }
+
+    pub fn disable_default() -> Self {
+        Self {
+            timeout_sec: 30,
+            config: Config::disable_default_algorithms(),
+        }
+    }
+
+    pub fn timeout(mut self, timeout: u64) -> Self {
+        self.timeout_sec = timeout;
+        self
+    }
+
+    pub fn username(mut self, username: &str) -> Self {
+        let user_info = &mut self.config.auth;
+        user_info.username = username.to_owned();
+        self
+    }
+
+    pub fn password(mut self, password: &str) -> Self {
+        let user_info = &mut self.config.auth;
+        user_info.password = password.to_owned();
+        self
+    }
+
+    pub fn private_key<K>(mut self, private_key: K, key_type: KeyType) -> Self
+    where
+        K: ToString,
+    {
+        let user_info = &mut self.config.auth;
+        match KeyPair::from_str(private_key.to_string().as_str(), key_type) {
+            Ok(key_pair) => user_info.key_pair = Some(key_pair),
+            Err(e) => log::error!(
+                "Parse private key from string: {}, will fallback to password authentication",
+                e
+            ),
+        }
+        self
+    }
+
+    pub fn private_key_path<P>(mut self, key_path: P, key_type: KeyType) -> Self
+    where
+        P: AsRef<Path>,
+    {
+        let user_info = &mut self.config.auth;
+        match KeyPair::from_path(key_path, key_type) {
+            Ok(key_pair) => user_info.key_pair = Some(key_pair),
+            Err(e) => log::error!(
+                "Parse private key from file: {}, will fallback to password authentication",
+                e
+            ),
+        }
+        self
+    }
+
+    pub fn add_kex_algorithms(mut self, alg: Kex) -> Self {
+        self.config
+            .algorithm
+            .client
+            .key_exchange
+            .0
+            .push(alg.as_str().to_owned());
+        self
+    }
+
+    pub fn add_pubkey_algorithms(mut self, alg: PubKey) -> Self {
+        self.config
+            .algorithm
+            .client
+            .public_key
+            .0
+            .push(alg.as_str().to_owned());
+        self
+    }
+
+    pub fn add_enc_algorithms(mut self, alg: Enc) -> Self {
+        self.config
+            .algorithm
+            .client
+            .c_encryption
+            .0
+            .push(alg.as_str().to_owned());
+        self.config
+            .algorithm
+            .client
+            .s_encryption
+            .0
+            .push(alg.as_str().to_owned());
+        self
+    }
+
+    pub fn add_mac_algortihms(mut self, alg: Mac) -> Self {
+        self.config
+            .algorithm
+            .client
+            .c_mac
+            .0
+            .push(alg.as_str().to_owned());
+        self.config
+            .algorithm
+            .client
+            .s_mac
+            .0
+            .push(alg.as_str().to_owned());
+        self
+    }
+
+    pub fn add_compress_algorithms(mut self, alg: Compress) -> Self {
+        self.config
+            .algorithm
+            .client
+            .c_compression
+            .0
+            .push(alg.as_str().to_owned());
+        self.config
+            .algorithm
+            .client
+            .s_compression
+            .0
+            .push(alg.as_str().to_owned());
+        self
+    }
+
+    pub fn build<S>(self) -> Session<S>
+    where
+        S: Read + Write,
+    {
+        Session {
+            timeout_sec: self.timeout_sec,
+            config: self.config,
+            client: None,
+            client_channel_no: 0,
+        }
+    }
+}
 
 pub struct Session<S>
 where
@@ -21,7 +175,7 @@ where
 {
     pub(crate) timeout_sec: u64,
 
-    pub(crate) user_info: Option<UserInfo>,
+    pub(crate) config: Config,
 
     pub(crate) client: Option<Client<S>>,
 
@@ -33,15 +187,10 @@ impl Session<TcpStream> {
     where
         A: ToSocketAddrs,
     {
-        if self.user_info.is_none() {
-            return Err(SshError::from("user info is none."));
-        }
         // 建立通道
         let tcp = TcpStream::connect(addr)?;
         // default nonblocking
         tcp.set_nonblocking(true).unwrap();
-
-        log::info!("session opened.");
         self.connect_bio(tcp)
     }
 }
@@ -55,14 +204,11 @@ where
     }
 
     pub fn connect_bio(&mut self, stream: S) -> SshResult<()> {
-        if self.user_info.is_none() {
-            return Err(SshError::from("user info is none."));
-        }
         // 建立通道
         self.client = Some(Client::<S>::connect(
             stream,
             self.timeout_sec,
-            self.user_info.clone().unwrap(),
+            self.config.clone(),
         )?);
         log::info!("session opened.");
         self.post_connect()
@@ -213,6 +359,7 @@ where
     }
 
     fn authentication(&mut self, ht: HashType, h: H) -> SshResult<()> {
+        let mut tried_public_key = false;
         loop {
             let results = self.client.as_mut().unwrap().read()?;
             for mut result in results {
@@ -222,16 +369,31 @@ where
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
-                        let user_info = self.user_info.as_ref().unwrap();
-                        match user_info.auth_type {
-                            // 开始密码验证
-                            AuthType::Password => self.password_authentication()?,
-                            AuthType::PublicKey => self.public_key_authentication()?,
+                        let auth = &self.config.auth;
+                        if auth.key_pair.is_none() {
+                            tried_public_key = true;
+                            // if no private key specified
+                            // just try password auth
+                            self.password_authentication()?
+                        } else {
+                            // if private key was provided
+                            // use public key auth first, then fallback to password auth
+                            self.public_key_authentication()?
                         }
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
-                        log::error!("user auth failure.");
-                        return Err(SshError::from("user auth failure, auth type is password."));
+                        if !tried_public_key {
+                            log::error!("user auth failure. (public key)");
+                            log::info!("fallback to password authentication");
+                            tried_public_key = true;
+                            // keep the same with openssh
+                            // if the public key auth failed
+                            // try with password again
+                            self.password_authentication()?
+                        } else {
+                            log::error!("user auth failure. (password)");
+                            return Err(SshError::from("user auth failure."));
+                        }
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_PK_OK => {
                         log::info!("user auth support this algorithm.");

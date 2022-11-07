@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::algorithm::encryption::{AesCtr128, ChaCha20Poly1305, Encryption};
 use crate::algorithm::hash::hash::Hash;
 use crate::algorithm::key_exchange::curve25519::CURVE25519;
@@ -14,7 +16,7 @@ use crate::slog::log;
 use crate::user_info::UserInfo;
 use crate::{SshError, SshResult};
 
-#[derive(Clone)]
+#[derive(Clone, Default, Debug)]
 pub struct Config {
     pub auth: UserInfo,
     pub version: VersionConfig,
@@ -22,16 +24,15 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(user_info: UserInfo) -> Self {
+    pub fn disable_default_algorithms() -> Config {
         Config {
-            auth: user_info,
-            version: VersionConfig::new(),
-            algorithm: AlgorithmConfig::new(),
+            algorithm: AlgorithmConfig::disable_default(),
+            ..Default::default()
         }
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct VersionConfig {
     pub client_version: String,
     pub server_version: String,
@@ -61,10 +62,11 @@ impl VersionConfig {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AlgorithmConfig {
-    pub client_algorithm: AlgorithmList,
-    pub server_algorithm: AlgorithmList,
+    pub client: AlgorithmList,
+    pub server: AlgorithmList,
+    pub(crate) negotiated: AlgorithmList,
 }
 
 impl Default for AlgorithmConfig {
@@ -76,21 +78,30 @@ impl Default for AlgorithmConfig {
 impl AlgorithmConfig {
     pub fn new() -> Self {
         AlgorithmConfig {
-            client_algorithm: AlgorithmList::client_algorithm(),
-            server_algorithm: AlgorithmList::new(),
+            client: AlgorithmList::client_algorithm(),
+            server: AlgorithmList::new(),
+            negotiated: AlgorithmList::new(),
+        }
+    }
+
+    pub fn disable_default() -> Self {
+        AlgorithmConfig {
+            client: AlgorithmList::new(),
+            server: AlgorithmList::new(),
+            negotiated: AlgorithmList::new(),
         }
     }
 
     /// 匹配合适的mac算法
     /// 目前支持：
     ///     1. hmac-sha1
-    pub fn matching_mac_algorithm(&self) -> SshResult<Box<dyn Mac>> {
+    pub fn matching_mac_algorithm(&mut self) -> SshResult<Box<dyn Mac>> {
         // 目前是加密和解密使用一个算法
         // 所以直接取一个算法为准
-        let mac_algorithm: String = get_algorithm(
-            &self.client_algorithm.c_mac_algorithm.0,
-            &self.server_algorithm.c_mac_algorithm.0,
-        );
+        let mac_algorithm: String = get_algorithm(&self.client.c_mac.0, &self.server.c_mac.0);
+
+        self.negotiated.c_mac.0.push(mac_algorithm.clone());
+        self.negotiated.s_mac.0.push(mac_algorithm.clone());
 
         match mac_algorithm.as_str() {
             algorithms::mac::HMAC_SHA1 => Ok(Box::new(HMacSha1::new())),
@@ -99,8 +110,8 @@ impl AlgorithmConfig {
                     "description the mac algorithm fails to match, \
                 algorithms supported by the server: {},\
                 algorithms supported by the client: {}",
-                    self.server_algorithm.c_mac_algorithm.to_string(),
-                    self.client_algorithm.c_mac_algorithm.to_string()
+                    self.server.c_mac.to_string(),
+                    self.client.c_mac.to_string()
                 );
                 Err(SshError::from("key exchange error."))
             }
@@ -112,28 +123,36 @@ impl AlgorithmConfig {
     ///     1. chacha20-poly1305@openssh.com
     ///     2. aes128-ctr
     pub fn matching_encryption_algorithm(
-        &self,
+        &mut self,
         hash: Hash,
         mac: Box<dyn Mac>,
     ) -> SshResult<Box<dyn Encryption>> {
         // 目前是加密和解密使用一个算法
         // 所以直接取一个算法为准
-        let encryption_algorithm: String = get_algorithm(
-            &self.client_algorithm.c_encryption_algorithm.0,
-            &self.server_algorithm.c_encryption_algorithm.0,
-        );
+        let encryption_algorithm: String =
+            get_algorithm(&self.client.c_encryption.0, &self.server.c_encryption.0);
+
+        self.negotiated
+            .c_encryption
+            .0
+            .push(encryption_algorithm.clone());
+        self.negotiated
+            .s_encryption
+            .0
+            .push(encryption_algorithm.clone());
+
         match encryption_algorithm.as_str() {
-            algorithms::sym::CHACHA20_POLY1305_OPENSSH => {
+            algorithms::enc::CHACHA20_POLY1305_OPENSSH => {
                 Ok(Box::new(ChaCha20Poly1305::new(hash, mac)))
             }
-            algorithms::sym::AES128_CTR => Ok(Box::new(AesCtr128::new(hash, mac))),
+            algorithms::enc::AES128_CTR => Ok(Box::new(AesCtr128::new(hash, mac))),
             _ => {
                 log::error!(
                     "description the encryption algorithm fails to match, \
                 algorithms supported by the server: {},\
                 algorithms supported by the client: {}",
-                    self.server_algorithm.c_encryption_algorithm.to_string(),
-                    self.client_algorithm.c_encryption_algorithm.to_string()
+                    self.server.c_encryption.to_string(),
+                    self.client.c_encryption.to_string()
                 );
                 Err(SshError::from("key exchange error."))
             }
@@ -145,11 +164,15 @@ impl AlgorithmConfig {
     ///     1. ed25519.rs
     ///     2. rsa-sha2-256
     ///     3. rsa-sha (behind feature "dangerous-rsa-sha1")
-    pub fn matching_public_key_algorithm(&self) -> SshResult<Box<dyn PublicKey>> {
-        let public_key_algorithm: String = get_algorithm(
-            &self.client_algorithm.public_key_algorithm.0,
-            &self.server_algorithm.public_key_algorithm.0,
-        );
+    pub fn matching_public_key_algorithm(&mut self) -> SshResult<Box<dyn PublicKey>> {
+        let public_key_algorithm: String =
+            get_algorithm(&self.client.public_key.0, &self.server.public_key.0);
+
+        self.negotiated
+            .public_key
+            .0
+            .push(public_key_algorithm.clone());
+
         match public_key_algorithm.as_str() {
             algorithms::pubkey::SSH_ED25519 => Ok(Box::new(Ed25519::new())),
             algorithms::pubkey::RSA_SHA2_256 => Ok(Box::new(RsaSha256::new())),
@@ -160,8 +183,8 @@ impl AlgorithmConfig {
                     "description the signature algorithm fails to match, \
                 algorithms supported by the server: {},\
                 algorithms supported by the client: {}",
-                    self.server_algorithm.public_key_algorithm.to_string(),
-                    self.client_algorithm.public_key_algorithm.to_string()
+                    self.server.public_key.to_string(),
+                    self.client.public_key.to_string()
                 );
                 Err(SshError::from("key exchange error."))
             }
@@ -172,11 +195,15 @@ impl AlgorithmConfig {
     /// 目前支持:
     ///     1. curve25519-sha256
     ///     2. ecdh-sha2-nistp256
-    pub fn matching_key_exchange_algorithm(&self) -> SshResult<Box<dyn KeyExchange>> {
-        let key_exchange_algorithm: String = get_algorithm(
-            &self.client_algorithm.key_exchange_algorithm.0,
-            &self.server_algorithm.key_exchange_algorithm.0,
-        );
+    pub fn matching_key_exchange_algorithm(&mut self) -> SshResult<Box<dyn KeyExchange>> {
+        let key_exchange_algorithm: String =
+            get_algorithm(&self.client.key_exchange.0, &self.server.key_exchange.0);
+
+        self.negotiated
+            .key_exchange
+            .0
+            .push(key_exchange_algorithm.clone());
+
         match key_exchange_algorithm.as_str() {
             algorithms::kex::CURVE25519_SHA256 => Ok(Box::new(CURVE25519::new()?)),
             algorithms::kex::ECDH_SHA2_NISTP256 => Ok(Box::new(EcdhP256::new()?)),
@@ -185,8 +212,8 @@ impl AlgorithmConfig {
                     "description the DH algorithm fails to match, \
                 algorithms supported by the server: {},\
                 algorithms supported by the client: {}",
-                    self.server_algorithm.key_exchange_algorithm.to_string(),
-                    self.client_algorithm.key_exchange_algorithm.to_string()
+                    self.server.key_exchange.to_string(),
+                    self.client.key_exchange.to_string()
                 );
                 Err(SshError::from("key exchange error."))
             }
@@ -203,16 +230,16 @@ fn get_algorithm(c_algorithm: &Vec<String>, s_algorithm: &[String]) -> String {
     String::new()
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AlgorithmList {
-    pub key_exchange_algorithm: KeyExchangeAlgorithm,
-    pub public_key_algorithm: PublicKeyAlgorithm,
-    pub c_encryption_algorithm: EncryptionAlgorithm,
-    pub s_encryption_algorithm: EncryptionAlgorithm,
-    pub c_mac_algorithm: MacAlgorithm,
-    pub s_mac_algorithm: MacAlgorithm,
-    pub c_compression_algorithm: CompressionAlgorithm,
-    pub s_compression_algorithm: CompressionAlgorithm,
+    pub key_exchange: KeyExchangeAlgorithm,
+    pub public_key: PublicKeyAlgorithm,
+    pub c_encryption: EncryptionAlgorithm,
+    pub s_encryption: EncryptionAlgorithm,
+    pub c_mac: MacAlgorithm,
+    pub s_mac: MacAlgorithm,
+    pub c_compression: CompressionAlgorithm,
+    pub s_compression: CompressionAlgorithm,
 }
 
 impl Default for AlgorithmList {
@@ -224,61 +251,45 @@ impl Default for AlgorithmList {
 impl AlgorithmList {
     pub fn new() -> Self {
         AlgorithmList {
-            key_exchange_algorithm: KeyExchangeAlgorithm(vec![]),
-            public_key_algorithm: PublicKeyAlgorithm(vec![]),
-            c_encryption_algorithm: EncryptionAlgorithm(vec![]),
-            s_encryption_algorithm: EncryptionAlgorithm(vec![]),
-            c_mac_algorithm: MacAlgorithm(vec![]),
-            s_mac_algorithm: MacAlgorithm(vec![]),
-            c_compression_algorithm: CompressionAlgorithm(vec![]),
-            s_compression_algorithm: CompressionAlgorithm(vec![]),
+            key_exchange: KeyExchangeAlgorithm(vec![]),
+            public_key: PublicKeyAlgorithm(vec![]),
+            c_encryption: EncryptionAlgorithm(vec![]),
+            s_encryption: EncryptionAlgorithm(vec![]),
+            c_mac: MacAlgorithm(vec![]),
+            s_mac: MacAlgorithm(vec![]),
+            c_compression: CompressionAlgorithm(vec![]),
+            s_compression: CompressionAlgorithm(vec![]),
         }
     }
 
     pub fn client_algorithm() -> Self {
         AlgorithmList {
-            key_exchange_algorithm: KeyExchangeAlgorithm::get_client(),
-            public_key_algorithm: PublicKeyAlgorithm::get_client(),
-            c_encryption_algorithm: EncryptionAlgorithm::get_client(),
-            s_encryption_algorithm: EncryptionAlgorithm::get_client(),
-            c_mac_algorithm: MacAlgorithm::get_client(),
-            s_mac_algorithm: MacAlgorithm::get_client(),
-            c_compression_algorithm: CompressionAlgorithm::get_client(),
-            s_compression_algorithm: CompressionAlgorithm::get_client(),
+            key_exchange: KeyExchangeAlgorithm::get_client(),
+            public_key: PublicKeyAlgorithm::get_client(),
+            c_encryption: EncryptionAlgorithm::get_client(),
+            s_encryption: EncryptionAlgorithm::get_client(),
+            c_mac: MacAlgorithm::get_client(),
+            s_mac: MacAlgorithm::get_client(),
+            c_compression: CompressionAlgorithm::get_client(),
+            s_compression: CompressionAlgorithm::get_client(),
         }
     }
 
     pub fn as_i(&self) -> Vec<u8> {
         let mut data = Data::new();
-        data.put_str(self.key_exchange_algorithm.to_string().as_str());
-        data.put_str(self.public_key_algorithm.to_string().as_str());
-        data.put_str(self.c_encryption_algorithm.to_string().as_str());
-        data.put_str(self.s_encryption_algorithm.to_string().as_str());
-        data.put_str(self.c_mac_algorithm.to_string().as_str());
-        data.put_str(self.s_mac_algorithm.to_string().as_str());
-        data.put_str(self.c_compression_algorithm.to_string().as_str());
-        data.put_str(self.s_compression_algorithm.to_string().as_str());
+        data.put_str(self.key_exchange.to_string().as_str());
+        data.put_str(self.public_key.to_string().as_str());
+        data.put_str(self.c_encryption.to_string().as_str());
+        data.put_str(self.s_encryption.to_string().as_str());
+        data.put_str(self.c_mac.to_string().as_str());
+        data.put_str(self.s_mac.to_string().as_str());
+        data.put_str(self.c_compression.to_string().as_str());
+        data.put_str(self.s_compression.to_string().as_str());
         data.to_vec()
     }
 }
 
-impl ToString for AlgorithmList {
-    fn to_string(&self) -> String {
-        format!(
-            "\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\"",
-            self.key_exchange_algorithm.to_string().as_str(),
-            self.public_key_algorithm.to_string().as_str(),
-            self.c_encryption_algorithm.to_string().as_str(),
-            self.s_encryption_algorithm.to_string().as_str(),
-            self.c_mac_algorithm.to_string().as_str(),
-            self.s_mac_algorithm.to_string().as_str(),
-            self.c_compression_algorithm.to_string().as_str(),
-            self.s_compression_algorithm.to_string().as_str(),
-        )
-    }
-}
-
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct KeyExchangeAlgorithm(pub Vec<String>);
 impl KeyExchangeAlgorithm {
     pub fn get_client() -> Self {
@@ -295,19 +306,13 @@ impl ToString for KeyExchangeAlgorithm {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PublicKeyAlgorithm(pub Vec<String>);
 impl PublicKeyAlgorithm {
     pub fn get_client() -> Self {
         PublicKeyAlgorithm(vec![
             algorithms::pubkey::SSH_ED25519.to_string(),
             algorithms::pubkey::RSA_SHA2_256.to_string(),
-            // for old ssh servers
-            // which require ssh-rsa sha1 as their HostkeyAlgorithms/PubkeyAcceptedAlgorithms
-            // SHA1 is a hash algorithm which is confirmed cryptographically broken
-            // So we by default disable it and remove it from our HostkeyAlgorithms/PubkeyAcceptedAlgorithms
-            #[cfg(feature = "dangerous-rsa-sha1")]
-            algorithms::pubkey::SSH_RSA.to_string(),
         ])
     }
 }
@@ -318,13 +323,13 @@ impl ToString for PublicKeyAlgorithm {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EncryptionAlgorithm(pub Vec<String>);
 impl EncryptionAlgorithm {
     pub fn get_client() -> Self {
         EncryptionAlgorithm(vec![
-            algorithms::sym::CHACHA20_POLY1305_OPENSSH.to_string(),
-            algorithms::sym::AES128_CTR.to_string(),
+            algorithms::enc::CHACHA20_POLY1305_OPENSSH.to_string(),
+            algorithms::enc::AES128_CTR.to_string(),
         ])
     }
 }
@@ -334,7 +339,7 @@ impl ToString for EncryptionAlgorithm {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MacAlgorithm(pub Vec<String>);
 impl MacAlgorithm {
     pub fn get_client() -> Self {
@@ -347,7 +352,7 @@ impl ToString for MacAlgorithm {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CompressionAlgorithm(pub Vec<String>);
 impl CompressionAlgorithm {
     pub fn get_client() -> Self {

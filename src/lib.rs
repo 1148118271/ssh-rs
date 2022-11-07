@@ -224,7 +224,7 @@ mod client;
 mod client_r;
 mod client_w;
 mod config;
-mod constant;
+pub mod constant;
 mod data;
 mod kex;
 mod packet;
@@ -244,27 +244,20 @@ pub use channel::Channel;
 pub use channel_exec::ChannelExec;
 pub use channel_scp::ChannelScp;
 pub use channel_shell::ChannelShell;
-pub use session::Session;
 pub use config::Config;
+pub use session::Session;
 
 use crate::error::{SshError, SshResult};
 
 pub mod ssh {
-    use std::io::{Read, Write};
+    use crate::{session::SessionBuilder, slog::Slog};
 
-    use crate::slog::Slog;
-    use crate::Session;
+    pub fn create_session() -> SessionBuilder {
+        SessionBuilder::new()
+    }
 
-    pub fn create_session<S>() -> Session<S>
-    where
-        S: Read + Write,
-    {
-        Session {
-            timeout_sec: 30,
-            user_info: None,
-            client: None,
-            client_channel_no: 0,
-        }
+    pub fn create_session_without_default() -> SessionBuilder {
+        SessionBuilder::disable_default()
     }
 
     pub fn is_enable_log(b: bool) {
