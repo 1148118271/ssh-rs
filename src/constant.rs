@@ -145,25 +145,36 @@ pub mod ssh_msg_code {
 /// 加密算法常量
 #[allow(dead_code)]
 pub mod algorithms {
-    /// 密钥交换算法
-    pub const DH_CURVE25519_SHA256: &str = "curve25519-sha256";
-    pub const DH_ECDH_SHA2_NISTP256: &str = "ecdh-sha2-nistp256";
+    /// key exchange algorithm
+    pub mod kex {
+        pub const CURVE25519_SHA256: &str = "curve25519-sha256";
+        pub const ECDH_SHA2_NISTP256: &str = "ecdh-sha2-nistp256";
+    }
 
-    /// 非对称签名算法
-    pub const PUBLIC_KEY_ED25519: &str = "ssh-ed25519";
-    pub const PUBLIC_KEY_RSA: &str = "ssh-rsa";
-    pub const PUBLIC_KEY_RSA_256: &str = "rsa-sha2-256";
-    pub const PUBLIC_KEY_RSA_512: &str = "rsa-sha2-512";
+    /// pubkey hash algorithm
+    pub mod pubkey {
+        pub const SSH_ED25519: &str = "ssh-ed25519";
+        #[cfg(feature = "dangerous-rsa-sha1")]
+        pub const SSH_RSA: &str = "ssh-rsa";
+        pub const RSA_SHA2_256: &str = "rsa-sha2-256";
+        // pub const RSA_SHA2_512: &str = "rsa-sha2-512";
+    }
 
-    /// 对称加密算法
-    pub const ENCRYPTION_CHACHA20_POLY1305_OPENSSH: &str = "chacha20-poly1305@openssh.com";
-    pub const ENCRYPTION_AES128_CTR: &str = "aes128-ctr";
+    /// symmetrical encryption algorithm
+    pub mod sym {
+        pub const CHACHA20_POLY1305_OPENSSH: &str = "chacha20-poly1305@openssh.com";
+        pub const AES128_CTR: &str = "aes128-ctr";
+    }
 
-    /// MAC（消息验证码）算法
-    pub const MAC_HMAC_SHA1: &str = "hmac-sha1";
+    /// MAC(message authentication code) algorithm
+    pub mod mac {
+        pub const HMAC_SHA1: &str = "hmac-sha1";
+    }
 
-    /// 压缩算法
-    pub const COMPRESSION_ALGORITHMS: &str = "none";
+    /// compression algorithm
+    pub mod compress {
+        pub const NONE: &str = "none";
+    }
 }
 
 /// 密钥交换后进行HASH时候需要的常量值

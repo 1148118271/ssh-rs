@@ -245,7 +245,7 @@ pub use channel_exec::ChannelExec;
 pub use channel_scp::ChannelScp;
 pub use channel_shell::ChannelShell;
 pub use session::Session;
-pub use user_info::UserInfo;
+pub use config::Config;
 
 use crate::error::{SshError, SshResult};
 

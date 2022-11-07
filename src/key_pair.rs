@@ -101,9 +101,9 @@ impl KeyPairType {
         match self {
             // use to rsa-sha2-256 by default according to
             // https://www.rfc-editor.org/rfc/rfc8332#section-3
-            KeyPairType::SshRsa => crate::constant::algorithms::PUBLIC_KEY_RSA_256,
+            KeyPairType::SshRsa => crate::constant::algorithms::pubkey::RSA_SHA2_256,
             #[cfg(feature = "dangerous-rsa-sha1")]
-            KeyPairType::SshRsaSha1 => crate::constant::algorithms::PUBLIC_KEY_RSA,
+            KeyPairType::SshRsaSha1 => crate::constant::algorithms::pubkey::SSH_RSA,
         }
     }
 }

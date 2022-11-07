@@ -79,7 +79,7 @@ impl AlgorithmConfig {
         );
 
         match mac_algorithm.as_str() {
-            algorithms::MAC_HMAC_SHA1 => Ok(Box::new(HMacSha1::new())),
+            algorithms::mac::HMAC_SHA1 => Ok(Box::new(HMacSha1::new())),
             _ => {
                 log::error!(
                     "description the mac algorithm fails to match, \
@@ -109,10 +109,10 @@ impl AlgorithmConfig {
             &self.server_algorithm.c_encryption_algorithm.0,
         );
         match encryption_algorithm.as_str() {
-            algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH => {
+            algorithms::sym::CHACHA20_POLY1305_OPENSSH => {
                 Ok(Box::new(ChaCha20Poly1305::new(hash, mac)))
             }
-            algorithms::ENCRYPTION_AES128_CTR => Ok(Box::new(AesCtr128::new(hash, mac))),
+            algorithms::sym::AES128_CTR => Ok(Box::new(AesCtr128::new(hash, mac))),
             _ => {
                 log::error!(
                     "description the encryption algorithm fails to match, \
@@ -137,10 +137,10 @@ impl AlgorithmConfig {
             &self.server_algorithm.public_key_algorithm.0,
         );
         match public_key_algorithm.as_str() {
-            algorithms::PUBLIC_KEY_ED25519 => Ok(Box::new(Ed25519::new())),
-            algorithms::PUBLIC_KEY_RSA_256 => Ok(Box::new(RsaSha256::new())),
+            algorithms::pubkey::SSH_ED25519 => Ok(Box::new(Ed25519::new())),
+            algorithms::pubkey::RSA_SHA2_256 => Ok(Box::new(RsaSha256::new())),
             #[cfg(feature = "dangerous-rsa-sha1")]
-            algorithms::PUBLIC_KEY_RSA => Ok(Box::new(RsaSha1::new())),
+            algorithms::pubkey::SSH_RSA => Ok(Box::new(RsaSha1::new())),
             _ => {
                 log::error!(
                     "description the signature algorithm fails to match, \
@@ -164,8 +164,8 @@ impl AlgorithmConfig {
             &self.server_algorithm.key_exchange_algorithm.0,
         );
         match key_exchange_algorithm.as_str() {
-            algorithms::DH_CURVE25519_SHA256 => Ok(Box::new(CURVE25519::new()?)),
-            algorithms::DH_ECDH_SHA2_NISTP256 => Ok(Box::new(EcdhP256::new()?)),
+            algorithms::kex::CURVE25519_SHA256 => Ok(Box::new(CURVE25519::new()?)),
+            algorithms::kex::ECDH_SHA2_NISTP256 => Ok(Box::new(EcdhP256::new()?)),
             _ => {
                 log::error!(
                     "description the DH algorithm fails to match, \
@@ -262,8 +262,8 @@ pub struct KeyExchangeAlgorithm(pub Vec<String>);
 impl KeyExchangeAlgorithm {
     pub fn get_client() -> Self {
         KeyExchangeAlgorithm(vec![
-            algorithms::DH_CURVE25519_SHA256.to_string(),
-            algorithms::DH_ECDH_SHA2_NISTP256.to_string(),
+            algorithms::kex::CURVE25519_SHA256.to_string(),
+            algorithms::kex::ECDH_SHA2_NISTP256.to_string(),
         ])
     }
 }
@@ -279,14 +279,14 @@ pub struct PublicKeyAlgorithm(pub Vec<String>);
 impl PublicKeyAlgorithm {
     pub fn get_client() -> Self {
         PublicKeyAlgorithm(vec![
-            algorithms::PUBLIC_KEY_ED25519.to_string(),
-            algorithms::PUBLIC_KEY_RSA_256.to_string(),
+            algorithms::pubkey::SSH_ED25519.to_string(),
+            algorithms::pubkey::RSA_SHA2_256.to_string(),
             // for old ssh servers
             // which require ssh-rsa sha1 as their HostkeyAlgorithms/PubkeyAcceptedAlgorithms
             // SHA1 is a hash algorithm which is confirmed cryptographically broken
             // So we by default disable it and remove it from our HostkeyAlgorithms/PubkeyAcceptedAlgorithms
             #[cfg(feature = "dangerous-rsa-sha1")]
-            algorithms::PUBLIC_KEY_RSA.to_string(),
+            algorithms::pubkey::SSH_RSA.to_string(),
         ])
     }
 }
@@ -302,8 +302,8 @@ pub struct EncryptionAlgorithm(pub Vec<String>);
 impl EncryptionAlgorithm {
     pub fn get_client() -> Self {
         EncryptionAlgorithm(vec![
-            algorithms::ENCRYPTION_CHACHA20_POLY1305_OPENSSH.to_string(),
-            algorithms::ENCRYPTION_AES128_CTR.to_string(),
+            algorithms::sym::CHACHA20_POLY1305_OPENSSH.to_string(),
+            algorithms::sym::AES128_CTR.to_string(),
         ])
     }
 }
@@ -317,7 +317,7 @@ impl ToString for EncryptionAlgorithm {
 pub struct MacAlgorithm(pub Vec<String>);
 impl MacAlgorithm {
     pub fn get_client() -> Self {
-        MacAlgorithm(vec![algorithms::MAC_HMAC_SHA1.to_string()])
+        MacAlgorithm(vec![algorithms::mac::HMAC_SHA1.to_string()])
     }
 }
 impl ToString for MacAlgorithm {
@@ -330,7 +330,9 @@ impl ToString for MacAlgorithm {
 pub struct CompressionAlgorithm(pub Vec<String>);
 impl CompressionAlgorithm {
     pub fn get_client() -> Self {
-        CompressionAlgorithm(vec![algorithms::COMPRESSION_ALGORITHMS.to_string()])
+        CompressionAlgorithm(vec![
+            algorithms::compress::NONE.to_string()
+        ])
     }
 }
 impl ToString for CompressionAlgorithm {
