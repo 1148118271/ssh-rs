@@ -6,7 +6,7 @@ use crate::slog::log;
 use crate::window_size::WindowSize;
 use crate::{algorithm::hash::HashType, Config};
 use crate::{
-    constant::algorithms::{Compress, Enc, Kex, Mac, PubKey},
+    algorithm::{Compress, Enc, Kex, Mac, PubKey},
     error::{SshError, SshResult},
 };
 use crate::{

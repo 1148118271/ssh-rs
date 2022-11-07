@@ -151,20 +151,6 @@ pub mod algorithms {
         pub const ECDH_SHA2_NISTP256: &str = "ecdh-sha2-nistp256";
     }
 
-    pub enum Kex {
-        Curve25519Sha256,
-        EcdhSha2Nistrp256,
-    }
-
-    impl Kex {
-        pub(crate) fn as_str(&self) -> &'static str {
-            match self {
-                Kex::Curve25519Sha256 => kex::CURVE25519_SHA256,
-                Kex::EcdhSha2Nistrp256 => kex::ECDH_SHA2_NISTP256,
-            }
-        }
-    }
-
     /// pubkey hash algorithm
     pub(crate) mod pubkey {
         pub const SSH_ED25519: &str = "ssh-ed25519";
@@ -174,42 +160,10 @@ pub mod algorithms {
         // pub const RSA_SHA2_512: &str = "rsa-sha2-512";
     }
 
-    pub enum PubKey {
-        SshEd25519,
-        #[cfg(feature = "dangerous-rsa-sha1")]
-        SshRsa,
-        RsaSha2_256,
-    }
-
-    impl PubKey {
-        pub(crate) fn as_str(&self) -> &'static str {
-            match self {
-                PubKey::SshEd25519 => pubkey::SSH_ED25519,
-                #[cfg(feature = "dangerous-rsa-sha1")]
-                PubKey::SshRsa => pubkey::SSH_RSA,
-                PubKey::RsaSha2_256 => pubkey::RSA_SHA2_256,
-            }
-        }
-    }
-
     /// symmetrical encryption algorithm
     pub(crate) mod enc {
         pub const CHACHA20_POLY1305_OPENSSH: &str = "chacha20-poly1305@openssh.com";
         pub const AES128_CTR: &str = "aes128-ctr";
-    }
-
-    pub enum Enc {
-        Chacha20Poly1305Openssh,
-        Aes128Ctr,
-    }
-
-    impl Enc {
-        pub(crate) fn as_str(&self) -> &'static str {
-            match self {
-                Enc::Chacha20Poly1305Openssh => enc::CHACHA20_POLY1305_OPENSSH,
-                Enc::Aes128Ctr => enc::AES128_CTR,
-            }
-        }
     }
 
     /// MAC(message authentication code) algorithm
@@ -217,33 +171,9 @@ pub mod algorithms {
         pub const HMAC_SHA1: &str = "hmac-sha1";
     }
 
-    pub enum Mac {
-        HmacSha1,
-    }
-
-    impl Mac {
-        pub(crate) fn as_str(&self) -> &'static str {
-            match self {
-                Mac::HmacSha1 => mac::HMAC_SHA1,
-            }
-        }
-    }
-
     /// compression algorithm
     pub(crate) mod compress {
         pub const NONE: &str = "none";
-    }
-
-    pub enum Compress {
-        None,
-    }
-
-    impl Compress {
-        pub(crate) fn as_str(&self) -> &'static str {
-            match self {
-                Compress::None => compress::NONE,
-            }
-        }
     }
 }
 

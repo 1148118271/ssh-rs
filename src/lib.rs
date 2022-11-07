@@ -224,7 +224,7 @@ mod client;
 mod client_r;
 mod client_w;
 mod config;
-pub mod constant;
+mod constant;
 mod data;
 mod kex;
 mod packet;
