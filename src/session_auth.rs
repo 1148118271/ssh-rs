@@ -1,8 +1,7 @@
+use crate::algorithm::hash::HashType;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::h::H;
-
-use crate::{algorithm::hash::HashType};
 use crate::{Session, SshResult};
 use std::io::{Read, Write};
 
