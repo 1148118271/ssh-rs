@@ -46,6 +46,12 @@ pub struct H {
     pub k: Vec<u8>,
 }
 
+impl Default for H {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl H {
     pub fn new() -> Self {
         H {

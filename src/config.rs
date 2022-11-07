@@ -36,6 +36,13 @@ pub struct VersionConfig {
     pub client_version: String,
     pub server_version: String,
 }
+
+impl Default for VersionConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VersionConfig {
     pub fn new() -> Self {
         VersionConfig {
@@ -59,6 +66,13 @@ pub struct AlgorithmConfig {
     pub client_algorithm: AlgorithmList,
     pub server_algorithm: AlgorithmList,
 }
+
+impl Default for AlgorithmConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AlgorithmConfig {
     pub fn new() -> Self {
         AlgorithmConfig {
@@ -200,6 +214,13 @@ pub struct AlgorithmList {
     pub c_compression_algorithm: CompressionAlgorithm,
     pub s_compression_algorithm: CompressionAlgorithm,
 }
+
+impl Default for AlgorithmList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AlgorithmList {
     pub fn new() -> Self {
         AlgorithmList {
@@ -330,9 +351,7 @@ impl ToString for MacAlgorithm {
 pub struct CompressionAlgorithm(pub Vec<String>);
 impl CompressionAlgorithm {
     pub fn get_client() -> Self {
-        CompressionAlgorithm(vec![
-            algorithms::compress::NONE.to_string()
-        ])
+        CompressionAlgorithm(vec![algorithms::compress::NONE.to_string()])
     }
 }
 impl ToString for CompressionAlgorithm {
