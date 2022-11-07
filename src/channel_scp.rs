@@ -40,11 +40,10 @@ where
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.channel.server_channel_no)
             .put_u8s(bytes);
-        let session = unsafe { &mut *self.channel.session };
-        session
+        self.channel
             .client
-            .as_mut()
-            .unwrap()
+            .as_ref()
+            .borrow_mut()
             .write_data(data, Some(self.channel.window_size.borrow_mut()))
     }
 
@@ -54,11 +53,11 @@ where
             if !vec.is_empty() {
                 break;
             }
-            let session = unsafe { &mut *self.channel.session };
-            let results = session
+            let results = self
+                .channel
                 .client
-                .as_mut()
-                .unwrap()
+                .as_ref()
+                .borrow_mut()
                 .read_data(Some(self.channel.window_size.borrow_mut()))?;
             for mut result in results {
                 let message_code = result.get_u8();
@@ -91,12 +90,7 @@ where
             .put_str(ssh_str::EXEC)
             .put_u8(true as u8)
             .put_str(command);
-        self.channel
-            .get_session_mut()
-            .client
-            .as_mut()
-            .unwrap()
-            .write(data)
+        self.channel.client.as_ref().borrow_mut().write(data)
     }
 
     pub(crate) fn command_init(&self, remote_path: &str, arg: &str) -> String {

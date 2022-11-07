@@ -1,9 +1,8 @@
-use std::io::{Read, Write};
-
 use crate::channel::Channel;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::error::SshResult;
+use std::io::{Read, Write};
 
 pub struct ChannelShell<S: Read + Write>(pub(crate) Channel<S>);
 
@@ -13,10 +12,10 @@ where
 {
     pub(crate) fn open(mut channel: Channel<S>) -> SshResult<Self> {
         // shell 形式需要一个伪终端
-        ChannelShell::request_pty(&channel)?;
-        ChannelShell::get_shell(&channel)?;
+        ChannelShell::request_pty(&mut channel)?;
+        ChannelShell::get_shell(&mut channel)?;
         loop {
-            let results = { channel.get_session_mut().client.as_mut().unwrap().read() }?;
+            let results = channel.client.as_ref().borrow_mut().read()?;
             for mut result in results {
                 if result.is_empty() {
                     continue;
@@ -30,7 +29,7 @@ where
         }
     }
 
-    fn request_pty(channel: &Channel<S>) -> SshResult<()> {
+    fn request_pty(channel: &mut Channel<S>) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(channel.server_channel_no)
@@ -49,35 +48,25 @@ where
             0_u8, // TTY_OP_END
         ];
         data.put_u8s(&model);
-        channel
-            .get_session_mut()
-            .client
-            .as_mut()
-            .unwrap()
-            .write(data)
+        channel.client.as_ref().borrow_mut().write(data)
     }
 
-    fn get_shell(channel: &Channel<S>) -> SshResult<()> {
+    fn get_shell(channel: &mut Channel<S>) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(channel.server_channel_no)
             .put_str(ssh_str::SHELL)
             .put_u8(true as u8);
-        channel
-            .get_session_mut()
-            .client
-            .as_mut()
-            .unwrap()
-            .write(data)
+        channel.client.as_ref().borrow_mut().write(data)
     }
 
     pub fn read(&mut self) -> SshResult<Vec<u8>> {
         let mut buf = vec![];
-        let session = unsafe { &mut *self.0.session };
-        let results = session
+        let results = self
+            .0
             .client
-            .as_mut()
-            .unwrap()
+            .as_ref()
+            .borrow_mut()
             .read_data(Some(&mut self.0.window_size))?;
         for mut result in results {
             if result.is_empty() {
@@ -103,11 +92,10 @@ where
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
             .put_u32(self.0.server_channel_no)
             .put_u8s(buf);
-        let session = unsafe { &mut *self.0.session };
-        session
+        self.0
             .client
-            .as_mut()
-            .unwrap()
+            .as_ref()
+            .borrow_mut()
             .write_data(data, Some(&mut self.0.window_size))
     }
 

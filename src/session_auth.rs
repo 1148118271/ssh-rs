@@ -64,7 +64,7 @@ where
             .put_str(ssh_str::PASSWORD)
             .put_u8(false as u8)
             .put_str(user_info.password.as_str());
-        self.client.as_mut().unwrap().write(data)
+        self.get_client()?.borrow_mut().write(data)
     }
 
     pub(crate) fn public_key_authentication(&mut self) -> SshResult<()> {
@@ -78,7 +78,7 @@ where
             .put_u8(false as u8)
             .put_str(user_info.key_pair.key_type.as_str())
             .put_u8s(user_info.key_pair.blob.as_slice());
-        self.client.as_mut().unwrap().write(data)
+        self.get_client()?.borrow_mut().write(data)
     }
 
     pub(crate) fn public_key_signature(&mut self, ht: HashType, h: H) -> SshResult<()> {
@@ -93,6 +93,6 @@ where
             .put_u8s(user_info.key_pair.blob.as_slice());
         let signature = user_info.key_pair.signature(data.as_slice(), h, ht);
         data.put_u8s(&signature);
-        self.client.as_mut().unwrap().write(data)
+        self.get_client()?.borrow_mut().write(data)
     }
 }

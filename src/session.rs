@@ -10,6 +10,9 @@ use crate::user_info::AuthType;
 use crate::user_info::UserInfo;
 use crate::window_size::WindowSize;
 use crate::{Channel, ChannelExec, ChannelScp, ChannelShell};
+use std::cell::RefCell;
+use std::ops::DerefMut;
+use std::rc::Rc;
 use std::{
     io::{Read, Write},
     net::{TcpStream, ToSocketAddrs},
@@ -23,7 +26,7 @@ where
 
     pub(crate) user_info: Option<UserInfo>,
 
-    pub(crate) client: Option<Client<S>>,
+    pub(crate) client: Option<Rc<RefCell<Client<S>>>>,
 
     pub(crate) client_channel_no: u32,
 }
@@ -59,31 +62,31 @@ where
             return Err(SshError::from("user info is none."));
         }
         // 建立通道
-        self.client = Some(Client::<S>::connect(
+        self.client = Some(Rc::new(RefCell::new(Client::<S>::connect(
             stream,
             self.timeout_sec,
             self.user_info.clone().unwrap(),
-        )?);
+        )?)));
         log::info!("session opened.");
         self.post_connect()
     }
 
     fn post_connect(&mut self) -> SshResult<()> {
         let mut h = H::new();
-        let client = self.client.as_mut().unwrap();
 
         // 版本协商
-        client.version(&mut h)?;
+        let client = self.get_client()?;
+        client.as_ref().borrow_mut().version(&mut h)?;
         // 密钥协商
-        let hash_type = kex::key_agreement(&mut h, client, None)?;
+        let hash_type = kex::key_agreement(&mut h, client.as_ref().borrow_mut().deref_mut(), None)?;
         // 用户验证
         self.initiate_authentication()?;
         self.authentication(hash_type, h)
     }
 
-    pub fn close(self) -> SshResult<()> {
+    pub fn close(self) {
         log::info!("session close.");
-        self.client.unwrap().close()
+        drop(self)
     }
 }
 
@@ -107,7 +110,7 @@ where
             remote_close: false,
             local_close: false,
             window_size: win_size,
-            session: self as *mut Session<S>,
+            client: self.get_client()?,
         })
     }
 
@@ -139,13 +142,13 @@ where
             .put_u32(client_channel_no)
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
-        self.client.as_mut().unwrap().write(data)
+        self.get_client()?.as_ref().borrow_mut().write(data)
     }
 
     // 远程回应是否可以打开通道
     fn receive_open_channel(&mut self) -> SshResult<(u32, u32)> {
         loop {
-            let results = self.client.as_mut().unwrap().read()?;
+            let results = self.get_client()?.as_ref().borrow_mut().read()?;
             for mut result in results {
                 if result.is_empty() {
                     continue;
@@ -209,12 +212,12 @@ where
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
-        self.client.as_mut().unwrap().write(data)
+        self.get_client()?.as_ref().borrow_mut().write(data)
     }
 
     fn authentication(&mut self, ht: HashType, h: H) -> SshResult<()> {
         loop {
-            let results = self.client.as_mut().unwrap().read()?;
+            let results = self.get_client()?.as_ref().borrow_mut().read()?;
             for mut result in results {
                 if result.is_empty() {
                     continue;
@@ -244,11 +247,18 @@ where
                     ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                         let mut data = Data::new();
                         data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                        self.client.as_mut().unwrap().write(data)?
+                        self.get_client()?.as_ref().borrow_mut().write(data)?
                     }
                     _ => {}
                 }
             }
         }
+    }
+
+    pub(crate) fn get_client(&mut self) -> SshResult<Rc<RefCell<Client<S>>>> {
+        if self.client.is_none() {
+            return Err(SshError::from("client is none."));
+        }
+        Ok(self.client.as_ref().unwrap().clone())
     }
 }
