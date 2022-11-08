@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use crate::algorithm::hash::HashType;
 use crate::data::Data;
 use crate::h::H;
@@ -7,6 +5,7 @@ use crate::{algorithm::hash, constant::algorithms};
 use crate::{SshError, SshResult};
 use rsa::pkcs1::DecodeRsaPrivateKey;
 use rsa::PublicKeyParts;
+use std::fmt::Debug;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;

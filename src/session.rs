@@ -11,14 +11,14 @@ use crate::{
     error::{SshError, SshResult},
 };
 use crate::{Channel, ChannelExec, ChannelScp, ChannelShell};
-use std::cell::RefCell;
-use std::ops::DerefMut;
 use std::rc::Rc;
+use std::{cell::RefCell, sync::Mutex};
 use std::{
     io::{Read, Write},
     net::{TcpStream, ToSocketAddrs},
     path::Path,
 };
+use std::{ops::DerefMut, sync::Arc};
 
 #[derive(Default)]
 pub struct SessionBuilder {
@@ -138,7 +138,7 @@ impl SessionBuilder {
     {
         Session {
             timeout_sec: self.timeout_sec,
-            config: self.config,
+            config: Arc::new(Mutex::new(self.config)),
             client: None,
             client_channel_no: 0,
         }
@@ -151,7 +151,7 @@ where
 {
     pub(crate) timeout_sec: u64,
 
-    pub(crate) config: Config,
+    pub(crate) config: Arc<Mutex<Config>>,
 
     pub(crate) client: Option<Rc<RefCell<Client<S>>>>,
 
@@ -345,16 +345,16 @@ where
                 let message_code = result.get_u8();
                 match message_code {
                     ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
-                        let auth = &self.config.auth;
+                        let auth = &self.config.lock().unwrap().auth;
                         if auth.key_pair.is_none() {
                             tried_public_key = true;
                             // if no private key specified
                             // just try password auth
-                            self.password_authentication()?
+                            self.password_authentication(auth)?
                         } else {
                             // if private key was provided
                             // use public key auth first, then fallback to password auth
-                            self.public_key_authentication()?
+                            self.public_key_authentication(auth)?
                         }
                     }
                     ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
@@ -362,10 +362,11 @@ where
                             log::error!("user auth failure. (public key)");
                             log::info!("fallback to password authentication");
                             tried_public_key = true;
+                            let auth = &self.config.lock().unwrap().auth;
                             // keep the same with openssh
                             // if the public key auth failed
                             // try with password again
-                            self.password_authentication()?
+                            self.password_authentication(auth)?
                         } else {
                             log::error!("user auth failure. (password)");
                             return Err(SshError::from("user auth failure."));
@@ -390,7 +391,7 @@ where
         }
     }
 
-    pub(crate) fn get_client(&mut self) -> SshResult<Rc<RefCell<Client<S>>>> {
+    pub(crate) fn get_client(&self) -> SshResult<Rc<RefCell<Client<S>>>> {
         if self.client.is_none() {
             return Err(SshError::from("client is none."));
         }

@@ -70,7 +70,7 @@ where
         self.w_size = 0;
         self.is_w_1_gb = true;
         let mut h = H::new();
-        if let SshVersion::V2(ref our, ref their) = self.config.ver {
+        if let SshVersion::V2(ref our, ref their) = self.config.lock().unwrap().ver {
             h.set_v_c(our);
             h.set_v_s(their);
         };

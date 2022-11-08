@@ -45,7 +45,7 @@ impl PubKey {
         match self {
             PubKey::SshEd25519 => algorithms::pubkey::SSH_ED25519,
             #[cfg(feature = "dangerous-rsa-sha1")]
-            PubKey::SshRsa => pubkey::SSH_RSA,
+            PubKey::SshRsa => algorithms::pubkey::SSH_RSA,
             PubKey::RsaSha2_256 => algorithms::pubkey::RSA_SHA2_256,
         }
     }

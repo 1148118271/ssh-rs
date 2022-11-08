@@ -3,8 +3,11 @@ use crate::timeout::Timeout;
 use crate::{algorithm::encryption::Encryption, config::version::SshVersion};
 use crate::{client_r::Signature, config::Config};
 use crate::{config::algorithm::AlgList, error::SshResult};
-use std::io::{self, Read, Write};
 use std::ops::{Deref, DerefMut};
+use std::{
+    io::{self, Read, Write},
+    sync::{Arc, Mutex},
+};
 
 pub(crate) struct Client<S>
 where
@@ -13,7 +16,7 @@ where
     pub(crate) stream: S,
     pub(crate) sequence: Sequence,
     pub(crate) timeout: Timeout,
-    pub(crate) config: Config,
+    pub(crate) config: Arc<Mutex<Config>>,
     pub(crate) negotiated: AlgList,
     pub(crate) encryption: Option<Box<dyn Encryption>>,
     pub(crate) is_encryption: bool,
@@ -52,7 +55,11 @@ impl<S> Client<S>
 where
     S: Read + Write,
 {
-    pub(crate) fn connect(stream: S, timeout_sec: u64, config: Config) -> SshResult<Client<S>> {
+    pub(crate) fn connect(
+        stream: S,
+        timeout_sec: u64,
+        config: Arc<Mutex<Config>>,
+    ) -> SshResult<Client<S>> {
         Ok(Client {
             stream,
             sequence: Sequence {
@@ -81,7 +88,7 @@ where
         // 发送客户端版本
         SshVersion::write(&mut self.stream, h)?;
 
-        self.config.ver = version;
+        self.config.lock().unwrap().ver = version;
         Ok(())
     }
 

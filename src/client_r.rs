@@ -204,13 +204,13 @@ where
                 self.is_r_1_gb = true;
                 log::info!("start for key negotiation.");
                 let mut h = H::new();
-                if let SshVersion::V2(ref our, ref their) = self.config.ver {
+                if let SshVersion::V2(ref our, ref their) = self.config.lock().unwrap().ver {
                     h.set_v_c(our);
                     h.set_v_s(their);
                 };
                 h.set_i_s(data.clone().as_slice());
                 let algs = AlgList::from(data)?;
-                let negotiated = self.config.algs.match_with(&algs)?;
+                let negotiated = self.config.lock().unwrap().algs.match_with(&algs)?;
 
                 match lws {
                     None => kex::send_algorithm(&mut h, self, None)?,

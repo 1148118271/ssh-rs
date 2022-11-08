@@ -23,11 +23,14 @@ pub(crate) fn send_algorithm<S>(
 where
     S: Read + Write,
 {
-    log::info!("client algorithms: [{:?}]", client.config.algs);
+    log::info!(
+        "client algorithms: [{:?}]",
+        client.config.lock().unwrap().algs
+    );
     let mut data = Data::new();
     data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
     data.extend(util::cookie());
-    data.extend(client.config.algs.as_i());
+    data.extend(client.config.lock().unwrap().algs.as_i());
     data.put_str("")
         .put_str("")
         .put_u8(false as u8)
@@ -194,7 +197,12 @@ where
         Some(ws) => receive_algorithm(h, client, Some(ws))?,
     };
 
-    let negotiated = client.config.algs.match_with(&server_algs)?;
+    let negotiated = client
+        .config
+        .lock()
+        .unwrap()
+        .algs
+        .match_with(&server_algs)?;
 
     let mut key_exchange = key_exchange::from(negotiated.key_exchange.0[0].as_str())?;
     let mut public_key = public_key::from(negotiated.public_key.0[0].as_str());

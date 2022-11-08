@@ -213,7 +213,7 @@
 //! }
 //!
 
-mod algorithm;
+pub mod algorithm;
 mod channel;
 mod channel_exec;
 mod channel_scp;

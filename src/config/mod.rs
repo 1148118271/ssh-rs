@@ -23,7 +23,9 @@ impl Config {
     // use an empty client algorithm list
     pub fn disable_default() -> Self {
         Self {
-            ..Default::default()
+            algs: algorithm::AlgList::default(),
+            auth: auth::AuthInfo::default(),
+            ver: version::SshVersion::default(),
         }
     }
 }
