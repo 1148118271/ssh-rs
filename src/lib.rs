@@ -9,8 +9,10 @@
 //! ```no_run
 //! use ssh_rs::ssh;
 //!
-//! let mut session = ssh::create_session();
-//! session.set_user_and_password("user", "password");
+//! let mut session = ssh::create_session()
+//!     .username("username")
+//!     .password("password")
+//!     .build();
 //! session.connect("ip:port").unwrap();
 //! ```
 //!
@@ -20,27 +22,42 @@
 //! #### 1. Use key file path：
 //! ```no_run
 //! use ssh_rs::ssh;
-//! use ssh_rs::key_pair::KeyPairType;
 //!
-//! let mut session = ssh::create_session();
 //! // pem format key path -> /xxx/xxx/id_rsa
-//! // KeyPairType::SshRsa -> Rsa type algorithm, currently only supports rsa.
-//! session.set_user_and_key_pair_path("user", "pem format key path", KeyPairType::SshRsa).unwrap();
+//! let mut session = ssh::create_session()
+//!     .username("username")
+//!     .private_key_path("/path/to/rsa")
+//!     .build();
 //! session.connect("ip:port").unwrap();
 //! ```
 //!
 //! #### 2. Use key string：
 //! ```no_run
 //! use ssh_rs::ssh;
-//! use ssh_rs::key_pair::KeyPairType;
 //!
-//! let mut session = ssh::create_session();
 //! // pem format key string:
 //! //      -----BEGIN RSA PRIVATE KEY-----
 //! //          xxxxxxxxxxxxxxxxxxxxx
 //! //      -----END RSA PRIVATE KEY-----
-//! // KeyPairType::SshRsa -> Rsa type algorithm, currently only supports rsa.
-//! session.set_user_and_key_pair("user", "pem format key string", KeyPairType::SshRsa).unwrap();
+//! let mut session = ssh::create_session()
+//!     .username("username")
+//!     .private_key("rsa_string")
+//!     .build();
+//! session.connect("ip:port").unwrap();
+//! ```
+//!
+//! ## 3. Use them together
+//! According to the implementation of OpenSSH,
+//! it will try public key first and fallback to password.
+//! So both of them can be provided.
+//! ```no_run
+//! use ssh_rs::ssh;
+//!
+//! let mut session = ssh::create_session()
+//!     .username("username")
+//!     .password("password")
+//!     .private_key_path("/path/to/rsa")
+//!     .build();
 //! session.connect("ip:port").unwrap();
 //! ```
 //!
@@ -53,10 +70,6 @@
 //! // The default is false(Do not enable)
 //! // Can be set as true (enable)
 //! ssh::is_enable_log(true);
-//!
-//! let mut session = ssh::create_session();
-//! session.set_user_and_password("user", "password");
-//! session.connect("ip:port").unwrap();
 //! ```
 //!
 //!
@@ -65,12 +78,14 @@
 //! ```no_run
 //! use ssh_rs::ssh;
 //!
-//! let mut session = ssh::create_session();
+//! let mut session = ssh::create_session()
+//!     .timeout(15)
+//!     .username("username")
+//!     .password("password")
+//!     .build();
 //! // set_timeout
 //! // The unit is seconds
 //! // The default timeout is 30 seconds
-//! session.set_timeout(15);
-//! session.set_user_and_password("user", "password");
 //! session.connect("ip:port").unwrap();
 //! ```
 //!
@@ -82,9 +97,17 @@
 //! ### 1. exec
 //!
 //! ```no_run
-//! use ssh_rs::{Session, ssh};
+//! use ssh_rs::ssh;
 //!
-//! let mut session: Session<std::net::TcpStream> = ssh::create_session();
+//! ssh::is_enable_log(true);
+//! 
+//! let mut session = ssh::create_session()
+//!     .username("username")
+//!     .password("password")
+//!     .private_key_path("./id_rsa")
+//!     .build();
+//! session.connect("127.0.0.1:22").unwrap();
+//! 
 //! // Usage 1
 //! let exec = session.open_exec().unwrap();
 //! let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
@@ -104,8 +127,12 @@
 //! use std::thread::sleep;
 //! use std::time::Duration;
 //! use ssh_rs::{ChannelShell, ssh};
-//!
-//! let mut session = ssh::create_session();
+//! 
+//! let mut session = ssh::create_session()
+//!     .username("username")
+//!     .password("password")
+//!     .build();
+//! session.connect("127.0.0.1:22").unwrap();
 //! // Usage 1
 //! let mut shell = session.open_shell().unwrap();
 //! run_shell(&mut shell);
@@ -135,9 +162,13 @@
 //! ### 3. scp
 //!
 //! ```no_run
-//! use ssh_rs::{Session, ssh};
+//! use ssh_rs::ssh;
 //!
-//! let mut session: Session<std::net::TcpStream> = ssh::create_session();
+//! let mut session = ssh::create_session()
+//!     .username("username")
+//!     .password("password")
+//!     .build();
+//! session.connect("127.0.0.1:22").unwrap();
 //! // Usage 1
 //! let scp = session.open_scp().unwrap();
 //! scp.upload("local path", "remote path").unwrap();
@@ -166,7 +197,10 @@
 //!
 //! let mut session = ssh::create_session();
 //! let bio = MyProxy::new("127.0.0.1:22");
-//! session.set_user_and_password("ubuntu", "password");
+//! let mut session = ssh::create_session()
+//!     .username("username")
+//!     .password("password")
+//!     .build();
 //! session.connect_bio(bio).unwrap();
 //! // Usage 1
 //! let exec = session.open_exec().unwrap();

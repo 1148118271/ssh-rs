@@ -18,7 +18,7 @@ fn main() {
     let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
     println!("{}", String::from_utf8(vec).unwrap());
     // Close session.
-    session.close().unwrap();
+    session.close();
 }
 
 // Use a real ssh server since I don't wanna implement a ssh-server in the example codes

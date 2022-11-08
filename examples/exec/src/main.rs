@@ -1,4 +1,3 @@
-use ssh_rs::key_pair::*;
 use ssh_rs::ssh;
 
 fn main() {
@@ -7,7 +6,7 @@ fn main() {
     let mut session = ssh::create_session()
         .username("ubuntu")
         .password("password")
-        .private_key_path("./id_rsa", KeyType::SshRsa)
+        .private_key_path("./id_rsa")
         .build();
     session.connect("127.0.0.1:22").unwrap();
     // Usage 1
@@ -20,5 +19,5 @@ fn main() {
     let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
     println!("{}", String::from_utf8(vec).unwrap());
     // Close session.
-    session.close().unwrap();
+    session.close();
 }

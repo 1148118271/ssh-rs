@@ -79,7 +79,7 @@ fn main() {
     // let scp = channel.open_scp().unwrap();
     // scp.download("local path", "remote path").unwrap();
 
-    session.close().unwrap();
+    session.close();
 }
 
 fn assert_file(filename: &str) {

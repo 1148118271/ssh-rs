@@ -18,7 +18,7 @@ fn main() {
     // Close channel.
     shell.close().unwrap();
     // Close session.
-    session.close().unwrap();
+    session.close();
 }
 
 fn run_shell(shell: &mut ChannelShell<std::net::TcpStream>) {

@@ -175,10 +175,6 @@ impl<S> Session<S>
 where
     S: Read + Write,
 {
-    pub fn set_timeout(&mut self, secs: u64) {
-        self.timeout_sec = secs;
-    }
-
     pub fn connect_bio(&mut self, stream: S) -> SshResult<()> {
         // 建立通道
         self.client = Some(Rc::new(RefCell::new(Client::<S>::connect(
