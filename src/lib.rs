@@ -100,14 +100,14 @@
 //! use ssh_rs::ssh;
 //!
 //! ssh::is_enable_log(true);
-//! 
+//!
 //! let mut session = ssh::create_session()
 //!     .username("username")
 //!     .password("password")
 //!     .private_key_path("./id_rsa")
 //!     .build();
 //! session.connect("127.0.0.1:22").unwrap();
-//! 
+//!
 //! // Usage 1
 //! let exec = session.open_exec().unwrap();
 //! let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
@@ -127,7 +127,7 @@
 //! use std::thread::sleep;
 //! use std::time::Duration;
 //! use ssh_rs::{ChannelShell, ssh};
-//! 
+//!
 //! let mut session = ssh::create_session()
 //!     .username("username")
 //!     .password("password")

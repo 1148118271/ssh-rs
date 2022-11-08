@@ -53,7 +53,7 @@ impl SshVersion {
         log::info!("client version: [{}]", CLIENT_VERSION);
         h.set_v_c(CLIENT_VERSION);
         let ver_string = format!("{}\r\n", CLIENT_VERSION);
-        let _= stream.write(ver_string.as_bytes())?;
+        let _ = stream.write(ver_string.as_bytes())?;
         Ok(())
     }
 
