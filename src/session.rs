@@ -1,17 +1,14 @@
 use crate::client::Client;
+use crate::constant::{size, ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::h::H;
 use crate::kex;
 use crate::slog::log;
 use crate::window_size::WindowSize;
-use crate::{algorithm::hash::HashType, Config};
+use crate::{algorithm::hash::HashType, config::Config};
 use crate::{
     algorithm::{Compress, Enc, Kex, Mac, PubKey},
     error::{SshError, SshResult},
-};
-use crate::{
-    constant::{size, ssh_msg_code, ssh_str},
-    key_pair::{KeyPair, KeyType},
 };
 use crate::{Channel, ChannelExec, ChannelScp, ChannelShell};
 use std::cell::RefCell;
@@ -40,7 +37,7 @@ impl SessionBuilder {
     pub fn disable_default() -> Self {
         Self {
             timeout_sec: 30,
-            config: Config::disable_default_algorithms(),
+            config: Config::disable_default(),
         }
     }
 
@@ -50,24 +47,21 @@ impl SessionBuilder {
     }
 
     pub fn username(mut self, username: &str) -> Self {
-        let user_info = &mut self.config.auth;
-        user_info.username = username.to_owned();
+        self.config.auth.username(username).unwrap();
         self
     }
 
     pub fn password(mut self, password: &str) -> Self {
-        let user_info = &mut self.config.auth;
-        user_info.password = password.to_owned();
+        self.config.auth.password(password).unwrap();
         self
     }
 
-    pub fn private_key<K>(mut self, private_key: K, key_type: KeyType) -> Self
+    pub fn private_key<K>(mut self, private_key: K) -> Self
     where
         K: ToString,
     {
-        let user_info = &mut self.config.auth;
-        match KeyPair::from_str(private_key.to_string().as_str(), key_type) {
-            Ok(key_pair) => user_info.key_pair = Some(key_pair),
+        match self.config.auth.private_key(private_key) {
+            Ok(_) => (),
             Err(e) => log::error!(
                 "Parse private key from string: {}, will fallback to password authentication",
                 e
@@ -76,13 +70,12 @@ impl SessionBuilder {
         self
     }
 
-    pub fn private_key_path<P>(mut self, key_path: P, key_type: KeyType) -> Self
+    pub fn private_key_path<P>(mut self, key_path: P) -> Self
     where
         P: AsRef<Path>,
     {
-        let user_info = &mut self.config.auth;
-        match KeyPair::from_path(key_path, key_type) {
-            Ok(key_pair) => user_info.key_pair = Some(key_pair),
+        match self.config.auth.private_key_path(key_path) {
+            Ok(_) => (),
             Err(e) => log::error!(
                 "Parse private key from file: {}, will fallback to password authentication",
                 e
@@ -93,8 +86,7 @@ impl SessionBuilder {
 
     pub fn add_kex_algorithms(mut self, alg: Kex) -> Self {
         self.config
-            .algorithm
-            .client
+            .algs
             .key_exchange
             .0
             .push(alg.as_str().to_owned());
@@ -102,25 +94,18 @@ impl SessionBuilder {
     }
 
     pub fn add_pubkey_algorithms(mut self, alg: PubKey) -> Self {
-        self.config
-            .algorithm
-            .client
-            .public_key
-            .0
-            .push(alg.as_str().to_owned());
+        self.config.algs.public_key.0.push(alg.as_str().to_owned());
         self
     }
 
     pub fn add_enc_algorithms(mut self, alg: Enc) -> Self {
         self.config
-            .algorithm
-            .client
+            .algs
             .c_encryption
             .0
             .push(alg.as_str().to_owned());
         self.config
-            .algorithm
-            .client
+            .algs
             .s_encryption
             .0
             .push(alg.as_str().to_owned());
@@ -128,31 +113,19 @@ impl SessionBuilder {
     }
 
     pub fn add_mac_algortihms(mut self, alg: Mac) -> Self {
-        self.config
-            .algorithm
-            .client
-            .c_mac
-            .0
-            .push(alg.as_str().to_owned());
-        self.config
-            .algorithm
-            .client
-            .s_mac
-            .0
-            .push(alg.as_str().to_owned());
+        self.config.algs.c_mac.0.push(alg.as_str().to_owned());
+        self.config.algs.s_mac.0.push(alg.as_str().to_owned());
         self
     }
 
     pub fn add_compress_algorithms(mut self, alg: Compress) -> Self {
         self.config
-            .algorithm
-            .client
+            .algs
             .c_compression
             .0
             .push(alg.as_str().to_owned());
         self.config
-            .algorithm
-            .client
+            .algs
             .s_compression
             .0
             .push(alg.as_str().to_owned());

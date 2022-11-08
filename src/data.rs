@@ -1,4 +1,9 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    io::Read,
+    ops::{Deref, DerefMut},
+};
+
+use crate::error::SshResult;
 
 /// **byte**
 /// byte 标识任意一个 8 位值（8 位字节）。固定长度的数据有时被表示为一个字节数组，写
@@ -40,7 +45,7 @@ use std::ops::{Deref, DerefMut};
 /// 字符）。
 ///
 #[derive(Debug, Clone)]
-pub struct Data(Vec<u8>);
+pub(crate) struct Data(Vec<u8>);
 
 impl Default for Data {
     fn default() -> Self {
@@ -51,6 +56,32 @@ impl Default for Data {
 impl Data {
     pub fn new() -> Data {
         Data(Vec::new())
+    }
+
+    pub fn read<S>(stream: &mut S, len: usize) -> SshResult<Self>
+    where
+        S: Read,
+    {
+        let mut v = if len == 0 {
+            vec![0; 1460] // usually a packet len
+        } else {
+            vec![0; len]
+        };
+        loop {
+            match stream.read(&mut v) {
+                Ok(i) => {
+                    v.resize(i, 0);
+                    return Ok(Data(v));
+                }
+                Err(e) => {
+                    if let std::io::ErrorKind::WouldBlock = e.kind() {
+                        continue;
+                    } else {
+                        return Err(e.into());
+                    }
+                }
+            };
+        }
     }
 
     // 把字节数组置空

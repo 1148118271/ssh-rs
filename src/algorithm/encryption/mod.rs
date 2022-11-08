@@ -15,7 +15,7 @@ pub(crate) use {aes_ctr_128::AesCtr128, chacha20_poly1305_openssh::ChaCha20Poly1
 /// 两个方向上的加密器必须独立运行。如果本地策略允许多种算法，系统实现必须允许独立选择每
 /// 个方向上的算法。但是，在实际使用中，推荐在两个方向上使用相同的算法。
 
-pub trait Encryption {
+pub(crate) trait Encryption {
     fn bsize(&self) -> usize;
     fn iv_size(&self) -> usize;
     fn new(hash: Hash, mac: Box<dyn Mac>) -> Self
@@ -26,4 +26,14 @@ pub trait Encryption {
     fn packet_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize;
     fn data_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize;
     fn is_cp(&self) -> bool;
+}
+
+pub(crate) fn from(s: &str, hash: Hash, mac: Box<dyn Mac>) -> Box<dyn Encryption> {
+    match s {
+        crate::constant::algorithms::enc::CHACHA20_POLY1305_OPENSSH => {
+            Box::new(ChaCha20Poly1305::new(hash, mac))
+        }
+        crate::constant::algorithms::enc::AES128_CTR => Box::new(AesCtr128::new(hash, mac)),
+        _ => unreachable!("Currently dont support"),
+    }
 }

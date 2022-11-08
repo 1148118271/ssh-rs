@@ -25,42 +25,39 @@ where
 
     pub(crate) fn public_key_authentication(&mut self) -> SshResult<()> {
         let client = self.get_client()?;
-        let config = &client.borrow().config;
-        log::info!(
-            "public key authentication. algorithm: {:?}",
-            &(config.algorithm.negotiated.public_key.0)[0]
-        );
+        let client = client.borrow();
+        let pubkey_alg = client.negotiated.public_key.0[0].as_str();
+        let auth_info = &client.config.auth;
 
-        let pubkey_alg = &(config.algorithm.negotiated.public_key.0)[0];
-        let user_info = &config.auth;
+        log::info!("public key authentication. algorithm: {:?}", pubkey_alg);
 
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
-            .put_str(user_info.username.as_str())
+            .put_str(auth_info.username.as_str())
             .put_str(ssh_str::SSH_CONNECTION)
             .put_str(ssh_str::PUBLIC_KEY)
             .put_u8(false as u8)
             .put_str(pubkey_alg)
-            .put_u8s(&user_info.key_pair.as_ref().unwrap().get_blob(pubkey_alg));
+            .put_u8s(&auth_info.key_pair.as_ref().unwrap().get_blob(pubkey_alg));
         self.get_client()?.borrow_mut().write(data)
     }
 
     pub(crate) fn public_key_signature(&mut self, ht: HashType, h: H) -> SshResult<()> {
         let client = self.get_client()?;
-        let config = &client.borrow().config;
-        let pubkey_alg = &(config.algorithm.negotiated.public_key.0)[0];
-        let user_info = &config.auth;
+        let client = client.borrow();
+        let pubkey_alg = client.negotiated.public_key.0[0].as_str();
+        let auth_info = &client.config.auth;
 
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
-            .put_str(user_info.username.as_str())
+            .put_str(auth_info.username.as_str())
             .put_str(ssh_str::SSH_CONNECTION)
             .put_str(ssh_str::PUBLIC_KEY)
             .put_u8(true as u8)
             .put_str(pubkey_alg)
-            .put_u8s(&user_info.key_pair.as_ref().unwrap().get_blob(pubkey_alg));
+            .put_u8s(&auth_info.key_pair.as_ref().unwrap().get_blob(pubkey_alg));
         let signature =
-            user_info
+            auth_info
                 .key_pair
                 .as_ref()
                 .unwrap()

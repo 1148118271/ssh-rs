@@ -78,7 +78,7 @@ impl Default for AlgorithmConfig {
 impl AlgorithmConfig {
     pub fn new() -> Self {
         AlgorithmConfig {
-            client: AlgorithmList::client_algorithm(),
+            client: AlgorithmList::client_default(),
             server: AlgorithmList::new(),
             negotiated: AlgorithmList::new(),
         }
@@ -262,7 +262,7 @@ impl AlgorithmList {
         }
     }
 
-    pub fn client_algorithm() -> Self {
+    pub fn client_default() -> Self {
         AlgorithmList {
             key_exchange: KeyExchangeAlgorithm::get_client(),
             public_key: PublicKeyAlgorithm::get_client(),
@@ -287,95 +287,4 @@ impl AlgorithmList {
         data.put_str(self.s_compression.to_string().as_str());
         data.to_vec()
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct KeyExchangeAlgorithm(pub Vec<String>);
-impl KeyExchangeAlgorithm {
-    pub fn get_client() -> Self {
-        KeyExchangeAlgorithm(vec![
-            algorithms::kex::CURVE25519_SHA256.to_string(),
-            algorithms::kex::ECDH_SHA2_NISTP256.to_string(),
-        ])
-    }
-}
-
-impl ToString for KeyExchangeAlgorithm {
-    fn to_string(&self) -> String {
-        to_string(&self.0)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct PublicKeyAlgorithm(pub Vec<String>);
-impl PublicKeyAlgorithm {
-    pub fn get_client() -> Self {
-        PublicKeyAlgorithm(vec![
-            algorithms::pubkey::SSH_ED25519.to_string(),
-            algorithms::pubkey::RSA_SHA2_256.to_string(),
-        ])
-    }
-}
-
-impl ToString for PublicKeyAlgorithm {
-    fn to_string(&self) -> String {
-        to_string(&self.0)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct EncryptionAlgorithm(pub Vec<String>);
-impl EncryptionAlgorithm {
-    pub fn get_client() -> Self {
-        EncryptionAlgorithm(vec![
-            algorithms::enc::CHACHA20_POLY1305_OPENSSH.to_string(),
-            algorithms::enc::AES128_CTR.to_string(),
-        ])
-    }
-}
-impl ToString for EncryptionAlgorithm {
-    fn to_string(&self) -> String {
-        to_string(&self.0)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct MacAlgorithm(pub Vec<String>);
-impl MacAlgorithm {
-    pub fn get_client() -> Self {
-        MacAlgorithm(vec![algorithms::mac::HMAC_SHA1.to_string()])
-    }
-}
-impl ToString for MacAlgorithm {
-    fn to_string(&self) -> String {
-        to_string(&self.0)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct CompressionAlgorithm(pub Vec<String>);
-impl CompressionAlgorithm {
-    pub fn get_client() -> Self {
-        CompressionAlgorithm(vec![algorithms::compress::NONE.to_string()])
-    }
-}
-impl ToString for CompressionAlgorithm {
-    fn to_string(&self) -> String {
-        to_string(&self.0)
-    }
-}
-
-fn to_string(v: &[String]) -> String {
-    let mut s = String::new();
-    if v.is_empty() {
-        return s;
-    }
-    for (i, val) in v.iter().enumerate() {
-        if i == 0 {
-            s.push_str(val);
-            continue;
-        }
-        s.push_str(format!(",{}", val).as_str());
-    }
-    s
 }

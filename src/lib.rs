@@ -232,19 +232,16 @@ mod session;
 mod session_auth;
 mod slog;
 mod timeout;
-mod user_info;
 mod util;
 mod window_size;
 
 pub mod error;
 pub(crate) mod h;
-pub mod key_pair;
 
 pub use channel::Channel;
 pub use channel_exec::ChannelExec;
 pub use channel_scp::ChannelScp;
 pub use channel_shell::ChannelShell;
-pub use config::Config;
 pub use session::Session;
 
 use crate::error::{SshError, SshResult};

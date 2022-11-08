@@ -1,7 +1,7 @@
-use crate::client::Client;
 use crate::data::Data;
 use crate::packet::Packet;
 use crate::window_size::WindowSize;
+use crate::{client::Client, config::version::SshVersion};
 use crate::{constant, h::H, kex, SshError, SshResult};
 use std::io::{Read, Write};
 
@@ -9,20 +9,11 @@ impl<S> Client<S>
 where
     S: Read + Write,
 {
-    /// 发送客户端版本
-    pub(crate) fn write_version(&mut self, buf: &[u8]) -> SshResult<()> {
-        self.w_size += buf.len();
-        match self.stream.write(buf) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(SshError::from(e)),
-        }
-    }
-
-    pub fn write(&mut self, data: Data) -> Result<(), SshError> {
+    pub(crate) fn write(&mut self, data: Data) -> Result<(), SshError> {
         self.write_data(data, None)
     }
 
-    pub fn write_data(
+    pub(crate) fn write_data(
         &mut self,
         data: Data,
         mut rws: Option<&mut WindowSize>,
@@ -79,10 +70,10 @@ where
         self.w_size = 0;
         self.is_w_1_gb = true;
         let mut h = H::new();
-        let cv = self.config.version.client_version.as_str();
-        let sv = self.config.version.server_version.as_str();
-        h.set_v_c(cv);
-        h.set_v_s(sv);
+        if let SshVersion::V2(ref our, ref their) = self.config.ver {
+            h.set_v_c(our);
+            h.set_v_s(their);
+        };
         match rws {
             None => kex::key_agreement(&mut h, self, None)?,
             Some(ws) => kex::key_agreement(&mut h, self, Some(ws))?,

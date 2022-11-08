@@ -37,7 +37,7 @@ use crate::data::Data;
 /// 消息验证码。如果已经协商了消息验证，该域包含 MAC。初始时，MAC 算法必须是"none"。
 
 #[derive(Debug)]
-pub struct Packet {
+pub(crate) struct Packet {
     data: Data,
     value: Vec<u8>,
 }

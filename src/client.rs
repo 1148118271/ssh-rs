@@ -1,13 +1,12 @@
-use crate::algorithm::encryption::Encryption;
-use crate::client_r::Signature;
-use crate::config::Config;
-use crate::error::SshResult;
 use crate::h::H;
 use crate::timeout::Timeout;
+use crate::{algorithm::encryption::Encryption, config::version::SshVersion};
+use crate::{client_r::Signature, config::Config};
+use crate::{config::algorithm::AlgList, error::SshResult};
 use std::io::{self, Read, Write};
 use std::ops::{Deref, DerefMut};
 
-pub struct Client<S>
+pub(crate) struct Client<S>
 where
     S: Read + Write,
 {
@@ -15,6 +14,7 @@ where
     pub(crate) sequence: Sequence,
     pub(crate) timeout: Timeout,
     pub(crate) config: Config,
+    pub(crate) negotiated: AlgList,
     pub(crate) encryption: Option<Box<dyn Encryption>>,
     pub(crate) is_encryption: bool,
     /// session id
@@ -61,6 +61,7 @@ where
             },
             timeout: Timeout::new(timeout_sec),
             config,
+            negotiated: AlgList::new(),
             encryption: None,
             is_encryption: false,
             session_id: vec![],
@@ -74,20 +75,13 @@ where
     pub(crate) fn version(&mut self, h: &mut H) -> SshResult<()> {
         log::info!("start for version negotiation.");
         // 获取服务端版本
-        let vec = self.read_version();
-        let from_utf8 = crate::util::from_utf8(vec)?;
-        let sv = from_utf8.trim();
-        log::info!("server version: [{}]", sv);
-        self.config.version.server_version = sv.to_string();
-        // 发送客户端版本
-        let cv = self.config.version.client_version.clone();
-        self.write_version(format!("{}\r\n", cv.as_str()).as_bytes())?;
-        log::info!("client version: [{}]", cv);
+        let version = SshVersion::from(&mut self.stream, h)?;
         // 版本验证
-        self.config.version.validation()?;
-        h.set_v_s(sv);
-        h.set_v_c(&cv);
-        log::info!("version negotiation was successful.");
+        version.validate()?;
+        // 发送客户端版本
+        SshVersion::write(&mut self.stream, h)?;
+
+        self.config.ver = version;
         Ok(())
     }
 

@@ -1,17 +1,17 @@
 use std::io::{Read, Write};
 
-use crate::algorithm::hash;
-use crate::algorithm::key_exchange::KeyExchange;
-use crate::algorithm::public_key::PublicKey;
-use crate::config::{
-    CompressionAlgorithm, Config, EncryptionAlgorithm, KeyExchangeAlgorithm, MacAlgorithm,
-    PublicKeyAlgorithm,
+use crate::algorithm::{
+    encryption,
+    key_exchange::{self, KeyExchange},
+    mac,
+    public_key::{self, PublicKey},
 };
 use crate::constant::ssh_msg_code;
 use crate::data::Data;
 use crate::error::{SshError, SshResult};
 use crate::slog::log;
 use crate::window_size::WindowSize;
+use crate::{algorithm::hash, config::algorithm::AlgList};
 use crate::{client::Client, h::H, util};
 
 /// 发送客户端的算法列表
@@ -23,11 +23,11 @@ pub(crate) fn send_algorithm<S>(
 where
     S: Read + Write,
 {
-    log::info!("client algorithms: [{:?}]", client.config.algorithm.client);
+    log::info!("client algorithms: [{:?}]", client.config.algs);
     let mut data = Data::new();
     data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
     data.extend(util::cookie());
-    data.extend(client.config.algorithm.client.as_i());
+    data.extend(client.config.algs.as_i());
     data.put_str("")
         .put_str("")
         .put_u8(false as u8)
@@ -46,7 +46,7 @@ pub(crate) fn receive_algorithm<S>(
     h: &mut H,
     client: &mut Client<S>,
     mut rws: Option<&mut WindowSize>,
-) -> SshResult<()>
+) -> SshResult<AlgList>
 where
     S: Read + Write,
 {
@@ -62,34 +62,11 @@ where
             let message_code = result[0];
             if message_code == ssh_msg_code::SSH_MSG_KEXINIT {
                 h.set_i_s(result.as_slice());
-                processing_server_algorithm(&mut client.config, result)?;
-                return Ok(());
+
+                return AlgList::from(result);
             }
         }
     }
-}
-
-/// 处理服务端的算法列表
-pub(crate) fn processing_server_algorithm(config: &mut Config, mut data: Data) -> SshResult<()> {
-    data.get_u8();
-    // 跳过16位cookie
-    data.skip(16);
-    let server_algorithm = &mut config.algorithm.server;
-    server_algorithm.key_exchange =
-        KeyExchangeAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.public_key = PublicKeyAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.c_encryption =
-        EncryptionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.s_encryption =
-        EncryptionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.c_mac = MacAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.s_mac = MacAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.c_compression =
-        CompressionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    server_algorithm.s_compression =
-        CompressionAlgorithm(util::vec_u8_to_string(data.get_u8s(), ",")?);
-    log::info!("server algorithms: [{:?}]", server_algorithm);
-    Ok(())
 }
 
 /// 发送客户端公钥
@@ -212,12 +189,15 @@ where
         Some(ws) => send_algorithm(h, client, Some(ws))?,
     }
     log::info!("receive server algorithm list.");
-    match &mut rws {
+    let server_algs = match &mut rws {
         None => receive_algorithm(h, client, None)?,
         Some(ws) => receive_algorithm(h, client, Some(ws))?,
-    }
-    let mut key_exchange = client.config.algorithm.matching_key_exchange_algorithm()?;
-    let mut public_key = client.config.algorithm.matching_public_key_algorithm()?;
+    };
+
+    let negotiated = client.config.algs.match_with(&server_algs)?;
+
+    let mut key_exchange = key_exchange::from(negotiated.key_exchange.0[0].as_str())?;
+    let mut public_key = public_key::from(negotiated.public_key.0[0].as_str());
     match &mut rws {
         None => send_qc(client, key_exchange.get_public_key(), None)?,
         Some(ws) => send_qc(client, key_exchange.get_public_key(), Some(ws))?,
@@ -238,15 +218,13 @@ where
     let hash_type = key_exchange.get_hash_type();
     let hash = hash::hash::Hash::new(h.clone(), &client.session_id, hash_type);
     // mac 算法
-    let mac = client.config.algorithm.matching_mac_algorithm()?;
+    let mac = mac::from(negotiated.c_mac.0[0].as_str());
     // 加密算法
-    let encryption = client
-        .config
-        .algorithm
-        .matching_encryption_algorithm(hash, mac)?;
+    let encryption = encryption::from(negotiated.c_encryption.0[0].as_str(), hash, mac);
 
     client.encryption = Some(encryption);
     client.is_encryption = true;
+    client.negotiated = negotiated;
 
     log::info!("key negotiation successful.");
     Ok(hash_type)

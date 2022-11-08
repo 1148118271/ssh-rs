@@ -1,12 +1,15 @@
-use crate::algorithm::hash;
-use crate::algorithm::key_exchange::KeyExchange;
-use crate::algorithm::public_key::PublicKey;
+use crate::algorithm::{
+    encryption, key_exchange, mac,
+    public_key::{self, PublicKey},
+};
 use crate::client::Client;
 use crate::constant::{size, ssh_msg_code};
 use crate::data::Data;
 use crate::h::H;
 use crate::packet::Packet;
 use crate::window_size::WindowSize;
+use crate::{algorithm::hash, config::version::SshVersion};
+use crate::{algorithm::key_exchange::KeyExchange, config::algorithm::AlgList};
 use crate::{kex, SshError, SshResult};
 use std::io::{self, Read, Write};
 
@@ -14,17 +17,6 @@ impl<S> Client<S>
 where
     S: Read + Write,
 {
-    /// 发送客户端版本
-    pub(crate) fn read_version(&mut self) -> Vec<u8> {
-        let mut v = [0_u8; 128];
-        loop {
-            match self.stream.read(&mut v) {
-                Ok(i) => return v[..i].to_vec(),
-                Err(_) => continue,
-            };
-        }
-    }
-
     pub fn read(&mut self) -> SshResult<Vec<Data>> {
         self.read_data(None)
     }
@@ -212,22 +204,25 @@ where
                 self.is_r_1_gb = true;
                 log::info!("start for key negotiation.");
                 let mut h = H::new();
-                let cv = self.config.version.client_version.as_str();
-                let sv = self.config.version.server_version.as_str();
-                h.set_v_c(cv);
-                h.set_v_s(sv);
+                if let SshVersion::V2(ref our, ref their) = self.config.ver {
+                    h.set_v_c(our);
+                    h.set_v_s(their);
+                };
                 h.set_i_s(data.clone().as_slice());
-                kex::processing_server_algorithm(&mut self.config, data)?;
+                let algs = AlgList::from(data)?;
+                let negotiated = self.config.algs.match_with(&algs)?;
+
                 match lws {
                     None => kex::send_algorithm(&mut h, self, None)?,
                     Some(ws) => kex::send_algorithm(&mut h, self, Some(ws))?,
                 }
-                let key_exchange = self.config.algorithm.matching_key_exchange_algorithm()?;
-                let public_key = self.config.algorithm.matching_public_key_algorithm()?;
+                let key_exchange = key_exchange::from(negotiated.key_exchange.0[0].as_str())?;
+                let public_key = public_key::from(negotiated.public_key.0[0].as_str());
                 match lws {
                     None => kex::send_qc(self, key_exchange.get_public_key(), None)?,
                     Some(ws) => kex::send_qc(self, key_exchange.get_public_key(), Some(ws))?,
                 }
+                self.negotiated = negotiated;
                 self.signature = Some(Signature {
                     h,
                     key_exchange,
@@ -260,12 +255,10 @@ where
                 let hash_type = k.key_exchange.get_hash_type();
                 let hash = hash::hash::Hash::new(k.h.clone(), &self.session_id, hash_type);
                 // mac 算法
-                let mac = self.config.algorithm.matching_mac_algorithm()?;
+                let mac = mac::from(self.negotiated.c_mac.0[0].as_str());
                 // 加密算法
-                let encryption = self
-                    .config
-                    .algorithm
-                    .matching_encryption_algorithm(hash, mac)?;
+                let encryption =
+                    encryption::from(self.negotiated.c_encryption.0[0].as_str(), hash, mac);
                 self.encryption = Some(encryption);
                 self.is_encryption = true;
                 self.signature = None;

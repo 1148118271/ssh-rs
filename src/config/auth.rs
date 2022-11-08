@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::algorithm::hash::HashType;
 use crate::data::Data;
 use crate::h::H;
@@ -16,12 +18,6 @@ pub struct KeyPair {
 }
 
 impl KeyPair {
-    pub fn new() -> Self {
-        KeyPair {
-            ..Default::default()
-        }
-    }
-
     pub fn from_path<P: AsRef<Path>>(key_path: P, key_type: KeyType) -> SshResult<Self> {
         let mut file = match File::open(key_path) {
             Ok(file) => file,
@@ -97,5 +93,53 @@ pub enum KeyType {
 impl Default for KeyType {
     fn default() -> Self {
         KeyType::SshRsa
+    }
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct AuthInfo {
+    pub username: String,
+    pub password: String,
+    pub key_pair: Option<KeyPair>,
+}
+
+impl Debug for AuthInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "username: {}", self.username)?;
+        Ok(())
+    }
+}
+
+impl AuthInfo {
+    pub fn username<U>(&mut self, u: U) -> SshResult<()>
+    where
+        U: ToString,
+    {
+        self.username = u.to_string();
+        Ok(())
+    }
+
+    pub fn password<P>(&mut self, p: P) -> SshResult<()>
+    where
+        P: ToString,
+    {
+        self.password = p.to_string();
+        Ok(())
+    }
+
+    pub fn private_key<K>(&mut self, k: K) -> SshResult<()>
+    where
+        K: ToString,
+    {
+        self.key_pair = Some((KeyPair::from_str(&k.to_string(), KeyType::SshRsa))?);
+        Ok(())
+    }
+
+    pub fn private_key_path<P>(&mut self, p: P) -> SshResult<()>
+    where
+        P: AsRef<Path>,
+    {
+        self.key_pair = Some((KeyPair::from_path(p, KeyType::SshRsa))?);
+        Ok(())
     }
 }
