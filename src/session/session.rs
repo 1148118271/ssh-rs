@@ -4,7 +4,7 @@ use crate::h::H;
 use crate::kex;
 use crate::model::Data;
 use crate::slog::log;
-use crate::window_size::WindowSize;
+use crate::model::WindowSize;
 use crate::{algorithm::hash::HashType, config::Config};
 use crate::{
     algorithm::{Compress, Enc, Kex, Mac, PubKey},

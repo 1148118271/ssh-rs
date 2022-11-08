@@ -9,8 +9,8 @@ use crate::algorithm::{
 use crate::constant::ssh_msg_code;
 use crate::error::{SshError, SshResult};
 use crate::model::Data;
+use crate::model::WindowSize;
 use crate::slog::log;
-use crate::window_size::WindowSize;
 use crate::{algorithm::hash, config::algorithm::AlgList};
 use crate::{client::Client, h::H, util};
 

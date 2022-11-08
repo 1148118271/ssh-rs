@@ -256,9 +256,7 @@ mod kex;
 mod model;
 mod session;
 mod slog;
-mod timeout;
 mod util;
-mod window_size;
 
 pub mod error;
 pub(crate) mod h;

@@ -6,7 +6,7 @@ use crate::client::Client;
 use crate::constant::{size, ssh_msg_code};
 use crate::h::H;
 use crate::model::{Data, Packet};
-use crate::window_size::WindowSize;
+use crate::model::WindowSize;
 use crate::{algorithm::hash, config::version::SshVersion};
 use crate::{algorithm::key_exchange::KeyExchange, config::algorithm::AlgList};
 use crate::{kex, SshError, SshResult};

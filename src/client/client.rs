@@ -1,6 +1,6 @@
 use super::client_r::Signature;
 use crate::h::H;
-use crate::timeout::Timeout;
+use crate::model::Timeout;
 use crate::{
     algorithm::encryption::Encryption,
     config::{version::SshVersion, Config},

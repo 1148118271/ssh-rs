@@ -1,6 +1,6 @@
 use crate::model::Data;
 use crate::model::Packet;
-use crate::window_size::WindowSize;
+use crate::model::WindowSize;
 use crate::{client::Client, config::version::SshVersion};
 use crate::{constant, h::H, kex, SshError, SshResult};
 use std::io::{Read, Write};
