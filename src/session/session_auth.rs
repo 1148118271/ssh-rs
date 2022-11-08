@@ -1,11 +1,12 @@
+use super::session_inner::SessionInner;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::h::H;
 use crate::model::Data;
+use crate::SshResult;
 use crate::{algorithm::hash::HashType, config::auth::AuthInfo};
-use crate::{Session, SshResult};
 use std::io::{Read, Write};
 
-impl<S> Session<S>
+impl<S> SessionInner<S>
 where
     S: Read + Write,
 {

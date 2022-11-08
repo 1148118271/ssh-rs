@@ -1,151 +1,22 @@
 use crate::client::Client;
 use crate::constant::{size, ssh_msg_code, ssh_str};
+use crate::error::{SshError, SshResult};
 use crate::h::H;
 use crate::kex;
 use crate::model::Data;
-use crate::slog::log;
 use crate::model::WindowSize;
+use crate::slog::log;
 use crate::{algorithm::hash::HashType, config::Config};
-use crate::{
-    algorithm::{Compress, Enc, Kex, Mac, PubKey},
-    error::{SshError, SshResult},
-};
 use crate::{Channel, ChannelExec, ChannelScp, ChannelShell};
 use std::rc::Rc;
 use std::{cell::RefCell, sync::Mutex};
 use std::{
     io::{Read, Write},
     net::{TcpStream, ToSocketAddrs},
-    path::Path,
 };
 use std::{ops::DerefMut, sync::Arc};
 
-#[derive(Default)]
-pub struct SessionBuilder {
-    timeout_sec: u64,
-    config: Config,
-}
-
-impl SessionBuilder {
-    pub fn new() -> Self {
-        Self {
-            timeout_sec: 30,
-            ..Default::default()
-        }
-    }
-
-    pub fn disable_default() -> Self {
-        Self {
-            timeout_sec: 30,
-            config: Config::disable_default(),
-        }
-    }
-
-    pub fn timeout(mut self, timeout: u64) -> Self {
-        self.timeout_sec = timeout;
-        self
-    }
-
-    pub fn username(mut self, username: &str) -> Self {
-        self.config.auth.username(username).unwrap();
-        self
-    }
-
-    pub fn password(mut self, password: &str) -> Self {
-        self.config.auth.password(password).unwrap();
-        self
-    }
-
-    pub fn private_key<K>(mut self, private_key: K) -> Self
-    where
-        K: ToString,
-    {
-        match self.config.auth.private_key(private_key) {
-            Ok(_) => (),
-            Err(e) => log::error!(
-                "Parse private key from string: {}, will fallback to password authentication",
-                e
-            ),
-        }
-        self
-    }
-
-    pub fn private_key_path<P>(mut self, key_path: P) -> Self
-    where
-        P: AsRef<Path>,
-    {
-        match self.config.auth.private_key_path(key_path) {
-            Ok(_) => (),
-            Err(e) => log::error!(
-                "Parse private key from file: {}, will fallback to password authentication",
-                e
-            ),
-        }
-        self
-    }
-
-    pub fn add_kex_algorithms(mut self, alg: Kex) -> Self {
-        self.config
-            .algs
-            .key_exchange
-            .0
-            .push(alg.as_str().to_owned());
-        self
-    }
-
-    pub fn add_pubkey_algorithms(mut self, alg: PubKey) -> Self {
-        self.config.algs.public_key.0.push(alg.as_str().to_owned());
-        self
-    }
-
-    pub fn add_enc_algorithms(mut self, alg: Enc) -> Self {
-        self.config
-            .algs
-            .c_encryption
-            .0
-            .push(alg.as_str().to_owned());
-        self.config
-            .algs
-            .s_encryption
-            .0
-            .push(alg.as_str().to_owned());
-        self
-    }
-
-    pub fn add_mac_algortihms(mut self, alg: Mac) -> Self {
-        self.config.algs.c_mac.0.push(alg.as_str().to_owned());
-        self.config.algs.s_mac.0.push(alg.as_str().to_owned());
-        self
-    }
-
-    pub fn add_compress_algorithms(mut self, alg: Compress) -> Self {
-        self.config
-            .algs
-            .c_compression
-            .0
-            .push(alg.as_str().to_owned());
-        self.config
-            .algs
-            .s_compression
-            .0
-            .push(alg.as_str().to_owned());
-        self
-    }
-
-    pub fn build<S>(self) -> Session<S>
-    where
-        S: Read + Write,
-    {
-        Session {
-            timeout_sec: self.timeout_sec,
-            config: Arc::new(Mutex::new(self.config)),
-            client: None,
-            client_channel_no: 0,
-        }
-    }
-}
-
-pub struct Session<S>
+pub struct SessionInner<S>
 where
     S: Read + Write,
 {
@@ -158,20 +29,7 @@ where
     pub(crate) client_channel_no: u32,
 }
 
-impl Session<TcpStream> {
-    pub fn connect<A>(&mut self, addr: A) -> SshResult<()>
-    where
-        A: ToSocketAddrs,
-    {
-        // 建立通道
-        let tcp = TcpStream::connect(addr)?;
-        // default nonblocking
-        tcp.set_nonblocking(true).unwrap();
-        self.connect_bio(tcp)
-    }
-}
-
-impl<S> Session<S>
+impl<S> SessionInner<S>
 where
     S: Read + Write,
 {
@@ -205,7 +63,7 @@ where
     }
 }
 
-impl<S> Session<S>
+impl<S> SessionInner<S>
 where
     S: Read + Write,
 {
@@ -245,7 +103,7 @@ where
     }
 }
 
-impl<S> Session<S>
+impl<S> SessionInner<S>
 where
     S: Read + Write,
 {
