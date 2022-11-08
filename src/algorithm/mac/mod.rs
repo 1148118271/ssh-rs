@@ -1,6 +1,7 @@
 use ring::hmac::Tag;
 
 mod hmac_sha1;
+use crate::constant::algorithms as constant;
 pub(crate) use hmac_sha1::HMacSha1;
 
 pub(crate) trait Mac {
@@ -13,7 +14,7 @@ pub(crate) trait Mac {
 
 pub(crate) fn from(s: &str) -> Box<dyn Mac> {
     match s {
-        crate::constant::algorithms::mac::HMAC_SHA1 => Box::new(HMacSha1),
+        constant::mac::HMAC_SHA1 => Box::new(HMacSha1),
         _ => unreachable!("Currently dont support"),
     }
 }

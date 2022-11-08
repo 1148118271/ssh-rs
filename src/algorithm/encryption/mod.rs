@@ -3,6 +3,7 @@ mod chacha20_poly1305_openssh;
 
 use crate::algorithm::hash::hash::Hash;
 use crate::algorithm::mac::Mac;
+use crate::constant::algorithms as constant;
 use crate::SshResult;
 pub(crate) use {aes_ctr_128::AesCtr128, chacha20_poly1305_openssh::ChaCha20Poly1305};
 
@@ -30,10 +31,8 @@ pub(crate) trait Encryption {
 
 pub(crate) fn from(s: &str, hash: Hash, mac: Box<dyn Mac>) -> Box<dyn Encryption> {
     match s {
-        crate::constant::algorithms::enc::CHACHA20_POLY1305_OPENSSH => {
-            Box::new(ChaCha20Poly1305::new(hash, mac))
-        }
-        crate::constant::algorithms::enc::AES128_CTR => Box::new(AesCtr128::new(hash, mac)),
+        constant::enc::CHACHA20_POLY1305_OPENSSH => Box::new(ChaCha20Poly1305::new(hash, mac)),
+        constant::enc::AES128_CTR => Box::new(AesCtr128::new(hash, mac)),
         _ => unreachable!("Currently dont support"),
     }
 }

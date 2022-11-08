@@ -6,6 +6,7 @@ mod rsa;
 #[cfg(feature = "dangerous-rsa-sha1")]
 pub(crate) use self::rsa::RsaSha1;
 pub(crate) use self::rsa::RsaSha256;
+use crate::constant::algorithms as constant;
 pub(crate) use ed25519::Ed25519;
 
 /// # 公钥算法
@@ -20,10 +21,10 @@ pub(crate) trait PublicKey: Send + Sync {
 
 pub(crate) fn from(s: &str) -> Box<dyn PublicKey> {
     match s {
-        crate::constant::algorithms::pubkey::SSH_ED25519 => Box::new(Ed25519::new()),
+        constant::pubkey::SSH_ED25519 => Box::new(Ed25519::new()),
         #[cfg(feature = "dangerous-rsa-sha1")]
-        crate::constant::algorithms::pubkey::SSH_RSA => Box::new(RsaSha1::new()),
-        crate::constant::algorithms::pubkey::RSA_SHA2_256 => Box::new(RsaSha256::new()),
+        constant::pubkey::SSH_RSA => Box::new(RsaSha1::new()),
+        constant::pubkey::RSA_SHA2_256 => Box::new(RsaSha256::new()),
         _ => unreachable!("Currently dont support"),
     }
 }

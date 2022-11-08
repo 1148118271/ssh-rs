@@ -1,5 +1,5 @@
 use crate::{
-    constant,
+    constant::algorithms as constant,
     data::Data,
     error::{SshError, SshResult},
     util,
@@ -68,21 +68,26 @@ impl AlgList {
     }
 
     pub fn match_with(&mut self, other: &Self) -> SshResult<Self> {
-        // MYTODO: Use macro_rules!
         macro_rules! match_field {
-            ($s: expr,  $o:expr, $f: ident, $e: expr) => {
-                $s.$f
+            ($our: expr,  $their:expr, $field: ident, $err_hint: expr) => {
+                $our.$field
                     .0
                     .iter()
-                    .find_map(|k| if $o.$f.0.contains(k) { Some(k) } else { None })
+                    .find_map(|k| {
+                        if $their.$field.0.contains(k) {
+                            Some(k)
+                        } else {
+                            None
+                        }
+                    })
                     .ok_or_else(|| {
                         log::error!(
                             "description the {} fails to match, \
                     algorithms supported by the server: {},\
                     algorithms supported by the client: {}",
-                            $e,
-                            $o.key_exchange.to_string(),
-                            $s.key_exchange.to_string()
+                            $err_hint,
+                            $their.key_exchange.to_string(),
+                            $our.key_exchange.to_string()
                         );
                         SshError::from("key exchange error.")
                     })
@@ -136,8 +141,8 @@ pub struct KeyExchange(pub Vec<String>);
 impl KeyExchange {
     pub fn client_default() -> Self {
         KeyExchange(vec![
-            constant::algorithms::kex::CURVE25519_SHA256.to_string(),
-            constant::algorithms::kex::ECDH_SHA2_NISTP256.to_string(),
+            constant::kex::CURVE25519_SHA256.to_string(),
+            constant::kex::ECDH_SHA2_NISTP256.to_string(),
         ])
     }
 }
@@ -153,8 +158,8 @@ pub struct PublicKey(pub Vec<String>);
 impl PublicKey {
     pub fn client_default() -> Self {
         PublicKey(vec![
-            constant::algorithms::pubkey::SSH_ED25519.to_string(),
-            constant::algorithms::pubkey::RSA_SHA2_256.to_string(),
+            constant::pubkey::SSH_ED25519.to_string(),
+            constant::pubkey::RSA_SHA2_256.to_string(),
         ])
     }
 }
@@ -170,8 +175,8 @@ pub struct Encryption(pub Vec<String>);
 impl Encryption {
     pub fn client_default() -> Self {
         Encryption(vec![
-            constant::algorithms::enc::CHACHA20_POLY1305_OPENSSH.to_string(),
-            constant::algorithms::enc::AES128_CTR.to_string(),
+            constant::enc::CHACHA20_POLY1305_OPENSSH.to_string(),
+            constant::enc::AES128_CTR.to_string(),
         ])
     }
 }
@@ -185,7 +190,7 @@ impl ToString for Encryption {
 pub struct Mac(pub Vec<String>);
 impl Mac {
     pub fn client_default() -> Self {
-        Mac(vec![constant::algorithms::mac::HMAC_SHA1.to_string()])
+        Mac(vec![constant::mac::HMAC_SHA1.to_string()])
     }
 }
 impl ToString for Mac {
@@ -198,7 +203,7 @@ impl ToString for Mac {
 pub struct Compression(pub Vec<String>);
 impl Compression {
     pub fn client_default() -> Self {
-        Compression(vec![constant::algorithms::compress::NONE.to_string()])
+        Compression(vec![constant::compress::NONE.to_string()])
     }
 }
 impl ToString for Compression {
