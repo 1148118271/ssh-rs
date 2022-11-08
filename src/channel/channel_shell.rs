@@ -1,4 +1,4 @@
-use crate::channel::Channel;
+use super::channel::Channel;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::data::Data;
 use crate::error::SshResult;

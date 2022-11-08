@@ -1,4 +1,4 @@
-use crate::channel_scp::{check_path, ChannelScp, ScpFile};
+use super::channel_scp::{check_path, ChannelScp, ScpFile};
 use crate::constant::{permission, scp};
 use crate::error::{SshError, SshResult};
 use crate::slog::log;

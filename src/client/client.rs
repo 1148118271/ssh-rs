@@ -1,7 +1,10 @@
+use super::client_r::Signature;
 use crate::h::H;
 use crate::timeout::Timeout;
-use crate::{algorithm::encryption::Encryption, config::version::SshVersion};
-use crate::{client_r::Signature, config::Config};
+use crate::{
+    algorithm::encryption::Encryption,
+    config::{version::SshVersion, Config},
+};
 use crate::{config::algorithm::AlgList, error::SshResult};
 use std::ops::{Deref, DerefMut};
 use std::{

@@ -249,21 +249,13 @@
 
 pub mod algorithm;
 mod channel;
-mod channel_exec;
-mod channel_scp;
-mod channel_scp_d;
-mod channel_scp_u;
-mod channel_shell;
 mod client;
-mod client_r;
-mod client_w;
 mod config;
 mod constant;
 mod data;
 mod kex;
 mod packet;
 mod session;
-mod session_auth;
 mod slog;
 mod timeout;
 mod util;
@@ -272,10 +264,7 @@ mod window_size;
 pub mod error;
 pub(crate) mod h;
 
-pub use channel::Channel;
-pub use channel_exec::ChannelExec;
-pub use channel_scp::ChannelScp;
-pub use channel_shell::ChannelShell;
+pub use channel::{Channel, ChannelExec, ChannelScp, ChannelShell};
 pub use session::Session;
 
 use crate::error::{SshError, SshResult};

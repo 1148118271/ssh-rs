@@ -1,6 +1,6 @@
-use crate::channel_exec::ChannelExec;
-use crate::channel_scp::ChannelScp;
-use crate::channel_shell::ChannelShell;
+use super::channel_exec::ChannelExec;
+use super::channel_scp::ChannelScp;
+use super::channel_shell::ChannelShell;
 use crate::client::Client;
 use crate::constant::ssh_msg_code;
 use crate::data::Data;
