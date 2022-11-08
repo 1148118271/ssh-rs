@@ -7,8 +7,8 @@ use crate::algorithm::{
     public_key::{self, PublicKey},
 };
 use crate::constant::ssh_msg_code;
-use crate::data::Data;
 use crate::error::{SshError, SshResult};
+use crate::model::Data;
 use crate::slog::log;
 use crate::window_size::WindowSize;
 use crate::{algorithm::hash, config::algorithm::AlgList};

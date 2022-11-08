@@ -1,6 +1,6 @@
 use crate::constant::{scp, ssh_msg_code, ssh_str};
-use crate::data::Data;
 use crate::error::{SshError, SshResult};
+use crate::model::Data;
 use crate::Channel;
 use std::path::{Path, PathBuf};
 use std::{

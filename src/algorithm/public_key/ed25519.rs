@@ -1,5 +1,5 @@
 use crate::algorithm::public_key::PublicKey;
-use crate::data::Data;
+use crate::model::Data;
 use crate::SshError;
 use ring::signature;
 

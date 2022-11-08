@@ -1,6 +1,6 @@
 use crate::algorithm::hash::HashType;
-use crate::data::Data;
 use crate::h::H;
+use crate::model::Data;
 use crate::{algorithm::hash, constant::algorithms};
 use crate::{SshError, SshResult};
 use rsa::pkcs1::DecodeRsaPrivateKey;

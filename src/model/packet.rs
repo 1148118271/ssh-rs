@@ -1,5 +1,5 @@
 use crate::algorithm::encryption::Encryption;
-use crate::data::Data;
+use crate::model::Data;
 
 /// ## 数据包整体结构
 ///

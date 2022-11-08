@@ -3,8 +3,8 @@ use std::io::{Read, Write};
 use crate::client::Client;
 use crate::constant::size::LOCAL_WINDOW_SIZE;
 use crate::constant::ssh_msg_code;
-use crate::data::Data;
 use crate::error::SshResult;
+use crate::model::Data;
 
 pub struct WindowSize {
     pub(crate) server_channel_no: u32,

@@ -1,3 +1,4 @@
+#[allow(clippy::module_inception)]
 pub mod channel;
 pub mod channel_exec;
 pub mod channel_scp;

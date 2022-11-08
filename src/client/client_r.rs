@@ -4,9 +4,8 @@ use crate::algorithm::{
 };
 use crate::client::Client;
 use crate::constant::{size, ssh_msg_code};
-use crate::data::Data;
 use crate::h::H;
-use crate::packet::Packet;
+use crate::model::{Data, Packet};
 use crate::window_size::WindowSize;
 use crate::{algorithm::hash, config::version::SshVersion};
 use crate::{algorithm::key_exchange::KeyExchange, config::algorithm::AlgList};

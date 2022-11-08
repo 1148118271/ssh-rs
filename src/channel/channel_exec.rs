@@ -1,7 +1,7 @@
 use super::channel::Channel;
 use crate::constant::{ssh_msg_code, ssh_str};
-use crate::data::Data;
 use crate::error::SshResult;
+use crate::model::Data;
 use std::io::{Read, Write};
 
 pub struct ChannelExec<S: Read + Write>(pub(crate) Channel<S>);

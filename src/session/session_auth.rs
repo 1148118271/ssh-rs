@@ -1,6 +1,6 @@
 use crate::constant::{ssh_msg_code, ssh_str};
-use crate::data::Data;
 use crate::h::H;
+use crate::model::Data;
 use crate::{algorithm::hash::HashType, config::auth::AuthInfo};
 use crate::{Session, SshResult};
 use std::io::{Read, Write};

@@ -2,9 +2,9 @@ use std::io::{Read, Write};
 
 use crate::{
     constant::CLIENT_VERSION,
-    data::Data,
     error::{SshError, SshResult},
     h::H,
+    model::Data,
 };
 
 type OurVer = String;

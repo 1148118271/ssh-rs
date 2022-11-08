@@ -1,8 +1,8 @@
 use crate::client::Client;
 use crate::constant::{size, ssh_msg_code, ssh_str};
-use crate::data::Data;
 use crate::h::H;
 use crate::kex;
+use crate::model::Data;
 use crate::slog::log;
 use crate::window_size::WindowSize;
 use crate::{algorithm::hash::HashType, config::Config};

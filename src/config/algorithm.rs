@@ -1,7 +1,7 @@
 use crate::{
     constant::algorithms as constant,
-    data::Data,
     error::{SshError, SshResult},
+    model::Data,
     util,
 };
 

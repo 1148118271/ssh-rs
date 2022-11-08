@@ -1,3 +1,4 @@
+#[allow(clippy::module_inception)]
 pub(crate) mod client;
 pub(crate) mod client_r;
 pub(crate) mod client_w;

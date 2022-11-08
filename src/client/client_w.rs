@@ -1,5 +1,5 @@
-use crate::data::Data;
-use crate::packet::Packet;
+use crate::model::Data;
+use crate::model::Packet;
 use crate::window_size::WindowSize;
 use crate::{client::Client, config::version::SshVersion};
 use crate::{constant, h::H, kex, SshError, SshResult};
