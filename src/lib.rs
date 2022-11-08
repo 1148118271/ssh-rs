@@ -78,14 +78,14 @@
 //! ```no_run
 //! use ssh_rs::ssh;
 //!
+//! // set_timeout
+//! // The unit is seconds
+//! // The default timeout is 30 seconds
 //! let mut session = ssh::create_session()
 //!     .timeout(15)
 //!     .username("username")
 //!     .password("password")
 //!     .build();
-//! // set_timeout
-//! // The unit is seconds
-//! // The default timeout is 30 seconds
 //! session.connect("ip:port").unwrap();
 //! ```
 //!
