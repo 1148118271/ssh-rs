@@ -13,7 +13,7 @@ pub struct ChaCha20Poly1305 {
 
 impl Encryption for ChaCha20Poly1305 {
     fn bsize(&self) -> usize {
-        BSIZE
+        0
     }
 
     fn iv_size(&self) -> usize {

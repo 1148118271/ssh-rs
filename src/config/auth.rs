@@ -58,11 +58,11 @@ impl KeyPair {
     pub(crate) fn signature(
         &self,
         buf: &[u8],
-        h: HashCtx,
+        hash_ctx: HashCtx,
         hash_type: HashType,
         alg: &str,
     ) -> Vec<u8> {
-        let session_id = hash::digest(h.as_bytes().as_slice(), hash_type);
+        let session_id = hash::digest(hash_ctx.as_bytes().as_slice(), hash_type);
         let mut sd = Data::new();
         sd.put_u8s(session_id.as_slice());
         sd.extend_from_slice(buf);

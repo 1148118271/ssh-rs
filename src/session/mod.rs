@@ -20,8 +20,7 @@ where
     Init(Config, S),
     Version(Config, S),
     Auth(Client, S),
-    KeyExchange(Client, S),
-    // Session(SessionInner<S>),
+    Connected(Client, S),
 }
 
 pub struct Session<S>
@@ -68,10 +67,16 @@ where
                 let mut digest = Digest::new();
                 client.key_agreement(&mut stream, &mut digest)?;
                 client.do_auth(&mut stream, &mut digest)?;
-                todo!()
+                Ok(Self {
+                    inner: SessionState::Connected(client, stream),
+                })
             }
-            _ => todo!(),
+            _ => unreachable!(),
         }
+    }
+
+    pub fn close(self) {
+        drop(self)
     }
 }
 

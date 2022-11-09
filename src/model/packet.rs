@@ -66,6 +66,26 @@ where
     }
 }
 
+fn try_read<S>(stream: &mut S, _tm: u64, buf: &mut [u8]) -> SshResult<()>
+where
+    S: Read,
+{
+    loop {
+        match stream.read(buf) {
+            Ok(i) => {
+                return Ok(());
+            }
+            Err(e) => {
+                if let std::io::ErrorKind::WouldBlock = e.kind() {
+                    continue;
+                } else {
+                    return Err(e.into());
+                }
+            }
+        };
+    }
+}
+
 fn write_with_timeout<S>(stream: &mut S, _tm: u64, buf: &[u8]) -> SshResult<()>
 where
     S: Write,
@@ -145,17 +165,32 @@ impl<'a> SecPacket<'a> {
     where
         S: Read,
     {
-        let bsize = client.get_encryptor().bsize();
-        let mut first_block = vec![0; bsize];
+        let bsize = {
+            let bsize = client.get_encryptor().bsize();
+            if bsize > 8 {
+                bsize
+            } else {
+                8
+            }
+        };
 
+        // read the first block
+        let mut first_block = vec![0; bsize];
         read_with_timeout(stream, tm, &mut first_block)?;
+
+        // detect the total len
         let seq = client.get_seq().get_server();
-        let remain = client.get_encryptor().data_len(seq, &first_block) - bsize;
-        let mut data = Data::uninit_new(remain + bsize);
+        let data_len = client.get_encryptor().data_len(seq, &first_block);
+
+        // read remain
+        let mut data = Data::uninit_new(data_len);
         data[0..bsize].clone_from_slice(&first_block);
         read_with_timeout(stream, tm, &mut data[bsize..])?;
+
+        // decrypt all
         let data = client.get_encryptor().decrypt(seq, &mut data)?;
 
+        // unpacking
         let pkt_len = u32::from_be_bytes(data[0..4].try_into().unwrap());
         let pad_len = data[4];
         let payload_len = pkt_len - pad_len as u32 - 1;
