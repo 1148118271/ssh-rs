@@ -1,9 +1,4 @@
-mod session_auth;
-#[allow(clippy::module_inception)]
-mod session_inner;
-mod session_kex;
-
-pub(crate) use session_inner::SessionInner;
+// pub(crate) use session_inner::SessionInner;
 
 use std::{
     io::{Read, Write},
@@ -12,9 +7,9 @@ use std::{
 };
 
 use crate::{
-    algorithm::{Compress, Enc, Kex, Mac, PubKey},
+    algorithm::{Compress, Digest, Enc, Kex, Mac, PubKey},
     client::Client,
-    config::Config,
+    config::{version::SshVersion, Config},
     error::SshResult,
 };
 
@@ -24,9 +19,9 @@ where
 {
     Init(Config, S),
     Version(Config, S),
-    Auth(Config, S),
-    KeyExchange(Config, S),
-    Session(SessionInner<S>),
+    Auth(Client, S),
+    KeyExchange(Client, S),
+    // Session(SessionInner<S>),
 }
 
 pub struct Session<S>
@@ -41,7 +36,42 @@ where
     S: Read + Write,
 {
     fn connect(self) -> SshResult<Self> {
-        Ok(self)
+        match self.inner {
+            SessionState::Init(config, stream) => Self {
+                inner: SessionState::Version(config, stream),
+            }
+            .connect(),
+            SessionState::Version(mut config, mut stream) => {
+                log::info!("start for version negotiation.");
+                // Receive the server version
+                let version = SshVersion::from(&mut stream)?;
+                // Version validate
+                version.validate()?;
+                // Send Client version
+                SshVersion::write(&mut stream)?;
+                // Store the version info
+                config.ver = version;
+
+                // from now on
+                // each step of the interaction is subject to the ssh constraints on the packet
+                // so we create a client to hide the underlay details
+                let client = Client::new(config);
+
+                Self {
+                    inner: SessionState::Auth(client, stream),
+                }
+                .connect()
+            }
+            SessionState::Auth(mut client, mut stream) => {
+                // before auth,
+                // we should have a key exchange at first
+                let mut digest = Digest::new();
+                client.key_agreement(&mut stream, &mut digest)?;
+                client.do_auth(&mut stream, &mut digest)?;
+                todo!()
+            }
+            _ => todo!(),
+        }
     }
 }
 

@@ -248,20 +248,18 @@
 //!
 
 pub mod algorithm;
-mod channel;
+// mod channel;
 mod client;
 mod config;
 mod constant;
-mod kex;
 mod model;
 mod session;
 mod slog;
 mod util;
 
 pub mod error;
-pub(crate) mod h;
 
-pub use channel::{Channel, ChannelExec, ChannelScp, ChannelShell};
+// pub use channel::{Channel, ChannelExec, ChannelScp, ChannelShell};
 pub use session::Session;
 
 use crate::error::{SshError, SshResult};

@@ -18,3 +18,20 @@ pub(crate) fn from(s: &str) -> Box<dyn Mac> {
         _ => unreachable!("Currently dont support"),
     }
 }
+
+pub(crate) struct MacNone {}
+
+impl Mac for MacNone {
+    fn sign(&self, _ik: &[u8], _sequence_num: u32, _buf: &[u8]) -> Tag {
+        unreachable!()
+    }
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        Self {}
+    }
+    fn bsize(&self) -> usize {
+        unreachable!()
+    }
+}

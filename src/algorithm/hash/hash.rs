@@ -1,7 +1,7 @@
+use super::hash_ctx::HashCtx;
 use crate::algorithm::hash;
 use crate::algorithm::hash::HashType;
 use crate::constant;
-use crate::h::H;
 
 /// 加密密钥必须是对一个已知值和 K 的 HASH 结果，方法如下：
 /// ○ 客户端到服务器的初始 IV：HASH(K || H || "A" || session_id)（这里 K 为 mpint
@@ -37,16 +37,16 @@ pub struct Hash {
     pub ik_s_c: Vec<u8>,
 
     hash_type: HashType,
-    h: H,
+    hash_ctx: HashCtx,
 }
 
 impl Hash {
-    pub fn new(h: H, session_id: &[u8], hash_type: HashType) -> Self {
-        let k = h.k.as_slice();
-        let h_ = hash::digest(&h.as_bytes(), hash_type);
+    pub fn new(hash_ctx: HashCtx, session_id: &[u8], hash_type: HashType) -> Self {
+        let k = hash_ctx.k.as_slice();
+        let h = hash::digest(&hash_ctx.as_bytes(), hash_type);
         let mut keys = vec![];
         for v in constant::ALPHABET {
-            keys.push(Hash::mix(k, &h_, v, session_id, hash_type));
+            keys.push(Hash::mix(k, &h, v, session_id, hash_type));
         }
         Hash {
             iv_c_s: keys[0].clone(),
@@ -59,7 +59,7 @@ impl Hash {
             ik_s_c: keys[5].clone(),
 
             hash_type,
-            h,
+            hash_ctx,
         }
     }
 
@@ -83,8 +83,8 @@ impl Hash {
     }
 
     fn extend(&self, key: &[u8]) -> Vec<u8> {
-        let k = self.h.k.clone();
-        let h = hash::digest(self.h.as_bytes().as_slice(), self.hash_type);
+        let k = self.hash_ctx.k.clone();
+        let h = hash::digest(self.hash_ctx.as_bytes().as_slice(), self.hash_type);
         let mut hash: Vec<u8> = Vec::new();
         hash.extend(k);
         hash.extend(h);

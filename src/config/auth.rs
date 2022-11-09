@@ -1,5 +1,5 @@
+use crate::algorithm::hash::HashCtx;
 use crate::algorithm::hash::HashType;
-use crate::h::H;
 use crate::model::Data;
 use crate::{algorithm::hash, constant::algorithms};
 use crate::{SshError, SshResult};
@@ -55,7 +55,13 @@ impl KeyPair {
         blob.to_vec()
     }
 
-    pub(crate) fn signature(&self, buf: &[u8], h: H, hash_type: HashType, alg: &str) -> Vec<u8> {
+    pub(crate) fn signature(
+        &self,
+        buf: &[u8],
+        h: HashCtx,
+        hash_type: HashType,
+        alg: &str,
+    ) -> Vec<u8> {
         let session_id = hash::digest(h.as_bytes().as_slice(), hash_type);
         let mut sd = Data::new();
         sd.put_u8s(session_id.as_slice());

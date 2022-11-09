@@ -44,34 +44,6 @@ where
     Ok(())
 }
 
-/// 获取服务端的算法列表
-pub(crate) fn receive_algorithm<S>(
-    h: &mut H,
-    client: &mut Client<S>,
-    mut rws: Option<&mut WindowSize>,
-) -> SshResult<AlgList>
-where
-    S: Read + Write,
-{
-    loop {
-        let results = match &mut rws {
-            None => client.read()?,
-            Some(ws) => client.read_data(Some(ws))?,
-        };
-        for result in results {
-            if result.is_empty() {
-                continue;
-            }
-            let message_code = result[0];
-            if message_code == ssh_msg_code::SSH_MSG_KEXINIT {
-                h.set_i_s(result.as_slice());
-
-                return AlgList::from(result);
-            }
-        }
-    }
-}
-
 /// 发送客户端公钥
 pub(crate) fn send_qc<S>(
     client: &mut Client<S>,

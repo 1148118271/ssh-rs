@@ -2,6 +2,7 @@
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
 pub enum HashType {
+    None,
     SHA1,
     SHA256,
 }

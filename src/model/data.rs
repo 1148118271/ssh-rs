@@ -1,9 +1,8 @@
-use std::{
-    io::Read,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 use crate::error::SshResult;
+
+use super::Packet;
 
 /// **byte**
 /// byte 标识任意一个 8 位值（8 位字节）。固定长度的数据有时被表示为一个字节数组，写
@@ -58,36 +57,11 @@ impl Data {
         Data(Vec::new())
     }
 
-    pub fn read<S>(stream: &mut S, len: usize) -> SshResult<Self>
-    where
-        S: Read,
-    {
-        let mut v = if len == 0 {
-            vec![0; 1460] // usually a packet len
-        } else {
-            vec![0; len]
-        };
-        loop {
-            match stream.read(&mut v) {
-                Ok(i) => {
-                    v.resize(i, 0);
-                    return Ok(Data(v));
-                }
-                Err(e) => {
-                    if let std::io::ErrorKind::WouldBlock = e.kind() {
-                        continue;
-                    } else {
-                        return Err(e.into());
-                    }
-                }
-            };
-        }
-    }
-
-    // 把字节数组置空
-    #[allow(dead_code)]
-    pub fn refresh(&mut self) {
-        self.0.clear();
+    #[allow(clippy::uninit_vec)]
+    pub fn uninit_new(len: usize) -> Data {
+        let mut v = Vec::with_capacity(len);
+        unsafe { v.set_len(len) }
+        Data(v)
     }
 
     // 无符号字节 8位
@@ -193,5 +167,17 @@ impl Deref for Data {
 impl DerefMut for Data {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl<'a> Packet<'a> for Data {
+    fn pack(self, client: &'a mut crate::client::Client) -> super::packet::SecPacket<'a> {
+        (self, client).into()
+    }
+    fn unpack(pkt: super::packet::SecPacket) -> SshResult<Self>
+    where
+        Self: Sized,
+    {
+        Ok(pkt.into_inner())
     }
 }

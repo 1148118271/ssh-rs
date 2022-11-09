@@ -1,8 +1,7 @@
-use crate::model::Data;
 use crate::model::Packet;
-use crate::model::WindowSize;
+use crate::model::{packet::SecPacket, Data};
 use crate::{client::Client, config::version::SshVersion};
-use crate::{constant, h::H, kex, SshError, SshResult};
+use crate::{constant, SshError, SshResult};
 use std::io::{Read, Write};
 
 impl<S> Client<S>
