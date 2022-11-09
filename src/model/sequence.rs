@@ -1,7 +1,9 @@
+use super::U32Iter;
+
 #[derive(Default)]
 pub(crate) struct Sequence {
-    client_sequence_num: SeqIter,
-    server_sequence_num: SeqIter,
+    client_sequence_num: U32Iter,
+    server_sequence_num: U32Iter,
 }
 
 impl Sequence {
@@ -17,28 +19,5 @@ impl Sequence {
         Self {
             ..Default::default()
         }
-    }
-}
-
-struct SeqIter {
-    num: u32,
-}
-
-impl Iterator for SeqIter {
-    type Item = u32;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.num == u32::MAX {
-            self.num = 0;
-        } else {
-            self.num += 1;
-        }
-        Some(self.num)
-    }
-}
-
-impl Default for SeqIter {
-    fn default() -> Self {
-        Self { num: u32::MAX }
     }
 }

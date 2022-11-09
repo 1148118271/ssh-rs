@@ -6,9 +6,7 @@ pub(crate) mod public_key;
 
 use crate::constant::algorithms as constant;
 
-use self::{
-    hash::HashCtx, key_exchange::KeyExchange, public_key::PublicKey,
-};
+use self::{hash::HashCtx, key_exchange::KeyExchange};
 
 pub enum Enc {
     Chacha20Poly1305Openssh,
@@ -82,7 +80,6 @@ impl Compress {
 #[derive(Default)]
 pub(crate) struct Digest {
     pub hash_ctx: HashCtx,
-    pub pubkey: Option<Box<dyn PublicKey>>,
     pub key_exchange: Option<Box<dyn KeyExchange>>,
 }
 

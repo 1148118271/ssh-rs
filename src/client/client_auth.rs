@@ -4,7 +4,7 @@ use crate::{
     algorithm::Digest,
     constant::{ssh_msg_code, ssh_str},
     error::{SshError, SshResult},
-    model::{packet::SecPacket, Data, Packet},
+    model::{Data, Packet, SecPacket},
 };
 
 use super::Client;
@@ -21,7 +21,7 @@ impl Client {
 
         let mut tried_public_key = false;
         loop {
-            let mut data = SecPacket::from_stream(stream, 0, self)?.into_inner();
+            let mut data = Data::unpack(SecPacket::from_stream(stream, 0, self)?)?;
             let message_code = data.get_u8();
             match message_code {
                 ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {

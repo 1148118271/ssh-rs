@@ -80,16 +80,12 @@ where
         }
         Ok(())
     }
-
     pub fn open_shell(self) -> SshResult<ChannelShell<S>> {
         log::info!("shell opened.");
         ChannelShell::open(self)
     }
 
-    pub fn open_exec(self) -> SshResult<ChannelExec<S>> {
-        log::info!("exec opened.");
-        Ok(ChannelExec::open(self))
-    }
+
 
     pub fn open_scp(self) -> SshResult<ChannelScp<S>> {
         log::info!("scp opened.");

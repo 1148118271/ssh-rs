@@ -248,7 +248,7 @@
 //!
 
 pub mod algorithm;
-// mod channel;
+mod channel;
 mod client;
 mod config;
 mod constant;
@@ -260,7 +260,7 @@ mod util;
 pub mod error;
 
 // pub use channel::{Channel, ChannelExec, ChannelScp, ChannelShell};
-pub use session::Session;
+pub use session::{BackendSession, LocalSession, SessionBuilder};
 
 use crate::error::{SshError, SshResult};
 

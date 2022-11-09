@@ -1,4 +1,9 @@
 // pub(crate) use session_inner::SessionInner;
+mod session_backend;
+mod session_local;
+
+pub use session_backend::BackendSession;
+pub use session_local::LocalSession;
 
 use std::{
     io::{Read, Write},
@@ -23,14 +28,14 @@ where
     Connected(Client, S),
 }
 
-pub struct Session<S>
+pub struct SessionConnector<S>
 where
     S: Read + Write,
 {
     inner: SessionState<S>,
 }
 
-impl<S> Session<S>
+impl<S> SessionConnector<S>
 where
     S: Read + Write,
 {
@@ -74,6 +79,24 @@ where
             _ => unreachable!(),
         }
     }
+
+    /// To run this ssh session on the local thread
+    ///
+    /// It will return a `local session` which doesn't support multithread currency
+    ///
+    pub fn local(self) -> LocalSession<S> {
+        if let SessionState::Connected(client, stream) = self.inner {
+            LocalSession::new(client, stream)
+        } else {
+            unreachable!("Why you here?")
+        }
+    }
+
+    /// To spwan a new thread to run this ssh session
+    ///
+    /// It will return a `backend session` which supports multithread
+    ///
+    pub fn backend(self) {}
 
     pub fn close(self) {
         drop(self)
@@ -189,7 +212,7 @@ impl SessionBuilder {
         self
     }
 
-    pub fn connect<A>(self, addr: A) -> SshResult<Session<TcpStream>>
+    pub fn connect<A>(self, addr: A) -> SshResult<SessionConnector<TcpStream>>
     where
         A: ToSocketAddrs,
     {
@@ -200,11 +223,11 @@ impl SessionBuilder {
         self.connect_bio(tcp)
     }
 
-    pub fn connect_bio<S>(self, stream: S) -> SshResult<Session<S>>
+    pub fn connect_bio<S>(self, stream: S) -> SshResult<SessionConnector<S>>
     where
         S: Read + Write,
     {
-        Session {
+        SessionConnector {
             inner: SessionState::Init(self.config, stream),
         }
         .connect()

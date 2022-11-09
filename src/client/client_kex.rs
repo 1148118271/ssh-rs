@@ -11,7 +11,7 @@ use crate::{
     config::{algorithm::AlgList, version::SshVersion},
     constant::ssh_msg_code,
     error::{SshError, SshResult},
-    model::{packet::SecPacket, Data, Packet},
+    model::{Data, Packet, SecPacket},
 };
 use std::io::{Read, Write};
 
@@ -67,7 +67,6 @@ impl Client {
         self.session_id = session_id;
         self.negotiated = negotiated;
         self.encryptor = encryption;
-        digest.pubkey = Some(public_key);
         digest.key_exchange = Some(key_exchange);
 
         log::info!("key negotiation successful.");

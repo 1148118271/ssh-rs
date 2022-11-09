@@ -2,7 +2,7 @@ use crate::{
     client::Client,
     constant::{algorithms as constant, ssh_msg_code},
     error::{SshError, SshResult},
-    model::{packet::SecPacket, Data, Packet},
+    model::{Data, Packet, SecPacket},
     util,
 };
 
@@ -142,7 +142,7 @@ impl AlgList {
 }
 
 impl<'a> Packet<'a> for AlgList {
-    fn pack(self, client: &'a mut Client) -> crate::model::packet::SecPacket<'a> {
+    fn pack(self, client: &'a mut Client) -> crate::model::SecPacket<'a> {
         log::info!("client algorithms: [{:?}]", self);
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);

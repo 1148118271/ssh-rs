@@ -54,21 +54,18 @@ impl WindowSize {
     pub(crate) fn process_remote_window_size<S>(
         &mut self,
         data: &[u8],
-        client: &mut Client<S>,
-    ) -> SshResult<()>
-    where
-        S: Read + Write,
-    {
-        let size = match self.get_size(data) {
-            None => return Ok(()),
-            Some(size) => size,
-        };
+        client: &mut Client,
+    ) -> SshResult<()> {
+        // let size = match self.get_size(data) {
+        //     None => return Ok(()),
+        //     Some(size) => size,
+        // };
 
-        if size > self.remote_window_size {
-            return self.read_window_size(client);
-        }
+        // if size > self.remote_window_size {
+        //     return self.read_window_size(client);
+        // }
 
-        self.remote_window_size -= size;
+        // self.remote_window_size -= size;
 
         Ok(())
     }
@@ -77,24 +74,21 @@ impl WindowSize {
         self.remote_window_size += rws;
     }
 
-    pub(crate) fn read_window_size<S>(&mut self, client: &mut Client<S>) -> SshResult<()>
-    where
-        S: Read + Write,
-    {
-        let results = client.read()?;
-        if results.is_empty() {
-            return Ok(());
-        }
-        for mut data in results {
-            let mc = data.get_u8();
-            if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
-                // 接收方 通道编号 暂不处理
-                data.get_u32();
-                // 远程客户端调整的窗口大小
-                let size = data.get_u32();
-                self.remote_window_size += size;
-            }
-        }
+    pub(crate) fn read_window_size<S>(&mut self, client: &mut Client) -> SshResult<()> {
+        // let results = client.read()?;
+        // if results.is_empty() {
+        //     return Ok(());
+        // }
+        // for mut data in results {
+        //     let mc = data.get_u8();
+        //     if ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST == mc {
+        //         // 接收方 通道编号 暂不处理
+        //         data.get_u32();
+        //         // 远程客户端调整的窗口大小
+        //         let size = data.get_u32();
+        //         self.remote_window_size += size;
+        //     }
+        // }
         Ok(())
     }
 }
@@ -103,25 +97,22 @@ impl WindowSize {
     pub(crate) fn process_local_window_size<S>(
         &mut self,
         data: &[u8],
-        client: &mut Client<S>,
-    ) -> SshResult<()>
-    where
-        S: Read + Write,
-    {
-        let size = match self.get_size(data) {
-            None => return Ok(()),
-            Some(size) => size,
-        };
-        if self.local_window_size <= size {
-            let used = LOCAL_WINDOW_SIZE - self.local_window_size;
-            let mut data = Data::new();
-            data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
-                .put_u32(self.server_channel_no)
-                .put_u32(used);
-            client.write(data)?;
-            self.local_window_size += used;
-        }
-        self.local_window_size -= size;
+        client: &mut Client,
+    ) -> SshResult<()> {
+        // let size = match self.get_size(data) {
+        //     None => return Ok(()),
+        //     Some(size) => size,
+        // };
+        // if self.local_window_size <= size {
+        //     let used = LOCAL_WINDOW_SIZE - self.local_window_size;
+        //     let mut data = Data::new();
+        //     data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
+        //         .put_u32(self.server_channel_no)
+        //         .put_u32(used);
+        //     client.write(data)?;
+        //     self.local_window_size += used;
+        // }
+        // self.local_window_size -= size;
         Ok(())
     }
 }
