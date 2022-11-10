@@ -11,7 +11,12 @@ use crate::{
     model::{Data, FlowControl, Packet, RcMut, SecPacket},
 };
 
-use super::{ChannelExec, ChannelScp};
+use super::{ChannelExec, ChannelScp, ChannelShell};
+
+pub(super) enum ChannelTryRead {
+    Data(Vec<u8>),
+    Code(u8),
+}
 
 pub struct Channel<S>
 where
@@ -62,6 +67,13 @@ where
         Ok(ChannelScp::open(self))
     }
 
+    /// convert the raw channel to an [self::ChannelShell]
+    ///
+    pub fn shell(self) -> SshResult<ChannelShell<S>> {
+        log::info!("shell opened.");
+        ChannelShell::open(self)
+    }
+
     /// close the channel gracefully, but donnot consume it
     ///
     pub fn close(&mut self) -> SshResult<()> {
@@ -89,14 +101,14 @@ where
         Ok(())
     }
 
-    pub(crate) fn send(&mut self, data: Data) -> SshResult<()> {
+    pub(super) fn send(&mut self, data: Data) -> SshResult<()> {
         data.pack(&mut self.client.borrow_mut())
             .write_stream(&mut *self.stream.borrow_mut(), 0)
     }
 
     // only send SSH_MSG_CHANNEL_DATA will call this,
     // for auto adjust the window size
-    pub(crate) fn send_data(&mut self, mut buf: Vec<u8>) -> SshResult<Vec<u8>> {
+    pub(super) fn send_data(&mut self, mut buf: Vec<u8>) -> SshResult<Vec<u8>> {
         let mut maybe_response = vec![];
 
         loop {
@@ -121,7 +133,7 @@ where
             while !self.flow_control.can_send() {
                 let buf = self.try_recv()?;
 
-                if let Some(mut data) = buf {
+                if let ChannelTryRead::Data(mut data) = buf {
                     maybe_response.append(&mut data);
                 }
             }
@@ -130,12 +142,12 @@ where
         Ok(maybe_response)
     }
 
-    pub(crate) fn recv(&mut self, wait_peer_close: bool) -> SshResult<Vec<u8>> {
+    pub(super) fn recv(&mut self, wait_peer_close: bool) -> SshResult<Vec<u8>> {
         let mut buf = vec![];
         while !self.is_close() {
             let maybe_recv = self.try_recv()?;
 
-            if let Some(mut data) = maybe_recv {
+            if let ChannelTryRead::Data(mut data) = maybe_recv {
                 buf.append(&mut data);
                 if !wait_peer_close {
                     break;
@@ -145,7 +157,7 @@ where
         Ok(buf)
     }
 
-    fn try_recv(&mut self) -> SshResult<Option<Vec<u8>>> {
+    pub(super) fn try_recv(&mut self) -> SshResult<ChannelTryRead> {
         let mut data = Data::unpack(SecPacket::from_stream(
             &mut *self.stream.borrow_mut(),
             0,
@@ -154,7 +166,7 @@ where
 
         let message_code = data.get_u8();
         match message_code {
-            ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
+            x @ ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                 let cc = data.get_u32();
                 if cc == self.client_channel_no {
                     let mut data = data.get_u8s();
@@ -163,45 +175,53 @@ where
                     self.flow_control.tune_on_recv(&mut data);
                     self.send_window_adjust(data.len() as u32)?;
 
-                    return Ok(Some(data));
+                    return Ok(ChannelTryRead::Data(data));
                 }
+                Ok(ChannelTryRead::Code(x))
             }
-            ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
+            x @ ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
                 data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
                 self.send(data)?;
+                Ok(ChannelTryRead::Code(x))
             }
             // 通道大小
-            ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
+            x @ ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
                 // 接收方通道号， 暂时不需要
                 data.get_u32();
                 // 需要调整增加的窗口大小
                 let rws = data.get_u32();
                 self.recv_window_adjust(rws)?;
+                Ok(ChannelTryRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_EOF => {
-                log::debug!("Currently ignore message {}", x)
+                log::debug!("Currently ignore message {}", x);
+                Ok(ChannelTryRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {
-                log::debug!("Currently ignore message {}", x)
+                log::debug!("Currently ignore message {}", x);
+                Ok(ChannelTryRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {
-                log::debug!("Currently ignore message {}", x)
+                log::debug!("Currently ignore message {}", x);
+                Ok(ChannelTryRead::Code(x))
             }
-            ssh_msg_code::SSH_MSG_CHANNEL_FAILURE => {
-                return Err(SshError::from("channel failure."))
-            }
-            ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
+            ssh_msg_code::SSH_MSG_CHANNEL_FAILURE => Err(SshError::from("channel failure.")),
+            x @ ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
                 let cc = data.get_u32();
                 if cc == self.client_channel_no {
                     self.remote_close = true;
                     self.send_close()?;
                 }
+                Ok(ChannelTryRead::Code(x))
             }
-            x => log::debug!("Currently ignore message {}", x),
+            x => {
+                log::debug!("Currently ignore message {}", x);
+                Ok(ChannelTryRead::Code(x))
+            }
         }
-        Ok(None)
     }
+
     fn send_window_adjust(&mut self, to_add: u32) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)

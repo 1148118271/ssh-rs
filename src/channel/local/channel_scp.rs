@@ -14,7 +14,7 @@ use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Write},
     ops::{Deref, DerefMut},
-    path::{Path},
+    path::Path,
     time::SystemTime,
 };
 
