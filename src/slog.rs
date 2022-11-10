@@ -7,7 +7,7 @@ pub(crate) static SLOG: Slog = Slog;
 pub struct Slog;
 
 impl Slog {
-    pub fn init(level: LevelFilter) {
+    fn init(level: LevelFilter) {
         if let Err(e) = log::set_logger(&SLOG) {
             // 重复设置日志记录
             log::error!(
@@ -20,6 +20,10 @@ impl Slog {
     }
 
     pub fn default() {
+        Slog::init(LevelFilter::Info)
+    }
+
+    pub fn debug() {
         Slog::init(LevelFilter::Trace)
     }
 }

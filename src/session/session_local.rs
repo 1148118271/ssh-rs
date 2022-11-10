@@ -9,15 +9,15 @@ use crate::{
     client::Client,
     constant::{size, ssh_msg_code, ssh_str},
     error::{SshError, SshResult},
-    model::{Data, Packet, SecPacket, U32Iter, WindowSize},
+    model::{Data, Packet, RcMut, SecPacket, U32Iter},
 };
 
 pub struct LocalSession<S>
 where
     S: Read + Write,
 {
-    client: Rc<RefCell<Client>>,
-    stream: Rc<RefCell<S>>,
+    client: RcMut<Client>,
+    stream: RcMut<S>,
     channel_num: U32Iter,
 }
 
@@ -33,29 +33,38 @@ where
         }
     }
 
-    pub fn open_exec(&mut self) -> SshResult<LocalExec<S>> {
-        let channel = self.open_channel()?;
-        channel.open_exec()
+    /// close the local session and consume it
+    ///
+    pub fn close(self) {
+        log::info!("Client close");
+        drop(self)
     }
 
-    fn open_channel(&mut self) -> SshResult<LocalChannel<S>> {
+    /// open a [LocalExec] channel which can excute commands
+    ///
+    pub fn open_exec(&mut self) -> SshResult<LocalExec<S>> {
+        let channel = self.open_channel()?;
+        channel.exec()
+    }
+
+    /// open a raw channel
+    ///
+    /// need call `.exec()`, `.shell()`, `.scp()` and so on to convert it to a specific channel
+    ///
+    pub fn open_channel(&mut self) -> SshResult<LocalChannel<S>> {
         log::info!("channel opened.");
 
-        let channel_no = self.channel_num.next().unwrap();
-        self.send_open_channel(channel_no)?;
+        let client_channel_no = self.channel_num.next().unwrap();
+        self.send_open_channel(client_channel_no)?;
         let (server_channel_no, remote_window_size) = self.receive_open_channel()?;
-        let mut win_size = WindowSize::new();
-        win_size.server_channel_no = server_channel_no;
-        win_size.client_channel_no = channel_no;
-        win_size.add_remote_window_size(remote_window_size);
 
-        Ok(LocalChannel {
-            remote_close: false,
-            local_close: false,
-            window_size: win_size,
-            client: self.client.clone(),
-            stream: self.stream.clone(),
-        })
+        Ok(LocalChannel::new(
+            server_channel_no,
+            client_channel_no,
+            remote_window_size,
+            self.client.clone(),
+            self.stream.clone(),
+        ))
     }
 
     // 本地请求远程打开通道
@@ -135,7 +144,10 @@ where
                         .write_stream(&mut *self.stream.borrow_mut(), 0)?;
                     continue;
                 }
-                x => return Err(SshError::from(format!("Unknown Excepted code {}", x))),
+                x => {
+                    log::debug!("Ignore ssh msg {}", x);
+                    continue;
+                }
             }
         }
     }

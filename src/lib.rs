@@ -267,17 +267,28 @@ use crate::error::{SshError, SshResult};
 pub mod ssh {
     use crate::{session::SessionBuilder, slog::Slog};
 
+    /// create a session via session builder w/ default configuration
+    ///
     pub fn create_session() -> SessionBuilder {
         SessionBuilder::new()
     }
 
+    /// create a session via session builder w/o default configuration
+    ///
     pub fn create_session_without_default() -> SessionBuilder {
         SessionBuilder::disable_default()
     }
 
-    pub fn is_enable_log(b: bool) {
-        if b {
-            Slog::default()
-        }
+    /// set the global log level to `INFO`
+    ///
+    pub fn enable_log() {
+        Slog::default()
+    }
+
+    /// set the global log level to `TRACE`
+    ///
+    /// for diagnostic purposes only
+    pub fn debug() {
+        Slog::debug()
     }
 }

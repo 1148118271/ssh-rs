@@ -10,7 +10,7 @@ where
         let mut win_size = WindowSize::new();
         win_size.server_channel_no = server_channel_no;
         win_size.client_channel_no = self.client_channel_no;
-        win_size.add_remote_window_size(rws);
+        win_size.add_remote(rws);
 
         self.client_channel_no += 1;
 

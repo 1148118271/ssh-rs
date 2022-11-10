@@ -175,14 +175,14 @@ where
         lws: &mut Option<&mut WindowSize>,
     ) -> SshResult<bool> {
         if let Some(v) = lws {
-            v.process_local_window_size(data.as_slice(), self)?;
+            v.process_local(data.as_slice(), self)?;
             let mc = data[0];
             if mc == ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST {
                 data.get_u8();
                 // 接收方通道号， 暂时不需要
                 data.get_u32();
                 let size = data.get_u32();
-                v.add_remote_window_size(size);
+                v.add_remote(size);
                 return Ok(true);
             }
         }

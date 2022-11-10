@@ -61,7 +61,7 @@ where
                 result.get_u32();
                 // 需要调整增加的窗口大小
                 let rws = result.get_u32();
-                self.window_size.add_remote_window_size(rws);
+                self.window_size.add_remote(rws);
             }
             ssh_msg_code::SSH_MSG_CHANNEL_EOF => {}
             ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {}
@@ -95,7 +95,6 @@ where
     pub fn close(&mut self) -> SshResult<()> {
         log::info!("channel close.");
         self.send_close()?;
-        self.receive_close()
     }
 
     fn send_close(&mut self) -> SshResult<()> {

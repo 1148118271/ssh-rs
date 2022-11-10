@@ -19,7 +19,7 @@ where
     ) -> Result<(), SshError> {
         let buf = if self.is_encryption {
             if let Some(rws) = &mut rws {
-                rws.process_remote_window_size(data.as_slice(), self)?;
+                rws.process_remote(data.as_slice(), self)?;
             }
             self.w_size_one_gb(&mut rws)?;
             self.get_encryption_data(data)?

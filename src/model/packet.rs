@@ -66,25 +66,25 @@ where
     }
 }
 
-fn try_read<S>(stream: &mut S, _tm: u64, buf: &mut [u8]) -> SshResult<()>
-where
-    S: Read,
-{
-    loop {
-        match stream.read(buf) {
-            Ok(i) => {
-                return Ok(());
-            }
-            Err(e) => {
-                if let std::io::ErrorKind::WouldBlock = e.kind() {
-                    continue;
-                } else {
-                    return Err(e.into());
-                }
-            }
-        };
-    }
-}
+// fn try_read<S>(stream: &mut S, _tm: u64, buf: &mut [u8]) -> SshResult<()>
+// where
+//     S: Read,
+// {
+//     loop {
+//         match stream.read(buf) {
+//             Ok(_i) => {
+//                 return Ok(());
+//             }
+//             Err(e) => {
+//                 if let std::io::ErrorKind::WouldBlock = e.kind() {
+//                     continue;
+//                 } else {
+//                     return Err(e.into());
+//                 }
+//             }
+//         };
+//     }
+// }
 
 fn write_with_timeout<S>(stream: &mut S, _tm: u64, buf: &[u8]) -> SshResult<()>
 where

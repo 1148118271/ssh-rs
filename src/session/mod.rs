@@ -98,6 +98,8 @@ where
     ///
     pub fn backend(self) {}
 
+    /// close the session and consume it
+    ///
     pub fn close(self) {
         drop(self)
     }
@@ -223,6 +225,10 @@ impl SessionBuilder {
         self.connect_bio(tcp)
     }
 
+    /// connect to target server w/ a bio object
+    ///
+    /// which requires to implement `std::io::{Read, Write}`
+    ///
     pub fn connect_bio<S>(self, stream: S) -> SshResult<SessionConnector<S>>
     where
         S: Read + Write,
