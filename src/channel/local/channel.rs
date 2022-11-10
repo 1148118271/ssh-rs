@@ -1,8 +1,4 @@
-use std::{
-    cell::RefCell,
-    io::{Read, Write},
-    rc::Rc,
-};
+use std::io::{Read, Write};
 
 use crate::{
     client::Client,
@@ -11,7 +7,7 @@ use crate::{
     model::{Data, FlowControl, Packet, RcMut, SecPacket},
 };
 
-use super::{ChannelExec, ChannelScp, ChannelShell};
+use super::{ChannelExec, ChannelScp};
 
 pub(super) enum ChannelTryRead {
     Data(Vec<u8>),
@@ -27,8 +23,8 @@ where
     pub(crate) remote_close: bool,
     pub(crate) local_close: bool,
     pub(crate) flow_control: FlowControl,
-    pub(crate) client: Rc<RefCell<Client>>,
-    pub(crate) stream: Rc<RefCell<S>>,
+    pub(crate) client: RcMut<Client>,
+    pub(crate) stream: RcMut<S>,
 }
 
 impl<S> Channel<S>
@@ -65,13 +61,6 @@ where
     pub fn scp(self) -> SshResult<ChannelScp<S>> {
         log::info!("scp opened.");
         Ok(ChannelScp::open(self))
-    }
-
-    /// convert the raw channel to an [self::ChannelShell]
-    ///
-    pub fn shell(self) -> SshResult<ChannelShell<S>> {
-        log::info!("shell opened.");
-        ChannelShell::open(self)
     }
 
     /// close the channel gracefully, but donnot consume it

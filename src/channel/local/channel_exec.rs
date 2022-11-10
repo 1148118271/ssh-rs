@@ -7,7 +7,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-pub struct ChannelExec<S: Read + Write>(pub(crate) Channel<S>);
+pub struct ChannelExec<S: Read + Write>(Channel<S>);
 
 impl<S> ChannelExec<S>
 where

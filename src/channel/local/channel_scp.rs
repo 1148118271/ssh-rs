@@ -18,7 +18,7 @@ use std::{
     time::SystemTime,
 };
 
-pub struct ChannelScp<S: Read + Write>(pub(crate) Channel<S>);
+pub struct ChannelScp<S: Read + Write>(Channel<S>);
 
 fn check_path(path: &Path) -> SshResult<()> {
     if path.to_str().is_none() {

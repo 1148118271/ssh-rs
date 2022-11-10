@@ -6,7 +6,11 @@ mod flow_control;
 mod scp_file;
 mod u32iter;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    sync::{Arc, Mutex},
+};
 
 pub(crate) use data::Data;
 pub(crate) use flow_control::FlowControl;
@@ -16,3 +20,4 @@ pub(crate) use sequence::Sequence;
 pub(crate) use u32iter::U32Iter;
 
 pub(crate) type RcMut<T> = Rc<RefCell<T>>;
+pub(crate) type ArcMut<T> = Arc<Mutex<T>>;

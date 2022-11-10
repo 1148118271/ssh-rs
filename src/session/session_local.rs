@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    channel::{LocalChannel, LocalExec, LocalScp, LocalShell},
+    channel::{LocalChannel, LocalExec, LocalScp},
     client::Client,
     constant::{size, ssh_msg_code, ssh_str},
     error::{SshError, SshResult},
@@ -54,12 +54,7 @@ where
         channel.scp()
     }
 
-    /// open a [LocalShell] channel which  can be used as a pseudo terminal (AKA PTY)
-    ///
-    pub fn open_shell(&mut self) -> SshResult<LocalShell<S>> {
-        let channel = self.open_channel()?;
-        channel.shell()
-    }
+
 
     /// open a raw channel
     ///
