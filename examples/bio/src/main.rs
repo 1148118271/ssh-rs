@@ -2,19 +2,18 @@ use ssh_rs::ssh;
 use std::net::{TcpStream, ToSocketAddrs};
 
 fn main() {
+    ssh::debug();
+
     let bio = MyProxy::new("127.0.0.1:22");
+
     let mut session = ssh::create_session()
         .username("ubuntu")
         .password("password")
-        .build();
-    session.connect_bio(bio).unwrap();
-    // Usage 1
+        .private_key_path("./id_rsa")
+        .connect_bio(bio)
+        .unwrap()
+        .run_local();
     let exec = session.open_exec().unwrap();
-    let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
-    println!("{}", String::from_utf8(vec).unwrap());
-    // Usage 2
-    let channel = session.open_channel().unwrap();
-    let exec = channel.open_exec().unwrap();
     let vec: Vec<u8> = exec.send_command("ls -all").unwrap();
     println!("{}", String::from_utf8(vec).unwrap());
     // Close session.
@@ -39,12 +38,14 @@ impl MyProxy {
 
 impl std::io::Read for MyProxy {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        println!("bio log: read {} bytes", buf.len());
         self.server.read(buf)
     }
 }
 
 impl std::io::Write for MyProxy {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        println!("bio log: write {} bytes", buf.len());
         self.server.write(buf)
     }
 

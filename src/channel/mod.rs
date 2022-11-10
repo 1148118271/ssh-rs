@@ -16,3 +16,4 @@ mod local;
 
 pub(crate) use local::Channel as LocalChannel;
 pub use local::ChannelExec as LocalExec;
+pub use local::ChannelScp as LocalScp;

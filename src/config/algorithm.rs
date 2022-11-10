@@ -87,8 +87,8 @@ impl AlgList {
                     algorithms supported by the server: {},\
                     algorithms supported by the client: {}",
                             $err_hint,
-                            $their.key_exchange.to_string(),
-                            $our.key_exchange.to_string()
+                            $their.$field.to_string(),
+                            $our.$field.to_string()
                         );
                         SshError::from("key exchange error.")
                     })

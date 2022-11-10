@@ -27,10 +27,5 @@ where
         let channel = self.open_channel()?;
         channel.open_shell()
     }
-
-    pub fn open_scp(&mut self) -> SshResult<ChannelScp<S>> {
-        let channel = self.open_channel()?;
-        channel.open_scp()
-    }
 }
 

@@ -259,7 +259,7 @@ mod util;
 
 pub mod error;
 
-// pub use channel::{Channel, ChannelExec, ChannelScp, ChannelShell};
+pub use channel::*;
 pub use session::{BackendSession, LocalSession, SessionBuilder};
 
 use crate::error::{SshError, SshResult};

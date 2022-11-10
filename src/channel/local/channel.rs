@@ -11,7 +11,7 @@ use crate::{
     model::{Data, FlowControl, Packet, RcMut, SecPacket},
 };
 
-use super::ChannelExec;
+use super::{ChannelExec, ChannelScp};
 
 pub struct Channel<S>
 where
@@ -48,11 +48,18 @@ where
         }
     }
 
-    /// convert the raw channel to an [ChannelExec]
+    /// convert the raw channel to an [self::ChannelExec]
     ///
     pub fn exec(self) -> SshResult<ChannelExec<S>> {
         log::info!("exec opened.");
         Ok(ChannelExec::open(self))
+    }
+
+    /// convert the raw channel to an [self::ChannelScp]
+    ///
+    pub fn scp(self) -> SshResult<ChannelScp<S>> {
+        log::info!("scp opened.");
+        Ok(ChannelScp::open(self))
     }
 
     /// close the channel gracefully, but donnot consume it
@@ -94,7 +101,7 @@ where
 
         loop {
             // first adjust the data to the max size we can send
-            let (to_send, maybe_remain) = self.flow_control.tune_local(buf);
+            let (to_send, maybe_remain) = self.flow_control.tune_on_send(buf);
 
             // send it
             let mut data = Data::new();
@@ -153,7 +160,7 @@ where
                     let mut data = data.get_u8s();
 
                     // flow_control
-                    self.flow_control.tune_remote(&mut data);
+                    self.flow_control.tune_on_recv(&mut data);
                     self.send_window_adjust(data.len() as u32)?;
 
                     return Ok(Some(data));
@@ -200,12 +207,12 @@ where
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
             .put_u32(self.server_channel_no)
             .put_u32(to_add);
-        self.flow_control.add_local(to_add);
+        self.flow_control.on_send(to_add);
         self.send(data)
     }
 
     fn recv_window_adjust(&mut self, to_add: u32) -> SshResult<()> {
-        self.flow_control.add_remote(to_add);
+        self.flow_control.on_recv(to_add);
         Ok(())
     }
 

@@ -2,7 +2,10 @@ use crate::error::{SshError, SshResult};
 use crate::slog::log;
 use rand::rngs::OsRng;
 use rand::Rng;
-use std::str::FromStr;
+use std::{
+    str::FromStr,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
     match String::from_utf8(v) {
@@ -15,15 +18,15 @@ pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
     }
 }
 
-// pub(crate) fn sys_time_to_secs(time: SystemTime) -> SshResult<u64> {
-//     match time.duration_since(UNIX_EPOCH) {
-//         Ok(t) => Ok(t.as_secs()),
-//         Err(e) => Err(SshError::from(format!(
-//             "SystemTimeError difference: {:?}",
-//             e.duration()
-//         ))),
-//     }
-// }
+pub(crate) fn sys_time_to_secs(time: SystemTime) -> SshResult<u64> {
+    match time.duration_since(UNIX_EPOCH) {
+        Ok(t) => Ok(t.as_secs()),
+        Err(e) => Err(SshError::from(format!(
+            "SystemTimeError difference: {:?}",
+            e.duration()
+        ))),
+    }
+}
 
 // 十六位随机数
 pub(crate) fn cookie() -> Vec<u8> {

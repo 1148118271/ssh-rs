@@ -82,9 +82,9 @@ where
 
     /// To run this ssh session on the local thread
     ///
-    /// It will return a `local session` which doesn't support multithread currency
+    /// It will return a [LocalSession] which doesn't support multithread currency
     ///
-    pub fn local(self) -> LocalSession<S> {
+    pub fn run_local(self) -> LocalSession<S> {
         if let SessionState::Connected(client, stream) = self.inner {
             LocalSession::new(client, stream)
         } else {
@@ -94,9 +94,9 @@ where
 
     /// To spwan a new thread to run this ssh session
     ///
-    /// It will return a `backend session` which supports multithread
+    /// It will return a [BackendSession] which supports multithread
     ///
-    pub fn backend(self) {}
+    pub fn run_backend(self) {}
 
     /// close the session and consume it
     ///

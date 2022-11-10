@@ -17,7 +17,7 @@ impl FlowControl {
         }
     }
 
-    pub fn tune_remote(&mut self, buf: &mut Vec<u8>) {
+    pub fn tune_on_recv(&mut self, buf: &mut Vec<u8>) {
         let recv_len = buf.len() as u32;
 
         if self.local_window >= recv_len {
@@ -30,7 +30,7 @@ impl FlowControl {
         }
     }
 
-    pub fn tune_local(&mut self, mut buf: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
+    pub fn tune_on_send(&mut self, mut buf: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
         let want_send = buf.len();
 
         let can_send = {
@@ -50,11 +50,11 @@ impl FlowControl {
         (buf, remain)
     }
 
-    pub fn add_remote(&mut self, size: u32) {
+    pub fn on_recv(&mut self, size: u32) {
         self.remote_window += size
     }
 
-    pub fn add_local(&mut self, size: u32) {
+    pub fn on_send(&mut self, size: u32) {
         self.local_window += size
     }
 

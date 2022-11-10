@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    channel::{LocalChannel, LocalExec},
+    channel::{LocalChannel, LocalExec, LocalScp},
     client::Client,
     constant::{size, ssh_msg_code, ssh_str},
     error::{SshError, SshResult},
@@ -45,6 +45,11 @@ where
     pub fn open_exec(&mut self) -> SshResult<LocalExec<S>> {
         let channel = self.open_channel()?;
         channel.exec()
+    }
+
+    pub fn open_scp(&mut self) -> SshResult<LocalScp<S>> {
+        let channel = self.open_channel()?;
+        channel.scp()
     }
 
     /// open a raw channel
