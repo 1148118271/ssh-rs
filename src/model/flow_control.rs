@@ -46,6 +46,8 @@ impl FlowControl {
             can_send
         };
 
+        self.remote_window -= can_send as u32;
+
         let remain = buf.split_off(can_send);
         (buf, remain)
     }

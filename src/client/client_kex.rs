@@ -16,7 +16,12 @@ use crate::{
 use std::io::{Read, Write};
 
 impl Client {
-    pub fn key_agreement<S>(&mut self, stream: &mut S, digest: &mut Digest) -> SshResult<()>
+    pub fn key_agreement<S>(
+        &mut self,
+        stream: &mut S,
+        server_algs: AlgList,
+        digest: &mut Digest,
+    ) -> SshResult<()>
     where
         S: Read + Write,
     {
@@ -34,9 +39,6 @@ impl Client {
         digest.hash_ctx.set_i_c(client_algs.get_inner());
         client_algs.write_stream(stream, 0)?;
 
-        let server_algs = SecPacket::from_stream(stream, 0, self)?;
-        digest.hash_ctx.set_i_s(server_algs.get_inner());
-        let server_algs = AlgList::unpack(server_algs)?;
         let negotiated = self.config.algs.match_with(&server_algs)?;
 
         // key exchange algorithm
@@ -45,12 +47,22 @@ impl Client {
 
         // host key algorithm
         let mut public_key = public_key::from(negotiated.public_key.0[0].as_str());
-        let session_id = self.verify_signature_and_new_keys(
-            stream,
-            &mut public_key,
-            &mut key_exchange,
-            &mut digest.hash_ctx,
-        )?;
+
+        // generate session id
+        let session_id = {
+            let session_id = self.verify_signature_and_new_keys(
+                stream,
+                &mut public_key,
+                &mut key_exchange,
+                &mut digest.hash_ctx,
+            )?;
+
+            if self.session_id.is_empty() {
+                session_id
+            } else {
+                self.session_id.clone()
+            }
+        };
 
         let hash = hash::Hash::new(
             digest.hash_ctx.clone(),

@@ -14,6 +14,7 @@ impl Client {
     where
         S: Read + Write,
     {
+        log::info!("Auth start");
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);

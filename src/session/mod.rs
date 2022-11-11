@@ -14,8 +14,9 @@ use std::{
 use crate::{
     algorithm::{Compress, Digest, Enc, Kex, Mac, PubKey},
     client::Client,
-    config::{version::SshVersion, Config},
+    config::{algorithm::AlgList, version::SshVersion, Config},
     error::SshResult,
+    model::{Packet, SecPacket},
 };
 
 enum SessionState<S>
@@ -70,7 +71,10 @@ where
                 // before auth,
                 // we should have a key exchange at first
                 let mut digest = Digest::new();
-                client.key_agreement(&mut stream, &mut digest)?;
+                let server_algs = SecPacket::from_stream(&mut stream, 0, &mut client)?;
+                digest.hash_ctx.set_i_s(server_algs.get_inner());
+                let server_algs = AlgList::unpack(server_algs)?;
+                client.key_agreement(&mut stream, server_algs, &mut digest)?;
                 client.do_auth(&mut stream, &mut digest)?;
                 Ok(Self {
                     inner: SessionState::Connected(client, stream),

@@ -1,6 +1,6 @@
 use super::channel::Channel;
 use crate::{
-    constant::{permission, scp},
+    constant::{permission, scp, size},
     error::SshResult,
     model::ScpFile,
 };
@@ -202,7 +202,7 @@ where
 
         let mut count = 0;
         loop {
-            let mut s = [0u8; 3072];
+            let mut s = [0u8; size::BUF_SIZE];
             let i = file.read(&mut s)?;
             count += i;
             self.send_bytes(&s[..i])?;

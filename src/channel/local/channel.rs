@@ -1,7 +1,9 @@
 use std::io::{Read, Write};
 
 use crate::{
+    algorithm::Digest,
     client::Client,
+    config::algorithm::AlgList,
     constant::ssh_msg_code,
     error::{SshError, SshResult},
     model::{Data, FlowControl, Packet, RcMut, SecPacket},
@@ -155,6 +157,19 @@ where
 
         let message_code = data.get_u8();
         match message_code {
+            x @ ssh_msg_code::SSH_MSG_KEXINIT => {
+                data.insert(0, message_code);
+                let mut digest = Digest::new();
+                digest.hash_ctx.set_i_s(&data);
+                let server_algs = AlgList::unpack((data, &mut *self.client.borrow_mut()).into())?;
+                self.client.borrow_mut().key_agreement(
+                    &mut *self.stream.borrow_mut(),
+                    server_algs,
+                    &mut digest,
+                )?;
+                self.send_window_adjust(1)?;
+                return Ok(ChannelTryRead::Code(x));
+            }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                 let cc = data.get_u32();
                 if cc == self.client_channel_no {
