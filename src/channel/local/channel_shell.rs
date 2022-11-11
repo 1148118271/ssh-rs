@@ -7,11 +7,11 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-pub struct ChannelShell<S: Read + Write>(pub(crate) Channel<S>);
+pub struct ChannelShell<S: Read + Write + Send + 'static>(pub(crate) Channel<S>);
 
 impl<S> ChannelShell<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     pub(crate) fn open(channel: Channel<S>) -> SshResult<Self> {
         // shell 形式需要一个伪终端
@@ -70,7 +70,7 @@ where
 
 impl<S> Deref for ChannelShell<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     type Target = Channel<S>;
     fn deref(&self) -> &Self::Target {
@@ -80,7 +80,7 @@ where
 
 impl<S> DerefMut for ChannelShell<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0

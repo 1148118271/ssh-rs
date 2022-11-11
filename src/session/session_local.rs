@@ -14,7 +14,7 @@ use crate::{
 
 pub struct LocalSession<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     client: RcMut<Client>,
     stream: RcMut<S>,
@@ -23,7 +23,7 @@ where
 
 impl<S> LocalSession<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     pub(crate) fn new(client: Client, stream: S) -> Self {
         Self {
@@ -53,8 +53,6 @@ where
         let channel = self.open_channel()?;
         channel.scp()
     }
-
-
 
     /// open a raw channel
     ///

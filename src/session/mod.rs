@@ -21,7 +21,7 @@ use crate::{
 
 enum SessionState<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     Init(Config, S),
     Version(Config, S),
@@ -31,14 +31,14 @@ where
 
 pub struct SessionConnector<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     inner: SessionState<S>,
 }
 
 impl<S> SessionConnector<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     fn connect(self) -> SshResult<Self> {
         match self.inner {
@@ -235,7 +235,7 @@ impl SessionBuilder {
     ///
     pub fn connect_bio<S>(self, stream: S) -> SshResult<SessionConnector<S>>
     where
-        S: Read + Write,
+        S: Read + Write + Send + 'static,
     {
         SessionConnector {
             inner: SessionState::Init(self.config, stream),

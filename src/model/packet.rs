@@ -66,25 +66,25 @@ where
     }
 }
 
-// fn try_read<S>(stream: &mut S, _tm: u64, buf: &mut [u8]) -> SshResult<()>
-// where
-//     S: Read,
-// {
-//     loop {
-//         match stream.read(buf) {
-//             Ok(_i) => {
-//                 return Ok(());
-//             }
-//             Err(e) => {
-//                 if let std::io::ErrorKind::WouldBlock = e.kind() {
-//                     continue;
-//                 } else {
-//                     return Err(e.into());
-//                 }
-//             }
-//         };
-//     }
-// }
+fn try_read<S>(stream: &mut S, _tm: u64, buf: &mut [u8]) -> SshResult<()>
+where
+    S: Read,
+{
+    loop {
+        match stream.read(buf) {
+            Ok(_i) => {
+                return Ok(());
+            }
+            Err(e) => {
+                if let std::io::ErrorKind::WouldBlock = e.kind() {
+                    return Ok(());
+                } else {
+                    return Err(e.into());
+                }
+            }
+        };
+    }
+}
 
 fn write_with_timeout<S>(stream: &mut S, _tm: u64, buf: &[u8]) -> SshResult<()>
 where
@@ -198,6 +198,52 @@ impl<'a> SecPacket<'a> {
         let payload = data[5..payload_len as usize + 5].into();
 
         Ok(Self { payload, client })
+    }
+
+    pub fn try_from_stream<S>(
+        stream: &mut S,
+        tm: u64,
+        client: &'a mut Client,
+    ) -> SshResult<Option<Self>>
+    where
+        S: Read,
+    {
+        let bsize = {
+            let bsize = client.get_encryptor().bsize();
+            if bsize > 8 {
+                bsize
+            } else {
+                8
+            }
+        };
+
+        // read the first block
+        let mut first_block = vec![0; bsize];
+        try_read(stream, tm, &mut first_block)?;
+        if first_block.is_empty() {
+            return Ok(None);
+        }
+
+        // detect the total len
+        let seq = client.get_seq().get_server();
+        let data_len = client.get_encryptor().data_len(seq, &first_block);
+
+        // read remain
+        let mut data = Data::uninit_new(data_len);
+        data[0..bsize].clone_from_slice(&first_block);
+        read_with_timeout(stream, tm, &mut data[bsize..])?;
+
+        // decrypt all
+        let data = client.get_encryptor().decrypt(seq, &mut data)?;
+
+        // unpacking
+        let pkt_len = u32::from_be_bytes(data[0..4].try_into().unwrap());
+        let pad_len = data[4];
+        let payload_len = pkt_len - pad_len as u32 - 1;
+
+        let payload = data[5..payload_len as usize + 5].into();
+
+        Ok(Some(Self { payload, client }))
     }
 
     pub fn get_inner(&self) -> &[u8] {

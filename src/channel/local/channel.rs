@@ -18,7 +18,7 @@ pub(super) enum ChannelTryRead {
 
 pub struct Channel<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     pub(crate) server_channel_no: u32,
     pub(crate) client_channel_no: u32,
@@ -31,7 +31,7 @@ where
 
 impl<S> Channel<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     pub(crate) fn new(
         server_channel_no: u32,

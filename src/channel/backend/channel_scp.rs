@@ -7,22 +7,16 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-pub struct ChannelScp<S: Read + Write>(Channel<S>, Vec<u8>);
+pub struct ChannelScp(Channel, Vec<u8>);
 
-impl<S> Deref for ChannelScp<S>
-where
-    S: Read + Write,
-{
-    type Target = Channel<S>;
+impl Deref for ChannelScp {
+    type Target = Channel;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<S> DerefMut for ChannelScp<S>
-where
-    S: Read + Write,
-{
+impl DerefMut for ChannelScp {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

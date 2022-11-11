@@ -7,11 +7,11 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-pub struct ChannelExec<S: Read + Write>(Channel<S>);
+pub struct ChannelExec<S: Read + Write + Send + 'static>(Channel<S>);
 
 impl<S> ChannelExec<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     pub(crate) fn open(channel: Channel<S>) -> Self {
         ChannelExec(channel)
@@ -38,7 +38,7 @@ where
 
 impl<S> Deref for ChannelExec<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     type Target = Channel<S>;
     fn deref(&self) -> &Self::Target {
@@ -48,7 +48,7 @@ where
 
 impl<S> DerefMut for ChannelExec<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0

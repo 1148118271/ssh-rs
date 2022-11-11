@@ -12,7 +12,7 @@ use super::Client;
 impl Client {
     pub fn do_auth<S>(&mut self, stream: &mut S, digest: &mut Digest) -> SshResult<()>
     where
-        S: Read + Write,
+        S: Read + Write + Send + 'static,
     {
         log::info!("Auth start");
         let mut data = Data::new();

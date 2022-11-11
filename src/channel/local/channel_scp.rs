@@ -18,7 +18,7 @@ use std::{
     time::SystemTime,
 };
 
-pub struct ChannelScp<S: Read + Write>(Channel<S>);
+pub struct ChannelScp<S: Read + Write + Send + 'static>(Channel<S>);
 
 fn check_path(path: &Path) -> SshResult<()> {
     if path.to_str().is_none() {
@@ -43,7 +43,7 @@ fn file_time(v: Vec<u8>) -> SshResult<(i64, i64)> {
 
 impl<S> ChannelScp<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     pub(crate) fn open(channel: Channel<S>) -> Self {
         ChannelScp(channel)
@@ -94,7 +94,7 @@ where
 // upload related
 impl<S> ChannelScp<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     pub fn upload<P: AsRef<OsStr> + ?Sized>(
         mut self,
@@ -265,7 +265,7 @@ where
 // download related
 impl<S> ChannelScp<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     ///   download
     pub fn download<P: AsRef<OsStr> + ?Sized>(
@@ -511,7 +511,7 @@ where
 
 impl<S> Deref for ChannelScp<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     type Target = Channel<S>;
     fn deref(&self) -> &Self::Target {
@@ -521,7 +521,7 @@ where
 
 impl<S> DerefMut for ChannelScp<S>
 where
-    S: Read + Write,
+    S: Read + Write + Send + 'static,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
