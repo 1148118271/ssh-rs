@@ -3,6 +3,8 @@ use std::io::{Read, Write};
 use crate::error::SshResult;
 use crate::{client::Client, model::Data};
 
+use super::timeout::Timeout;
+
 /// ## 数据包整体结构
 ///
 /// ### uint32 `packet_length`
@@ -38,12 +40,13 @@ use crate::{client::Client, model::Data};
 /// **mac**
 /// 消息验证码。如果已经协商了消息验证，该域包含 MAC。初始时，MAC 算法必须是"none"。
 
-fn read_with_timeout<S>(stream: &mut S, _tm: u64, buf: &mut [u8]) -> SshResult<()>
+fn read_with_timeout<S>(stream: &mut S, tm: u64, buf: &mut [u8]) -> SshResult<()>
 where
     S: Read,
 {
     let want_len = buf.len();
     let mut offset = 0;
+    let mut timeout = Timeout::new(tm);
 
     loop {
         match stream.read(&mut buf[offset..]) {
@@ -52,11 +55,13 @@ where
                 if offset == want_len {
                     return Ok(());
                 } else {
+                    timeout.renew();
                     continue;
                 }
             }
             Err(e) => {
                 if let std::io::ErrorKind::WouldBlock = e.kind() {
+                    timeout.test()?;
                     continue;
                 } else {
                     return Err(e.into());
@@ -82,12 +87,13 @@ where
     }
 }
 
-fn write_with_timeout<S>(stream: &mut S, _tm: u64, buf: &[u8]) -> SshResult<()>
+fn write_with_timeout<S>(stream: &mut S, tm: u64, buf: &[u8]) -> SshResult<()>
 where
     S: Write,
 {
     let want_len = buf.len();
     let mut offset = 0;
+    let mut timeout = Timeout::new(tm);
 
     loop {
         match stream.write(&buf[offset..]) {
@@ -96,11 +102,13 @@ where
                 if offset == want_len {
                     return Ok(());
                 } else {
+                    timeout.renew();
                     continue;
                 }
             }
             Err(e) => {
                 if let std::io::ErrorKind::WouldBlock = e.kind() {
+                    timeout.test()?;
                     continue;
                 } else {
                     return Err(e.into());
@@ -123,10 +131,11 @@ pub(crate) struct SecPacket<'a> {
 }
 
 impl<'a> SecPacket<'a> {
-    pub fn write_stream<S>(self, stream: &mut S, tm: u64) -> SshResult<()>
+    pub fn write_stream<S>(self, stream: &mut S) -> SshResult<()>
     where
         S: Write,
     {
+        let tm = self.client.get_timeout();
         let payload_len = self.payload.len() as u32;
         let bsize = self.client.get_encryptor().bsize() as i32;
         let pad_len = {
@@ -157,10 +166,11 @@ impl<'a> SecPacket<'a> {
         write_with_timeout(stream, tm, &buf)
     }
 
-    pub fn from_stream<S>(stream: &mut S, tm: u64, client: &'a mut Client) -> SshResult<Self>
+    pub fn from_stream<S>(stream: &mut S, client: &'a mut Client) -> SshResult<Self>
     where
         S: Read,
     {
+        let tm = client.get_timeout();
         let bsize = {
             let bsize = client.get_encryptor().bsize();
             if bsize > 8 {

@@ -49,7 +49,7 @@ where
             SessionState::Version(mut config, mut stream) => {
                 log::info!("start for version negotiation.");
                 // Receive the server version
-                let version = SshVersion::from(&mut stream)?;
+                let version = SshVersion::from(&mut stream, config.timeout)?;
                 // Version validate
                 version.validate()?;
                 // Send Client version
@@ -71,7 +71,7 @@ where
                 // before auth,
                 // we should have a key exchange at first
                 let mut digest = Digest::new();
-                let server_algs = SecPacket::from_stream(&mut stream, 0, &mut client)?;
+                let server_algs = SecPacket::from_stream(&mut stream, &mut client)?;
                 digest.hash_ctx.set_i_s(server_algs.get_inner());
                 let server_algs = AlgList::unpack(server_algs)?;
                 client.key_agreement(&mut stream, server_algs, &mut digest)?;
@@ -133,6 +133,10 @@ impl SessionBuilder {
         }
     }
 
+    /// add a globle r/w timeout for local ssh mode
+    ///
+    /// set 0 to disable
+    ///
     pub fn timeout(mut self, timeout: u64) -> Self {
         self.config.timeout = timeout;
         self

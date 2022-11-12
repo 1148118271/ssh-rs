@@ -3,6 +3,7 @@ use std::io::{Read, Write};
 use crate::{
     constant::{self, CLIENT_VERSION},
     error::{SshError, SshResult},
+    model::Timeout,
 };
 
 type OurVer = String;
@@ -21,22 +22,23 @@ impl Default for SshVersion {
     }
 }
 
-fn read_version<S>(stream: &mut S, _tm: u64) -> SshResult<Vec<u8>>
+fn read_version<S>(stream: &mut S, tm: u64) -> SshResult<Vec<u8>>
 where
     S: Read,
 {
     let mut buf = vec![0; 128];
+    let timeout = Timeout::new(tm);
     loop {
         match stream.read(&mut buf) {
             Ok(i) => {
                 // MY TO DO: To Skip the other lines
-
                 assert_eq!(&buf[0..4], constant::SSH_MAGIC);
                 buf.truncate(i);
                 return Ok(buf);
             }
             Err(e) => {
                 if let std::io::ErrorKind::WouldBlock = e.kind() {
+                    timeout.test()?;
                     continue;
                 } else {
                     return Err(e.into());
@@ -47,11 +49,11 @@ where
 }
 
 impl SshVersion {
-    pub fn from<S>(stream: &mut S) -> SshResult<Self>
+    pub fn from<S>(stream: &mut S, timeout: u64) -> SshResult<Self>
     where
         S: Read,
     {
-        let buf = read_version(stream, 0)?;
+        let buf = read_version(stream, timeout)?;
         let from_utf8 = crate::util::from_utf8(buf)?;
         let version_str = from_utf8.trim();
         log::info!("server version: [{}]", version_str);

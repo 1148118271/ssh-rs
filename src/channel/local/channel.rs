@@ -94,7 +94,7 @@ where
 
     pub(super) fn send(&mut self, data: Data) -> SshResult<()> {
         data.pack(&mut self.client.borrow_mut())
-            .write_stream(&mut *self.stream.borrow_mut(), 0)
+            .write_stream(&mut *self.stream.borrow_mut())
     }
 
     // only send SSH_MSG_CHANNEL_DATA will call this,
@@ -151,7 +151,6 @@ where
     pub(super) fn try_recv(&mut self) -> SshResult<ChannelTryRead> {
         let mut data = Data::unpack(SecPacket::from_stream(
             &mut *self.stream.borrow_mut(),
-            0,
             &mut self.client.borrow_mut(),
         )?)?;
 

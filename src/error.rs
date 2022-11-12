@@ -56,17 +56,6 @@ pub enum SshErrorKind {
     Timeout,
 }
 
-impl PartialEq<Self> for SshErrorKind {
-    fn eq(&self, other: &Self) -> bool {
-        match (&self, &other) {
-            (&SshErrorKind::SshError(v1), &SshErrorKind::SshError(v2)) => v1.eq(v2),
-            (&SshErrorKind::IoError(io1), &SshErrorKind::IoError(io2)) => io1.kind() == io2.kind(),
-            (&SshErrorKind::Timeout, &SshErrorKind::Timeout) => true,
-            _ => false,
-        }
-    }
-}
-
 impl fmt::Display for SshErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self {

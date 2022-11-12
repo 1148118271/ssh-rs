@@ -37,7 +37,7 @@ impl Client {
         let algs = self.config.algs.clone();
         let client_algs = algs.pack(self);
         digest.hash_ctx.set_i_c(client_algs.get_inner());
-        client_algs.write_stream(stream, 0)?;
+        client_algs.write_stream(stream)?;
 
         let negotiated = self.config.algs.match_with(&server_algs)?;
 
@@ -94,7 +94,7 @@ impl Client {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEXDH_INIT)
             .put_u8s(public_key);
-        data.pack(self).write_stream(stream, 0)
+        data.pack(self).write_stream(stream)
     }
 
     fn verify_signature_and_new_keys<S>(
@@ -109,7 +109,7 @@ impl Client {
     {
         let mut session_id = vec![];
         loop {
-            let mut data = Data::unpack(SecPacket::from_stream(stream, 0, self)?)?;
+            let mut data = Data::unpack(SecPacket::from_stream(stream, self)?)?;
             let message_code = data.get_u8();
             match message_code {
                 ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
@@ -163,6 +163,6 @@ impl Client {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
         log::info!("send new keys");
-        data.pack(self).write_stream(stream, 0)
+        data.pack(self).write_stream(stream)
     }
 }

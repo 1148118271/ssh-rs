@@ -113,6 +113,7 @@ where
 {
     let mut channels = HashMap::<u32, BackendChannel>::new();
     let mut pendings = HashMap::<u32, Sender<BackendResp>>::new();
+    client.set_timeout(0);
     loop {
         let try_recv = rcv.try_recv();
         if try_recv.is_err() {
@@ -125,7 +126,7 @@ where
                 BackendRqst::OpenChannel(id, data, sender) => {
                     log::info!("try open channel {}.", id);
 
-                    data.pack(&mut client).write_stream(&mut stream, 0)?;
+                    data.pack(&mut client).write_stream(&mut stream)?;
 
                     // add to pending open list
                     assert!(pendings.insert(id, sender).is_none());
@@ -258,7 +259,7 @@ where
                 ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                     let mut data = Data::new();
                     data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                    data.pack(&mut client).write_stream(&mut stream, 0)?;
+                    data.pack(&mut client).write_stream(&mut stream)?;
                     continue;
                 }
 

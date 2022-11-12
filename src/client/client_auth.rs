@@ -18,11 +18,11 @@ impl Client {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
-        data.pack(self).write_stream(stream, 0)?;
+        data.pack(self).write_stream(stream)?;
 
         let mut tried_public_key = false;
         loop {
-            let mut data = Data::unpack(SecPacket::from_stream(stream, 0, self)?)?;
+            let mut data = Data::unpack(SecPacket::from_stream(stream, self)?)?;
             let message_code = data.get_u8();
             match message_code {
                 ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
@@ -62,7 +62,7 @@ impl Client {
                 ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                     let mut data = Data::new();
                     data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
-                    data.pack(self).write_stream(stream, 0)?;
+                    data.pack(self).write_stream(stream)?;
                 }
                 _ => {}
             }
@@ -82,7 +82,7 @@ impl Client {
             .put_u8(false as u8)
             .put_str(self.config.auth.password.as_str());
 
-        data.pack(self).write_stream(stream, 0)
+        data.pack(self).write_stream(stream)
     }
 
     fn public_key_authentication<S>(&mut self, stream: &mut S) -> SshResult<()>
@@ -110,7 +110,7 @@ impl Client {
                 );
             data
         };
-        data.pack(self).write_stream(stream, 0)
+        data.pack(self).write_stream(stream)
     }
 
     pub(crate) fn public_key_signature<S>(
@@ -149,6 +149,6 @@ impl Client {
             data.put_u8s(&signature);
             data
         };
-        data.pack(self).write_stream(stream, 0)
+        data.pack(self).write_stream(stream)
     }
 }

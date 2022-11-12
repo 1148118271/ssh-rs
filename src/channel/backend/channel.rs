@@ -73,7 +73,7 @@ impl Channel {
         S: Read + Write,
     {
         if !self.is_close() {
-            data.pack(client).write_stream(stream, 0)
+            data.pack(client).write_stream(stream)
         } else {
             Err(SshError::from("Send data on a closed channel"))
         }

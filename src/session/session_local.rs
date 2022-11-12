@@ -83,7 +83,7 @@ where
             .put_u32(size::LOCAL_WINDOW_SIZE)
             .put_u32(size::BUF_SIZE as u32);
         data.pack(&mut self.client.borrow_mut())
-            .write_stream(&mut *self.stream.borrow_mut(), 0)
+            .write_stream(&mut *self.stream.borrow_mut())
     }
 
     // 远程回应是否可以打开通道
@@ -91,7 +91,6 @@ where
         loop {
             let mut data = Data::unpack(SecPacket::from_stream(
                 &mut *self.stream.borrow_mut(),
-                0,
                 &mut self.client.borrow_mut(),
             )?)?;
 
@@ -148,7 +147,7 @@ where
                     let mut data = Data::new();
                     data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
                     data.pack(&mut self.client.borrow_mut())
-                        .write_stream(&mut *self.stream.borrow_mut(), 0)?;
+                        .write_stream(&mut *self.stream.borrow_mut())?;
                     continue;
                 }
                 x => {
