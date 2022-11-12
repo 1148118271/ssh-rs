@@ -234,7 +234,7 @@ where
                 }
                 ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                     let id = data.get_u32();
-                    log::trace!("Channel {} get data", id);
+                    log::trace!("Channel {} get {} data", id, data.len());
                     let channel = channels.get_mut(&id).unwrap();
                     channel.recv(data, &mut client, &mut stream)?;
                 }
