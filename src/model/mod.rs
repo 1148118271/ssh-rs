@@ -2,6 +2,7 @@ mod data;
 mod packet;
 mod sequence;
 // pub(crate) mod timeout;
+mod backend_msg;
 mod flow_control;
 mod scp_file;
 mod u32iter;
@@ -12,6 +13,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+pub(crate) use backend_msg::*;
 pub(crate) use data::Data;
 pub(crate) use flow_control::FlowControl;
 pub(crate) use packet::{Packet, SecPacket};

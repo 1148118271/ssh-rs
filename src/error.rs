@@ -1,6 +1,9 @@
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
-use std::{fmt, io};
+use std::{
+    error::Error,
+    fmt::{self, Debug, Display, Formatter},
+    io,
+    sync::mpsc::{RecvError, SendError},
+};
 
 pub type SshResult<I> = Result<I, SshError>;
 
@@ -48,6 +51,8 @@ impl Display for SshError {
 pub enum SshErrorKind {
     IoError(io::Error),
     SshError(String),
+    SendError(String),
+    RecvError(String),
     Timeout,
 }
 
@@ -67,6 +72,8 @@ impl fmt::Display for SshErrorKind {
         match &self {
             SshErrorKind::SshError(e) => write!(f, "{}", e),
             SshErrorKind::IoError(v) => write!(f, "{}", v),
+            SshErrorKind::SendError(e) => write!(f, "{}", e),
+            SshErrorKind::RecvError(e) => write!(f, "{}", e),
             SshErrorKind::Timeout => write!(f, "time out."),
         }
     }
@@ -100,6 +107,22 @@ impl From<io::Error> for SshError {
     fn from(kind: io::Error) -> Self {
         SshError {
             inner: SshErrorKind::IoError(io::Error::from(kind.kind())),
+        }
+    }
+}
+
+impl<T> From<SendError<T>> for SshError {
+    fn from(e: SendError<T>) -> Self {
+        Self {
+            inner: SshErrorKind::SendError(e.to_string()),
+        }
+    }
+}
+
+impl From<RecvError> for SshError {
+    fn from(e: RecvError) -> Self {
+        Self {
+            inner: SshErrorKind::RecvError(e.to_string()),
         }
     }
 }

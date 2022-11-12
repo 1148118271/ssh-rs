@@ -9,7 +9,6 @@ pub struct Slog;
 impl Slog {
     fn init(level: LevelFilter) {
         if let Err(e) = log::set_logger(&SLOG) {
-            // 重复设置日志记录
             log::error!(
                 "initialization log error, the error information is: {:?}",
                 e

@@ -1,8 +1,8 @@
 // pub(crate) use session_inner::SessionInner;
-mod session_backend;
+mod session_broker;
 mod session_local;
 
-pub use session_backend::BackendSession;
+pub use session_broker::SessionBroker;
 pub use session_local::LocalSession;
 
 use std::{
@@ -86,7 +86,7 @@ where
 
     /// To run this ssh session on the local thread
     ///
-    /// It will return a [LocalSession] which doesn't support multithread currency
+    /// It will return a [LocalSession] which doesn't support multithread concurrency
     ///
     pub fn run_local(self) -> LocalSession<S> {
         if let SessionState::Connected(client, stream) = self.inner {
@@ -98,9 +98,15 @@ where
 
     /// To spwan a new thread to run this ssh session
     ///
-    /// It will return a [BackendSession] which supports multithread
+    /// It will return a [SessionBroker] which supports multithread concurrency
     ///
-    pub fn run_backend(self) {}
+    pub fn run_backend(self) -> SessionBroker {
+        if let SessionState::Connected(client, stream) = self.inner {
+            SessionBroker::new(client, stream)
+        } else {
+            unreachable!("Why you here?")
+        }
+    }
 
     /// close the session and consume it
     ///

@@ -66,23 +66,19 @@ where
     }
 }
 
-fn try_read<S>(stream: &mut S, _tm: u64, buf: &mut [u8]) -> SshResult<()>
+fn try_read<S>(stream: &mut S, _tm: u64, buf: &mut [u8]) -> SshResult<usize>
 where
     S: Read,
 {
-    loop {
-        match stream.read(buf) {
-            Ok(_i) => {
-                return Ok(());
+    match stream.read(buf) {
+        Ok(i) => Ok(i),
+        Err(e) => {
+            if let std::io::ErrorKind::WouldBlock = e.kind() {
+                Ok(0)
+            } else {
+                Err(e.into())
             }
-            Err(e) => {
-                if let std::io::ErrorKind::WouldBlock = e.kind() {
-                    return Ok(());
-                } else {
-                    return Err(e.into());
-                }
-            }
-        };
+        }
     }
 }
 
@@ -219,8 +215,8 @@ impl<'a> SecPacket<'a> {
 
         // read the first block
         let mut first_block = vec![0; bsize];
-        try_read(stream, tm, &mut first_block)?;
-        if first_block.is_empty() {
+        let read = try_read(stream, tm, &mut first_block)?;
+        if read == 0 {
             return Ok(None);
         }
 

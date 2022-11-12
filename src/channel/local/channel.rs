@@ -104,13 +104,13 @@ where
 
         loop {
             // first adjust the data to the max size we can send
-            let (to_send, maybe_remain) = self.flow_control.tune_on_send(buf);
+            let maybe_remain = self.flow_control.tune_on_send(&mut buf);
 
             // send it
             let mut data = Data::new();
             data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
                 .put_u32(self.server_channel_no)
-                .put_u8s(&to_send);
+                .put_u8s(&buf);
             self.send(data)?;
 
             if maybe_remain.is_empty() {
@@ -167,8 +167,7 @@ where
                     server_algs,
                     &mut digest,
                 )?;
-                self.send_window_adjust(1)?;
-                return Ok(ChannelTryRead::Code(x));
+                Ok(ChannelTryRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                 let cc = data.get_u32();
@@ -189,11 +188,9 @@ where
                 self.send(data)?;
                 Ok(ChannelTryRead::Code(x))
             }
-            // 通道大小
             x @ ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
-                // 接收方通道号， 暂时不需要
                 data.get_u32();
-                // 需要调整增加的窗口大小
+                // to add
                 let rws = data.get_u32();
                 self.recv_window_adjust(rws)?;
                 Ok(ChannelTryRead::Code(x))

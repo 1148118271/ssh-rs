@@ -3,6 +3,7 @@ use crate::{
     constant::{permission, scp, size},
     error::SshResult,
     model::ScpFile,
+    util::{check_path, file_time},
 };
 use crate::{
     constant::{ssh_msg_code, ssh_str},
@@ -19,27 +20,6 @@ use std::{
 };
 
 pub struct ChannelScp<S: Read + Write + Send + 'static>(Channel<S>);
-
-fn check_path(path: &Path) -> SshResult<()> {
-    if path.to_str().is_none() {
-        return Err(SshError::from("invalid path."));
-    }
-    Ok(())
-}
-
-fn file_time(v: Vec<u8>) -> SshResult<(i64, i64)> {
-    let mut t = vec![];
-    for x in v {
-        if x == b'T' || x == 32 || x == 10 {
-            continue;
-        }
-        t.push(x)
-    }
-    let a = t.len() / 2;
-    let ct = util::from_utf8(t[..(a - 1)].to_vec())?;
-    let ut = util::from_utf8(t[a..(t.len() - 1)].to_vec())?;
-    Ok((util::str_to_i64(&ct)?, util::str_to_i64(&ut)?))
-}
 
 impl<S> ChannelScp<S>
 where

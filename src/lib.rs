@@ -260,7 +260,7 @@ mod util;
 pub mod error;
 
 pub use channel::*;
-pub use session::{BackendSession, LocalSession, SessionBuilder, SessionConnector};
+pub use session::{LocalSession, SessionBroker, SessionBuilder, SessionConnector};
 
 use crate::error::{SshError, SshResult};
 

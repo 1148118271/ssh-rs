@@ -1,22 +1,40 @@
-use super::channel::Channel;
+use super::channel::ChannelBroker;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::error::SshResult;
 use crate::model::Data;
-use std::{
-    io::{Read, Write},
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
-pub struct ChannelExec(Channel, Vec<u8>);
+pub struct ExecBroker(ChannelBroker);
 
-impl Deref for ChannelExec {
-    type Target = Channel;
+impl ExecBroker {
+    pub(crate) fn open(channel: ChannelBroker) -> Self {
+        ExecBroker(channel)
+    }
+
+    pub fn send_command(&self, command: &str) -> SshResult<()> {
+        log::debug!("Send command {}", command);
+        let mut data = Data::new();
+        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
+            .put_u32(self.server_channel_no)
+            .put_str(ssh_str::EXEC)
+            .put_u8(true as u8)
+            .put_str(command);
+        self.send(data)
+    }
+
+    pub fn get_result(mut self) -> SshResult<Vec<u8>> {
+        self.recv()
+    }
+}
+
+impl Deref for ExecBroker {
+    type Target = ChannelBroker;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for ChannelExec {
+impl DerefMut for ExecBroker {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

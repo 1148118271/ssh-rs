@@ -132,6 +132,10 @@ impl Data {
         let bytes = self.0.drain(..len).into_iter().collect::<Vec<u8>>();
         bytes
     }
+
+    pub fn into_inner(self) -> Vec<u8> {
+        self.0
+    }
 }
 
 impl From<Vec<u8>> for Data {
