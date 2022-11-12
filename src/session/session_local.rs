@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    channel::{LocalChannel, LocalExec, LocalScp},
+    channel::{LocalChannel, LocalExec, LocalScp, LocalShell},
     client::Client,
     constant::{size, ssh_msg_code, ssh_str},
     error::{SshError, SshResult},
@@ -52,6 +52,13 @@ where
     pub fn open_scp(&mut self) -> SshResult<LocalScp<S>> {
         let channel = self.open_channel()?;
         channel.scp()
+    }
+
+    /// open a [LocalShell] channel which can download/upload files/directories
+    ///
+    pub fn open_shell(&mut self) -> SshResult<LocalShell<S>> {
+        let channel = self.open_channel()?;
+        channel.shell()
     }
 
     /// open a raw channel

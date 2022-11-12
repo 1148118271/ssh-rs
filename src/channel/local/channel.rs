@@ -9,7 +9,7 @@ use crate::{
     model::{Data, FlowControl, Packet, RcMut, SecPacket},
 };
 
-use super::{ChannelExec, ChannelScp};
+use super::{ChannelExec, ChannelScp, ChannelShell};
 
 pub(super) enum ChannelTryRead {
     Data(Vec<u8>),
@@ -63,6 +63,13 @@ where
     pub fn scp(self) -> SshResult<ChannelScp<S>> {
         log::info!("scp opened.");
         Ok(ChannelScp::open(self))
+    }
+
+    /// convert the raw channel to an [self::ChannelShell]
+    ///
+    pub fn shell(self) -> SshResult<ChannelShell<S>> {
+        log::info!("shell opened.");
+        ChannelShell::open(self)
     }
 
     /// close the channel gracefully, but donnot consume it
