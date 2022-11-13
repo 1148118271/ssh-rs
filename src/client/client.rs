@@ -31,11 +31,11 @@ impl Client {
         &mut self.sequence
     }
 
-    pub fn get_timeout(&self) -> u64 {
+    pub fn get_timeout(&self) -> u128 {
         self.config.timeout
     }
 
-    pub fn set_timeout(&mut self, tm: u64) {
+    pub fn set_timeout(&mut self, tm: u128) {
         self.config.timeout = tm
     }
 }

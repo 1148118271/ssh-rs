@@ -4,21 +4,21 @@ use std::time::Instant;
 
 pub(crate) struct Timeout {
     instant: Instant,
-    timeout_sec: u64,
+    timeout_millisec: u128,
 }
 
 impl Timeout {
-    pub fn new(timeout_sec: u64) -> Self {
+    pub fn new(timeout_millisec: u128) -> Self {
         Timeout {
             instant: Instant::now(),
-            timeout_sec,
+            timeout_millisec,
         }
     }
 
     pub fn test(&self) -> SshResult<()> {
-        if self.timeout_sec == 0 {
+        if self.timeout_millisec == 0 {
             Ok(())
-        } else if self.instant.elapsed().as_secs() > self.timeout_sec {
+        } else if self.instant.elapsed().as_millis() > self.timeout_millisec {
             log::error!("time out.");
             Err(SshError::from(SshErrorKind::Timeout))
         } else {

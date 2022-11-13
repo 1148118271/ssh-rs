@@ -9,7 +9,7 @@ fn main() {
         .username("ubuntu")
         .password("password")
         .private_key_path("./id_rsa")
-        .timeout(5)
+        .timeout(5 * 1000)
         .connect("127.0.0.1:7777")
     {
         Err(e) => println!("Got error {}", e),

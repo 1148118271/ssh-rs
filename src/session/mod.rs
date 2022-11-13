@@ -137,7 +137,7 @@ impl SessionBuilder {
     ///
     /// set 0 to disable
     ///
-    pub fn timeout(mut self, timeout: u64) -> Self {
+    pub fn timeout(mut self, timeout: u128) -> Self {
         self.config.timeout = timeout;
         self
     }

@@ -22,7 +22,7 @@ impl Default for SshVersion {
     }
 }
 
-fn read_version<S>(stream: &mut S, tm: u64) -> SshResult<Vec<u8>>
+fn read_version<S>(stream: &mut S, tm: u128) -> SshResult<Vec<u8>>
 where
     S: Read,
 {
@@ -49,7 +49,7 @@ where
 }
 
 impl SshVersion {
-    pub fn from<S>(stream: &mut S, timeout: u64) -> SshResult<Self>
+    pub fn from<S>(stream: &mut S, timeout: u128) -> SshResult<Self>
     where
         S: Read,
     {
