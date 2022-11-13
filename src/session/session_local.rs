@@ -58,7 +58,7 @@ where
     ///
     pub fn open_shell(&mut self) -> SshResult<LocalShell<S>> {
         let channel = self.open_channel()?;
-        channel.shell()
+        channel.shell(24, 80)
     }
 
     /// open a raw channel

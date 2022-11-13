@@ -262,7 +262,7 @@ pub mod error;
 pub use channel::*;
 pub use session::{LocalSession, SessionBroker, SessionBuilder, SessionConnector};
 
-use crate::error::{SshError, SshResult};
+pub use error::{SshError, SshErrorKind, SshResult};
 
 pub mod ssh {
     use crate::{session::SessionBuilder, slog::Slog};

@@ -56,7 +56,7 @@ where
     }
 
     fn get_end(&mut self) -> SshResult<()> {
-        let vec = self.recv(false)?;
+        let vec = self.recv()?;
         match vec[0] {
             scp::END => Ok(()),
             // error
@@ -282,7 +282,7 @@ where
     fn process_d(&mut self, scp_file: &mut ScpFile, local_path: &Path) -> SshResult<()> {
         while !self.is_close() {
             self.send_end()?;
-            let data = self.recv(false)?;
+            let data = self.recv()?;
             if data.is_empty() {
                 break;
             }
@@ -403,7 +403,7 @@ where
         self.send_end()?;
         let mut count = 0;
         while !self.is_close() {
-            let data = self.recv(false)?;
+            let data = self.recv()?;
             if data.is_empty() {
                 continue;
             }

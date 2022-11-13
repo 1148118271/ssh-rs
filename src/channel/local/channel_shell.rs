@@ -1,4 +1,4 @@
-use super::channel::{Channel, ChannelTryRead};
+use super::channel::Channel;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::error::SshResult;
 use crate::model::Data;
@@ -7,37 +7,31 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-pub struct ChannelShell<S: Read + Write + Send + 'static>(pub(crate) Channel<S>);
+pub struct ChannelShell<S: Read + Write + Send + 'static>(Channel<S>);
 
 impl<S> ChannelShell<S>
 where
     S: Read + Write + Send + 'static,
 {
-    pub(crate) fn open(channel: Channel<S>) -> SshResult<Self> {
+    pub(crate) fn open(channel: Channel<S>, row: u32, column: u32) -> SshResult<Self> {
         // shell 形式需要一个伪终端
         let mut channel_shell = ChannelShell(channel);
-        channel_shell.request_pty()?;
+        channel_shell.request_pty(row, column)?;
         channel_shell.get_shell()?;
-        while !channel_shell.is_close() {
-            let maybe_recv = channel_shell.try_recv()?;
-            if let ChannelTryRead::Code(ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS) = maybe_recv {
-                break;
-            }
-        }
         Ok(channel_shell)
     }
 
-    fn request_pty(&mut self) -> SshResult<()> {
+    fn request_pty(&mut self, row: u32, column: u32) -> SshResult<()> {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.server_channel_no)
             .put_str(ssh_str::PTY_REQ)
             .put_u8(false as u8)
             .put_str(ssh_str::XTERM_VAR)
-            .put_u32(80)
-            .put_u32(24)
-            .put_u32(640)
-            .put_u32(480);
+            .put_u32(column)
+            .put_u32(row)
+            .put_u32(0)
+            .put_u32(0);
         let model = [
             128, // TTY_OP_ISPEED
             0, 1, 0xc2, 0,   // 115200
@@ -54,12 +48,14 @@ where
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.server_channel_no)
             .put_str(ssh_str::SHELL)
-            .put_u8(true as u8);
+            .put_u8(false as u8);
         self.send(data)
     }
 
+    /// this will read one data packet or timeout
+    ///
     pub fn read(&mut self) -> SshResult<Vec<u8>> {
-        self.recv(false)
+        self.recv()
     }
 
     pub fn write(&mut self, buf: &[u8]) -> SshResult<()> {

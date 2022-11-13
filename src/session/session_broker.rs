@@ -156,7 +156,7 @@ where
             }
         }
 
-        if let Some(pkt) = SecPacket::try_from_stream(&mut stream, 0, &mut client)? {
+        if let Some(pkt) = SecPacket::try_from_stream(&mut stream, &mut client)? {
             let mut data = Data::unpack(pkt)?;
             let message_code = data.get_u8();
 

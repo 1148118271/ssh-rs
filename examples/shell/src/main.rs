@@ -1,6 +1,4 @@
-use ssh_rs::{ssh, LocalShell};
-use std::thread::sleep;
-use std::time::Duration;
+use ssh_rs::{ssh, LocalShell, SshErrorKind};
 
 fn main() {
     ssh::debug();
@@ -8,6 +6,7 @@ fn main() {
     let mut session = ssh::create_session()
         .username("ubuntu")
         .password("password")
+        .timeout(1)
         .private_key_path("./id_rsa")
         .connect("127.0.0.1:22")
         .unwrap()
@@ -23,14 +22,21 @@ fn main() {
 }
 
 fn run_shell(shell: &mut LocalShell<std::net::TcpStream>) {
-    sleep(Duration::from_millis(500));
-    let vec = shell.read().unwrap();
-    println!("{}", String::from_utf8(vec).unwrap());
+    let out = shell.read().unwrap();
+    print!("{}", String::from_utf8(out).unwrap());
 
-    shell.write(b"ls -all\n").unwrap();
+    shell.write(b"ls -lah\n").unwrap();
 
-    sleep(Duration::from_millis(500));
-
-    let vec = shell.read().unwrap();
-    println!("{}", String::from_utf8(vec).unwrap());
+    loop {
+        match shell.read() {
+            Ok(out) => print!("{}", String::from_utf8(out).unwrap()),
+            Err(e) => {
+                if let SshErrorKind::Timeout = e.kind() {
+                    break;
+                } else {
+                    panic!("{}", e.to_string())
+                }
+            }
+        }
+    }
 }

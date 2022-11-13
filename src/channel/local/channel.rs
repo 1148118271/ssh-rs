@@ -67,9 +67,11 @@ where
 
     /// convert the raw channel to an [self::ChannelShell]
     ///
-    pub fn shell(self) -> SshResult<ChannelShell<S>> {
+    /// with `row` lines & `column` characters per one line
+    ///
+    pub fn shell(self, row: u32, column: u32) -> SshResult<ChannelShell<S>> {
         log::info!("shell opened.");
-        ChannelShell::open(self)
+        ChannelShell::open(self, row, column)
     }
 
     /// close the channel gracefully, but donnot consume it
@@ -95,7 +97,7 @@ where
         if self.remote_close {
             return Ok(());
         }
-        let _ = self.recv(true)?;
+        let _ = self.recv_to_end()?;
         Ok(())
     }
 
@@ -140,19 +142,26 @@ where
         Ok(maybe_response)
     }
 
-    pub(super) fn recv(&mut self, wait_peer_close: bool) -> SshResult<Vec<u8>> {
-        let mut buf = vec![];
+    /// this method will receive at least one data packet
+    ///
+    pub(super) fn recv(&mut self) -> SshResult<Vec<u8>> {
         while !self.is_close() {
             let maybe_recv = self.try_recv()?;
 
-            if let ChannelTryRead::Data(mut data) = maybe_recv {
-                buf.append(&mut data);
-                if !wait_peer_close {
-                    break;
-                }
+            if let ChannelTryRead::Data(data) = maybe_recv {
+                return Ok(data);
             }
         }
-        Ok(buf)
+        Ok(vec![])
+    }
+
+    pub(super) fn recv_to_end(&mut self) -> SshResult<Vec<u8>> {
+        let mut resp = vec![];
+        while !self.is_close() {
+            let mut read_this_time = self.recv()?;
+            resp.append(&mut read_this_time);
+        }
+        Ok(resp)
     }
 
     pub(super) fn try_recv(&mut self) -> SshResult<ChannelTryRead> {
@@ -160,7 +169,6 @@ where
             &mut *self.stream.borrow_mut(),
             &mut self.client.borrow_mut(),
         )?)?;
-
         let message_code = data.get_u8();
         match message_code {
             x @ ssh_msg_code::SSH_MSG_KEXINIT => {

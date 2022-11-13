@@ -206,14 +206,11 @@ impl<'a> SecPacket<'a> {
         Ok(Self { payload, client })
     }
 
-    pub fn try_from_stream<S>(
-        stream: &mut S,
-        tm: u64,
-        client: &'a mut Client,
-    ) -> SshResult<Option<Self>>
+    pub fn try_from_stream<S>(stream: &mut S, client: &'a mut Client) -> SshResult<Option<Self>>
     where
         S: Read,
     {
+        let tm = client.get_timeout();
         let bsize = {
             let bsize = client.get_encryptor().bsize();
             if bsize > 8 {

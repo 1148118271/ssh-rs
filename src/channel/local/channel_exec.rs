@@ -31,7 +31,7 @@ where
     pub fn send_command(mut self, command: &str) -> SshResult<Vec<u8>> {
         self.exec_command(command)?;
 
-        let r = self.recv(true)?;
+        let r = self.recv_to_end()?;
         Ok(r)
     }
 }
