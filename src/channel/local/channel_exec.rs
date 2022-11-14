@@ -33,7 +33,7 @@ where
     ///
     /// This method also implicitly consume the channel object,
     /// since the exec channel can only execute one command
-    /// 
+    ///
     pub fn send_command(mut self, command: &str) -> SshResult<Vec<u8>> {
         self.exec_command(command)?;
 

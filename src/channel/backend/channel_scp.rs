@@ -292,7 +292,7 @@ impl ScpBroker {
     /// explicitly end the download routine and sync the filesystem
     ///
     /// this method will block until all donwload tasks end
-    /// 
+    ///
     pub fn end_download(mut self) -> SshResult<()> {
         let mut scp_file = self.1.take().unwrap();
         let local_path = scp_file.local_path.clone();
