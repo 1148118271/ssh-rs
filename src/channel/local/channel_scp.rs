@@ -19,11 +19,11 @@ use std::{
     time::SystemTime,
 };
 
-pub struct ChannelScp<S: Read + Write + Send + 'static>(Channel<S>);
+pub struct ChannelScp<S: Read + Write>(Channel<S>);
 
 impl<S> ChannelScp<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     pub(crate) fn open(channel: Channel<S>) -> Self {
         ChannelScp(channel)
@@ -74,7 +74,7 @@ where
 // upload related
 impl<S> ChannelScp<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     pub fn upload<P: AsRef<OsStr> + ?Sized>(
         mut self,
@@ -245,7 +245,7 @@ where
 // download related
 impl<S> ChannelScp<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     ///   download
     pub fn download<P: AsRef<OsStr> + ?Sized>(
@@ -491,7 +491,7 @@ where
 
 impl<S> Deref for ChannelScp<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     type Target = Channel<S>;
     fn deref(&self) -> &Self::Target {
@@ -501,7 +501,7 @@ where
 
 impl<S> DerefMut for ChannelScp<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0

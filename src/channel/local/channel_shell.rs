@@ -7,11 +7,11 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-pub struct ChannelShell<S: Read + Write + Send + 'static>(Channel<S>);
+pub struct ChannelShell<S: Read + Write>(Channel<S>);
 
 impl<S> ChannelShell<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     pub(crate) fn open(channel: Channel<S>, row: u32, column: u32) -> SshResult<Self> {
         // shell 形式需要一个伪终端
@@ -55,7 +55,11 @@ where
     /// this will read one data packet or timeout
     ///
     pub fn read(&mut self) -> SshResult<Vec<u8>> {
-        self.recv()
+        let mut out = self.recv()?;
+        while let Ok(Some(mut data)) = self.try_recv() {
+            out.append(&mut data)
+        }
+        Ok(out)
     }
 
     pub fn write(&mut self, buf: &[u8]) -> SshResult<()> {
@@ -66,7 +70,7 @@ where
 
 impl<S> Deref for ChannelShell<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     type Target = Channel<S>;
     fn deref(&self) -> &Self::Target {
@@ -76,7 +80,7 @@ where
 
 impl<S> DerefMut for ChannelShell<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0

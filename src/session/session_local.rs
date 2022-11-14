@@ -14,7 +14,7 @@ use crate::{
 
 pub struct LocalSession<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     client: RcMut<Client>,
     stream: RcMut<S>,
@@ -23,7 +23,7 @@ where
 
 impl<S> LocalSession<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     pub(crate) fn new(client: Client, stream: S) -> Self {
         Self {
@@ -59,6 +59,10 @@ where
     pub fn open_shell(&mut self) -> SshResult<LocalShell<S>> {
         let channel = self.open_channel()?;
         channel.shell(24, 80)
+    }
+
+    pub fn get_raw_io(&mut self) -> RcMut<S> {
+        self.stream.clone()
     }
 
     /// open a raw channel

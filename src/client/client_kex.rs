@@ -23,7 +23,7 @@ impl Client {
         digest: &mut Digest,
     ) -> SshResult<()>
     where
-        S: Read + Write + Send + 'static,
+        S: Read + Write,
     {
         // initialize the hash context
         if let SshVersion::V2(ref our, ref their) = self.config.ver {
@@ -89,7 +89,7 @@ impl Client {
     /// Send the public key
     fn send_qc<S>(&mut self, stream: &mut S, public_key: &[u8]) -> SshResult<()>
     where
-        S: Read + Write + Send + 'static,
+        S: Read + Write,
     {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEXDH_INIT)
@@ -105,7 +105,7 @@ impl Client {
         h: &mut HashCtx,
     ) -> SshResult<Vec<u8>>
     where
-        S: Read + Write + Send + 'static,
+        S: Read + Write,
     {
         let mut session_id = vec![];
         loop {

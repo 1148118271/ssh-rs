@@ -21,7 +21,7 @@ use crate::{
 
 enum SessionState<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     Init(Config, S),
     Version(Config, S),
@@ -31,14 +31,14 @@ where
 
 pub struct SessionConnector<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     inner: SessionState<S>,
 }
 
 impl<S> SessionConnector<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     fn connect(self) -> SshResult<Self> {
         match self.inner {
@@ -96,6 +96,17 @@ where
         }
     }
 
+    /// close the session and consume it
+    ///
+    pub fn close(self) {
+        drop(self)
+    }
+}
+
+impl<S> SessionConnector<S>
+where
+    S: Read + Write + Send + 'static,
+{
     /// To spwan a new thread to run this ssh session
     ///
     /// It will return a [SessionBroker] which supports multithread concurrency
@@ -106,12 +117,6 @@ where
         } else {
             unreachable!("Why you here?")
         }
-    }
-
-    /// close the session and consume it
-    ///
-    pub fn close(self) {
-        drop(self)
     }
 }
 
@@ -245,7 +250,7 @@ impl SessionBuilder {
     ///
     pub fn connect_bio<S>(self, stream: S) -> SshResult<SessionConnector<S>>
     where
-        S: Read + Write + Send + 'static,
+        S: Read + Write,
     {
         SessionConnector {
             inner: SessionState::Init(self.config, stream),

@@ -11,14 +11,14 @@ use crate::{
 
 use super::{ChannelExec, ChannelScp, ChannelShell};
 
-pub(super) enum ChannelTryRead {
+pub(super) enum ChannelRead {
     Data(Vec<u8>),
     Code(u8),
 }
 
 pub struct Channel<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     pub(crate) server_channel_no: u32,
     pub(crate) client_channel_no: u32,
@@ -31,7 +31,7 @@ where
 
 impl<S> Channel<S>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     pub(crate) fn new(
         server_channel_no: u32,
@@ -131,9 +131,9 @@ where
 
             // otherwise wait the server to adjust its window
             while !self.flow_control.can_send() {
-                let buf = self.try_recv()?;
+                let buf = self.recv_once()?;
 
-                if let ChannelTryRead::Data(mut data) = buf {
+                if let ChannelRead::Data(mut data) = buf {
                     maybe_response.append(&mut data);
                 }
             }
@@ -146,9 +146,9 @@ where
     ///
     pub(super) fn recv(&mut self) -> SshResult<Vec<u8>> {
         while !self.is_close() {
-            let maybe_recv = self.try_recv()?;
+            let maybe_recv = self.recv_once()?;
 
-            if let ChannelTryRead::Data(data) = maybe_recv {
+            if let ChannelRead::Data(data) = maybe_recv {
                 return Ok(data);
             }
         }
@@ -164,11 +164,32 @@ where
         Ok(resp)
     }
 
-    pub(super) fn try_recv(&mut self) -> SshResult<ChannelTryRead> {
-        let mut data = Data::unpack(SecPacket::from_stream(
+    pub(super) fn try_recv(&mut self) -> SshResult<Option<Vec<u8>>> {
+        let data = {
+            match SecPacket::try_from_stream(
+                &mut *self.stream.borrow_mut(),
+                &mut self.client.borrow_mut(),
+            )? {
+                Some(pkt) => Data::unpack(pkt)?,
+                None => return Ok(None),
+            }
+        };
+        if let ChannelRead::Data(d) = self.handle_msg(data)? {
+            Ok(Some(d))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn recv_once(&mut self) -> SshResult<ChannelRead> {
+        let data = Data::unpack(SecPacket::from_stream(
             &mut *self.stream.borrow_mut(),
             &mut self.client.borrow_mut(),
         )?)?;
+        self.handle_msg(data)
+    }
+
+    fn handle_msg(&mut self, mut data: Data) -> SshResult<ChannelRead> {
         let message_code = data.get_u8();
         match message_code {
             x @ ssh_msg_code::SSH_MSG_KEXINIT => {
@@ -181,7 +202,7 @@ where
                     server_algs,
                     &mut digest,
                 )?;
-                Ok(ChannelTryRead::Code(x))
+                Ok(ChannelRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                 let cc = data.get_u32();
@@ -192,34 +213,34 @@ where
                     self.flow_control.tune_on_recv(&mut data);
                     self.send_window_adjust(data.len() as u32)?;
 
-                    return Ok(ChannelTryRead::Data(data));
+                    return Ok(ChannelRead::Data(data));
                 }
-                Ok(ChannelTryRead::Code(x))
+                Ok(ChannelRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
                 data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
                 self.send(data)?;
-                Ok(ChannelTryRead::Code(x))
+                Ok(ChannelRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST => {
                 data.get_u32();
                 // to add
                 let rws = data.get_u32();
                 self.recv_window_adjust(rws)?;
-                Ok(ChannelTryRead::Code(x))
+                Ok(ChannelRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_EOF => {
                 log::debug!("Currently ignore message {}", x);
-                Ok(ChannelTryRead::Code(x))
+                Ok(ChannelRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {
                 log::debug!("Currently ignore message {}", x);
-                Ok(ChannelTryRead::Code(x))
+                Ok(ChannelRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {
                 log::debug!("Currently ignore message {}", x);
-                Ok(ChannelTryRead::Code(x))
+                Ok(ChannelRead::Code(x))
             }
             ssh_msg_code::SSH_MSG_CHANNEL_FAILURE => Err(SshError::from("channel failure.")),
             x @ ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
@@ -228,11 +249,11 @@ where
                     self.remote_close = true;
                     self.send_close()?;
                 }
-                Ok(ChannelTryRead::Code(x))
+                Ok(ChannelRead::Code(x))
             }
             x => {
                 log::debug!("Currently ignore message {}", x);
-                Ok(ChannelTryRead::Code(x))
+                Ok(ChannelRead::Code(x))
             }
         }
     }

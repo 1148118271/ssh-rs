@@ -6,7 +6,7 @@ fn main() {
     let mut session = ssh::create_session()
         .username("ubuntu")
         .password("password")
-        .timeout(1)
+        .timeout(1000)
         .private_key_path("./id_rsa")
         .connect("127.0.0.1:22")
         .unwrap()

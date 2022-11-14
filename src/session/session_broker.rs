@@ -109,7 +109,7 @@ impl SessionBroker {
 
 fn client_loop<S>(mut client: Client, mut stream: S, rcv: Receiver<BackendRqst>) -> SshResult<()>
 where
-    S: Read + Write + Send + 'static,
+    S: Read + Write,
 {
     let mut channels = HashMap::<u32, BackendChannel>::new();
     let mut pendings = HashMap::<u32, Sender<BackendResp>>::new();
