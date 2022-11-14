@@ -1,5 +1,6 @@
 /// 客户端版本
 pub(crate) const CLIENT_VERSION: &str = "SSH-2.0-SSH_RS-0.3.0";
+pub(crate) const SSH_MAGIC: &[u8] = b"SSH-";
 
 /// ssh通讯时用到的常量字符串
 #[allow(dead_code)]
@@ -79,7 +80,7 @@ pub(crate) mod scp {
 /// 一些默认大小
 #[allow(dead_code)]
 pub(crate) mod size {
-    pub const ONE_GB: usize = 1073741824;
+    pub const FILE_TRUNK: usize = 30000;
     /// 最大数据包大小
     pub const BUF_SIZE: usize = 32768;
     /// 默认客户端的窗口大小

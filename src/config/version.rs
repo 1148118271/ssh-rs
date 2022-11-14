@@ -1,10 +1,9 @@
 use std::io::{Read, Write};
 
 use crate::{
-    constant::CLIENT_VERSION,
+    constant::{self, CLIENT_VERSION},
     error::{SshError, SshResult},
-    h::H,
-    model::Data,
+    model::Timeout,
 };
 
 type OurVer = String;
@@ -23,18 +22,43 @@ impl Default for SshVersion {
     }
 }
 
+fn read_version<S>(stream: &mut S, tm: u128) -> SshResult<Vec<u8>>
+where
+    S: Read,
+{
+    let mut buf = vec![0; 128];
+    let timeout = Timeout::new(tm);
+    loop {
+        match stream.read(&mut buf) {
+            Ok(i) => {
+                // MY TO DO: To Skip the other lines
+                assert_eq!(&buf[0..4], constant::SSH_MAGIC);
+                buf.truncate(i);
+                return Ok(buf);
+            }
+            Err(e) => {
+                if let std::io::ErrorKind::WouldBlock = e.kind() {
+                    timeout.test()?;
+                    continue;
+                } else {
+                    return Err(e.into());
+                }
+            }
+        };
+    }
+}
+
 impl SshVersion {
-    pub fn from<S>(stream: &mut S, h: &mut H) -> SshResult<Self>
+    pub fn from<S>(stream: &mut S, timeout: u128) -> SshResult<Self>
     where
         S: Read,
     {
-        let buf = Data::read(stream, 128)?;
-        let from_utf8 = crate::util::from_utf8(buf.into())?;
+        let buf = read_version(stream, timeout)?;
+        let from_utf8 = crate::util::from_utf8(buf)?;
         let version_str = from_utf8.trim();
         log::info!("server version: [{}]", version_str);
 
         if version_str.contains("SSH-2.0") {
-            h.set_v_s(version_str);
             Ok(SshVersion::V2(
                 CLIENT_VERSION.to_string(),
                 version_str.to_string(),
@@ -46,12 +70,11 @@ impl SshVersion {
         }
     }
 
-    pub fn write<S>(stream: &mut S, h: &mut H) -> SshResult<()>
+    pub fn write<S>(stream: &mut S) -> SshResult<()>
     where
         S: Write,
     {
         log::info!("client version: [{}]", CLIENT_VERSION);
-        h.set_v_c(CLIENT_VERSION);
         let ver_string = format!("{}\r\n", CLIENT_VERSION);
         let _ = stream.write(ver_string.as_bytes())?;
         Ok(())

@@ -1,10 +1,12 @@
 mod aes_ctr_128;
 mod chacha20_poly1305_openssh;
 
-use crate::algorithm::hash::hash::Hash;
+use crate::algorithm::hash::Hash;
 use crate::algorithm::mac::Mac;
 use crate::constant::algorithms as constant;
 use crate::SshResult;
+
+use super::{hash::HashCtx, mac::MacNone};
 pub(crate) use {aes_ctr_128::AesCtr128, chacha20_poly1305_openssh::ChaCha20Poly1305};
 
 /// # 加密算法
@@ -16,7 +18,7 @@ pub(crate) use {aes_ctr_128::AesCtr128, chacha20_poly1305_openssh::ChaCha20Poly1
 /// 两个方向上的加密器必须独立运行。如果本地策略允许多种算法，系统实现必须允许独立选择每
 /// 个方向上的算法。但是，在实际使用中，推荐在两个方向上使用相同的算法。
 
-pub(crate) trait Encryption {
+pub(crate) trait Encryption: Send + Sync {
     fn bsize(&self) -> usize;
     fn iv_size(&self) -> usize;
     fn new(hash: Hash, mac: Box<dyn Mac>) -> Self
@@ -34,5 +36,45 @@ pub(crate) fn from(s: &str, hash: Hash, mac: Box<dyn Mac>) -> Box<dyn Encryption
         constant::enc::CHACHA20_POLY1305_OPENSSH => Box::new(ChaCha20Poly1305::new(hash, mac)),
         constant::enc::AES128_CTR => Box::new(AesCtr128::new(hash, mac)),
         _ => unreachable!("Currently dont support"),
+    }
+}
+
+pub(crate) struct EncryptionNone {}
+
+impl Encryption for EncryptionNone {
+    fn bsize(&self) -> usize {
+        8
+    }
+    fn iv_size(&self) -> usize {
+        unreachable!()
+    }
+    fn new(_hash: Hash, _mac: Box<dyn Mac>) -> Self
+    where
+        Self: Sized,
+    {
+        Self {}
+    }
+    fn encrypt(&mut self, _client_sequence_num: u32, _buf: &mut Vec<u8>) {
+        // do nothing
+    }
+    fn decrypt(&mut self, _sequence_number: u32, buf: &mut [u8]) -> SshResult<Vec<u8>> {
+        Ok(buf.to_vec())
+    }
+    fn packet_len(&mut self, _sequence_number: u32, buf: &[u8]) -> usize {
+        u32::from_be_bytes(buf[0..4].try_into().unwrap()) as usize
+    }
+    fn data_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize {
+        self.packet_len(sequence_number, buf) + 4
+    }
+    fn is_cp(&self) -> bool {
+        false
+    }
+}
+
+impl Default for EncryptionNone {
+    fn default() -> Self {
+        let hash = Hash::new(HashCtx::new(), &[], super::hash::HashType::None);
+        let mac = Box::new(MacNone::new());
+        Self::new(hash, mac)
     }
 }

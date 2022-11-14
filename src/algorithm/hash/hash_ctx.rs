@@ -9,8 +9,8 @@ use crate::model::Data;
 /// H = hash algorithm(v_c | v_s | i_c | i_s | k_s | q_c | q_s | k)
 ///
 ///
-#[derive(Clone, Debug)]
-pub struct H {
+#[derive(Clone, Debug, Default)]
+pub struct HashCtx {
     /// 一下数据如果有从数据包解析的数据
     /// 统一不包含数据包里面的 PacketLength PaddingLength  PaddingString
 
@@ -46,15 +46,9 @@ pub struct H {
     pub k: Vec<u8>,
 }
 
-impl Default for H {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl H {
+impl HashCtx {
     pub fn new() -> Self {
-        H {
+        HashCtx {
             v_c: vec![],
             v_s: vec![],
             i_c: vec![],

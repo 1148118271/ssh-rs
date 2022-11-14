@@ -1,9 +1,8 @@
-use std::{
-    io::Read,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 use crate::error::SshResult;
+
+use super::Packet;
 
 /// **byte**
 /// byte 标识任意一个 8 位值（8 位字节）。固定长度的数据有时被表示为一个字节数组，写
@@ -58,36 +57,11 @@ impl Data {
         Data(Vec::new())
     }
 
-    pub fn read<S>(stream: &mut S, len: usize) -> SshResult<Self>
-    where
-        S: Read,
-    {
-        let mut v = if len == 0 {
-            vec![0; 1460] // usually a packet len
-        } else {
-            vec![0; len]
-        };
-        loop {
-            match stream.read(&mut v) {
-                Ok(i) => {
-                    v.resize(i, 0);
-                    return Ok(Data(v));
-                }
-                Err(e) => {
-                    if let std::io::ErrorKind::WouldBlock = e.kind() {
-                        continue;
-                    } else {
-                        return Err(e.into());
-                    }
-                }
-            };
-        }
-    }
-
-    // 把字节数组置空
-    #[allow(dead_code)]
-    pub fn refresh(&mut self) {
-        self.0.clear();
+    #[allow(clippy::uninit_vec)]
+    pub fn uninit_new(len: usize) -> Data {
+        let mut v = Vec::with_capacity(len);
+        unsafe { v.set_len(len) }
+        Data(v)
     }
 
     // 无符号字节 8位
@@ -138,7 +112,7 @@ impl Data {
 
     // 跳过多少位数据
     pub fn skip(&mut self, size: usize) {
-        self.0 = self.0[size..].to_vec();
+        self.0.drain(..size);
     }
 
     // 获取字节
@@ -148,19 +122,19 @@ impl Data {
 
     // 获取32位无符号整型
     pub fn get_u32(&mut self) -> u32 {
-        let mut a = self.0[0..4].to_vec();
-        // 4位字节反转后直接转成u32类型
-        self.0 = self.0[4..].to_vec();
-        a.reverse();
-        unsafe { *(a.as_ptr() as *const u32) }
+        let u32_buf = self.0.drain(..4).into_iter().collect::<Vec<u8>>();
+        u32::from_be_bytes(u32_buf.try_into().unwrap())
     }
 
     // 获取字节数组
     pub fn get_u8s(&mut self) -> Vec<u8> {
         let len = self.get_u32() as usize;
-        let bytes = self.0[0_usize..len].to_vec();
-        self.0 = self.0[len..].to_vec();
+        let bytes = self.0.drain(..len).into_iter().collect::<Vec<u8>>();
         bytes
+    }
+
+    pub fn into_inner(self) -> Vec<u8> {
+        self.0
     }
 }
 
@@ -193,5 +167,17 @@ impl Deref for Data {
 impl DerefMut for Data {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl<'a> Packet<'a> for Data {
+    fn pack(self, client: &'a mut crate::client::Client) -> super::packet::SecPacket<'a> {
+        (self, client).into()
+    }
+    fn unpack(pkt: super::packet::SecPacket) -> SshResult<Self>
+    where
+        Self: Sized,
+    {
+        Ok(pkt.into_inner())
     }
 }

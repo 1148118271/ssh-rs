@@ -1,5 +1,9 @@
-use crate::algorithm::encryption::Encryption;
-use crate::model::Data;
+use std::io::{Read, Write};
+
+use crate::error::SshResult;
+use crate::{client::Client, model::Data};
+
+use super::timeout::Timeout;
 
 /// ## 数据包整体结构
 ///
@@ -36,41 +40,107 @@ use crate::model::Data;
 /// **mac**
 /// 消息验证码。如果已经协商了消息验证，该域包含 MAC。初始时，MAC 算法必须是"none"。
 
-#[derive(Debug)]
-pub(crate) struct Packet {
-    data: Data,
-    value: Vec<u8>,
+fn read_with_timeout<S>(stream: &mut S, tm: u128, buf: &mut [u8]) -> SshResult<()>
+where
+    S: Read,
+{
+    let want_len = buf.len();
+    let mut offset = 0;
+    let mut timeout = Timeout::new(tm);
+
+    loop {
+        match stream.read(&mut buf[offset..]) {
+            Ok(i) => {
+                offset += i;
+                if offset == want_len {
+                    return Ok(());
+                } else {
+                    timeout.renew();
+                    continue;
+                }
+            }
+            Err(e) => {
+                if let std::io::ErrorKind::WouldBlock = e.kind() {
+                    timeout.test()?;
+                    continue;
+                } else {
+                    return Err(e.into());
+                }
+            }
+        };
+    }
 }
 
-impl Packet {
-    pub fn unpacking(&mut self) -> Data {
-        if self.value.is_empty() {
-            return Data::new();
+fn try_read<S>(stream: &mut S, _tm: u128, buf: &mut [u8]) -> SshResult<usize>
+where
+    S: Read,
+{
+    match stream.read(buf) {
+        Ok(i) => Ok(i),
+        Err(e) => {
+            if let std::io::ErrorKind::WouldBlock = e.kind() {
+                Ok(0)
+            } else {
+                Err(e.into())
+            }
         }
-        let padding_length = self.value[4];
-        let vec = self.value[5..(self.value.len() - padding_length as usize)].to_vec();
-        let data = Data::from(vec);
-        self.data = data.clone();
-        data
     }
+}
 
-    #[allow(dead_code)]
-    pub fn refresh(&mut self) {
-        self.value.clear();
-        self.data = Data::new()
-    }
+fn write_with_timeout<S>(stream: &mut S, tm: u128, buf: &[u8]) -> SshResult<()>
+where
+    S: Write,
+{
+    let want_len = buf.len();
+    let mut offset = 0;
+    let mut timeout = Timeout::new(tm);
 
-    // 封包
-    pub fn build(&mut self, encryption: Option<&dyn Encryption>, is_encrypt: bool) {
-        let data_len = self.data.len() as u32;
-        let bsize = match is_encrypt {
-            true => encryption.unwrap().bsize() as i32,
-            // 未加密的填充: 整个包的总长度是8的倍数，并且填充长度不能小于4
-            false => 8,
+    loop {
+        match stream.write(&buf[offset..]) {
+            Ok(i) => {
+                offset += i;
+                if offset == want_len {
+                    return Ok(());
+                } else {
+                    timeout.renew();
+                    continue;
+                }
+            }
+            Err(e) => {
+                if let std::io::ErrorKind::WouldBlock = e.kind() {
+                    timeout.test()?;
+                    continue;
+                } else {
+                    return Err(e.into());
+                }
+            }
         };
-        let padding_len = {
-            let mut pad = (-((data_len
-                + if is_encrypt && encryption.unwrap().is_cp() {
+    }
+}
+
+pub(crate) trait Packet<'a> {
+    fn pack(self, client: &'a mut Client) -> SecPacket<'a>;
+    fn unpack(pkt: SecPacket) -> SshResult<Self>
+    where
+        Self: Sized;
+}
+
+pub(crate) struct SecPacket<'a> {
+    payload: Data,
+    client: &'a mut Client,
+}
+
+impl<'a> SecPacket<'a> {
+    pub fn write_stream<S>(self, stream: &mut S) -> SshResult<()>
+    where
+        S: Write,
+    {
+        let tm = self.client.get_timeout();
+        let payload_len = self.payload.len() as u32;
+        let bsize = self.client.get_encryptor().bsize() as i32;
+        let pad_len = {
+            let mut pad = (-((payload_len
+                + if self.client.get_encryptor().is_cp() {
                     1
                 } else {
                     5
@@ -80,58 +150,119 @@ impl Packet {
                 pad += bsize;
             }
             pad as u32
-        };
-        // 组装数据 []
+        } as u8;
+        let packet_len = 1 + pad_len as u32 + payload_len;
+
         let mut buf = vec![];
-        // [padding_length]
-        buf.push(padding_len as u8);
-        // [padding_length, payload]
-        buf.extend(self.data.as_slice());
-        // [padding_length, payload, randomPadding]
-        // 默认 0
-        buf.extend(vec![0; padding_len as usize]);
-        // 获取总长度
-        let packet_len = buf.len() as u32;
-        let mut packet_len_u8s = packet_len.to_be_bytes().to_vec();
-        // [packet_length, padding_length, payload, randomPadding]
-        packet_len_u8s.extend(buf);
-        self.value = packet_len_u8s;
+        buf.extend(packet_len.to_be_bytes());
+        buf.extend([pad_len]);
+        buf.extend(self.payload.iter());
+        buf.extend(vec![0; pad_len as usize]);
+
+        let seq = self.client.get_seq().get_client();
+
+        self.client.get_encryptor().encrypt(seq, &mut buf);
+
+        write_with_timeout(stream, tm, &buf)
     }
 
-    #[allow(dead_code)]
-    pub fn as_slice(&self) -> &[u8] {
-        self.value.as_slice()
+    pub fn from_stream<S>(stream: &mut S, client: &'a mut Client) -> SshResult<Self>
+    where
+        S: Read,
+    {
+        let tm = client.get_timeout();
+        let bsize = {
+            let bsize = client.get_encryptor().bsize();
+            if bsize > 8 {
+                bsize
+            } else {
+                8
+            }
+        };
+
+        // read the first block
+        let mut first_block = vec![0; bsize];
+        read_with_timeout(stream, tm, &mut first_block)?;
+
+        // detect the total len
+        let seq = client.get_seq().get_server();
+        let data_len = client.get_encryptor().data_len(seq, &first_block);
+
+        // read remain
+        let mut data = Data::uninit_new(data_len);
+        data[0..bsize].clone_from_slice(&first_block);
+        read_with_timeout(stream, tm, &mut data[bsize..])?;
+
+        // decrypt all
+        let data = client.get_encryptor().decrypt(seq, &mut data)?;
+
+        // unpacking
+        let pkt_len = u32::from_be_bytes(data[0..4].try_into().unwrap());
+        let pad_len = data[4];
+        let payload_len = pkt_len - pad_len as u32 - 1;
+
+        let payload = data[5..payload_len as usize + 5].into();
+
+        Ok(Self { payload, client })
     }
 
-    pub fn to_vec(&self) -> Vec<u8> {
-        self.value.to_vec()
-    }
-}
+    pub fn try_from_stream<S>(stream: &mut S, client: &'a mut Client) -> SshResult<Option<Self>>
+    where
+        S: Read,
+    {
+        let tm = client.get_timeout();
+        let bsize = {
+            let bsize = client.get_encryptor().bsize();
+            if bsize > 8 {
+                bsize
+            } else {
+                8
+            }
+        };
 
-impl From<Vec<u8>> for Packet {
-    fn from(v: Vec<u8>) -> Self {
-        Packet {
-            data: Data::from(v.as_slice()),
-            value: v,
+        // read the first block
+        let mut first_block = vec![0; bsize];
+        let read = try_read(stream, tm, &mut first_block)?;
+        if read == 0 {
+            return Ok(None);
         }
+
+        // detect the total len
+        let seq = client.get_seq().get_server();
+        let data_len = client.get_encryptor().data_len(seq, &first_block);
+
+        // read remain
+        let mut data = Data::uninit_new(data_len);
+        data[0..bsize].clone_from_slice(&first_block);
+        read_with_timeout(stream, tm, &mut data[bsize..])?;
+
+        // decrypt all
+        let data = client.get_encryptor().decrypt(seq, &mut data)?;
+
+        // unpacking
+        let pkt_len = u32::from_be_bytes(data[0..4].try_into().unwrap());
+        let pad_len = data[4];
+        let payload_len = pkt_len - pad_len as u32 - 1;
+
+        let payload = data[5..payload_len as usize + 5].into();
+
+        Ok(Some(Self { payload, client }))
+    }
+
+    pub fn get_inner(&self) -> &[u8] {
+        &self.payload
+    }
+
+    pub fn into_inner(self) -> Data {
+        self.payload
     }
 }
 
-impl From<&[u8]> for Packet {
-    fn from(v: &[u8]) -> Self {
-        Packet {
-            data: Data::from(v),
-            value: v.to_vec(),
-        }
-    }
-}
-
-impl From<Data> for Packet {
-    fn from(d: Data) -> Self {
-        let vec = d.as_slice().to_vec();
-        Packet {
-            data: d,
-            value: vec,
+impl<'a> From<(Data, &'a mut Client)> for SecPacket<'a> {
+    fn from((d, c): (Data, &'a mut Client)) -> Self {
+        Self {
+            payload: d,
+            client: c,
         }
     }
 }
