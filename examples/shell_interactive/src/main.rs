@@ -21,7 +21,7 @@ fn main() {
 fn main() {
     use std::{io::Read, os::unix::prelude::AsRawFd};
 
-    ssh::debug();
+    ssh::enable_log();
     let tcp = TcpStream::connect("127.0.0.1:22".parse().unwrap()).unwrap();
     let mut session = ssh::create_session()
         .username("ubuntu")

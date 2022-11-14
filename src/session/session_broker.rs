@@ -57,14 +57,14 @@ impl SessionBroker {
         channel.exec()
     }
 
-    /// open a [BackendScp] channel which can download/upload files/directories
+    /// open a [ScpBroker] channel which can download/upload files/directories
     ///
     pub fn open_scp(&mut self) -> SshResult<ScpBroker> {
         let channel = self.open_channel()?;
         channel.scp()
     }
 
-    /// open a [LocalShell] channel which  can be used as a pseudo terminal (AKA PTY)
+    /// open a [ShellBrocker] channel which  can be used as a pseudo terminal (AKA PTY)
     ///
     pub fn open_shell(&mut self) -> SshResult<ShellBrocker> {
         let channel = self.open_channel()?;

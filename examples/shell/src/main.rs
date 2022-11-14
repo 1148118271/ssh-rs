@@ -1,7 +1,7 @@
 use ssh_rs::{ssh, LocalShell, SshErrorKind};
 
 fn main() {
-    ssh::debug();
+    ssh::enable_log();
 
     let mut session = ssh::create_session()
         .username("ubuntu")

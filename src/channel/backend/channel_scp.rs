@@ -75,6 +75,13 @@ impl ScpBroker {
 
 // upload related
 impl ScpBroker {
+    /// upload a file from local path to remote path
+    ///
+    /// this method is equivalent to shell command
+    /// ```bash
+    /// scp -P port local_path user@ip:remote_path
+    /// ```
+    ///
     pub fn upload<P: AsRef<OsStr> + ?Sized>(
         mut self,
         local_path: &P,
@@ -244,7 +251,16 @@ impl ScpBroker {
 
 // download related
 impl ScpBroker {
-    ///   download
+    /// download a file from remote path to local path
+    ///
+    /// this method is equivalent to shell command
+    /// ```bash
+    /// scp -P port user@ip:remote_path local_path
+    /// ```
+    ///
+    /// This method is running in the backend
+    /// that needs `end_download` to explicitly end it
+    ///
     pub fn start_download<P: AsRef<OsStr> + ?Sized>(
         &mut self,
         local_path: &P,
@@ -273,6 +289,10 @@ impl ScpBroker {
         Ok(())
     }
 
+    /// explicitly end the download routine and sync the filesystem
+    ///
+    /// this method will block until all donwload tasks end
+    /// 
     pub fn end_download(mut self) -> SshResult<()> {
         let mut scp_file = self.1.take().unwrap();
         let local_path = scp_file.local_path.clone();

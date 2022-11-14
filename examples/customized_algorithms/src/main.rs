@@ -2,7 +2,7 @@ use ssh_rs::algorithm;
 use ssh_rs::ssh;
 
 fn main() {
-    ssh::debug();
+    ssh::enable_log();
 
     let mut session = ssh::create_session_without_default()
         .username("ubuntu")

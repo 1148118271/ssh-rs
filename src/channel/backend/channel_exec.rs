@@ -11,6 +11,10 @@ impl ExecBroker {
         ExecBroker(channel)
     }
 
+    /// Send an executable command to the server
+    ///
+    /// This method is non-block as it will not wait the result
+    ///
     pub fn send_command(&self, command: &str) -> SshResult<()> {
         log::debug!("Send command {}", command);
         let mut data = Data::new();
@@ -22,8 +26,15 @@ impl ExecBroker {
         self.send(data)
     }
 
+    /// Get the result of the prior command
+    ///
+    /// This method will block until the server close the channel
+    ///
+    /// This method also implicitly consume the channel object,
+    /// since the exec channel can only execute one command
+    ///
     pub fn get_result(mut self) -> SshResult<Vec<u8>> {
-        self.recv()
+        self.recv_to_end()
     }
 }
 

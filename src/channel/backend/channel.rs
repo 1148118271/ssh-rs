@@ -1,6 +1,7 @@
 use std::{
     io::{Read, Write},
     sync::mpsc::{Receiver, Sender},
+    vec,
 };
 
 use crate::{
@@ -185,18 +186,26 @@ impl ChannelBroker {
         }
     }
 
+    /// open a [ExecBroker] channel which can excute commands
+    ///
     pub fn exec(self) -> SshResult<ExecBroker> {
         Ok(ExecBroker::open(self))
     }
 
+    /// open a [ScpBroker] channel which can download/upload files/directories
+    ///
     pub fn scp(self) -> SshResult<ScpBroker> {
         Ok(ScpBroker::open(self))
     }
 
+    /// open a [ShellBrocker] channel which  can be used as a pseudo terminal (AKA PTY)
+    ///
     pub fn shell(self) -> SshResult<ShellBrocker> {
         ShellBrocker::open(self)
     }
 
+    /// close the backend channel and consume the channel broker itself
+    ///
     pub fn close(mut self) -> SshResult<()> {
         self.close_no_consue()
     }
@@ -252,6 +261,36 @@ impl ChannelBroker {
                 _ => unreachable!(),
             }
         }
+    }
+
+    pub(super) fn try_recv(&mut self) -> SshResult<Option<Vec<u8>>> {
+        if !self.close {
+            if let Ok(rqst) = self.rcv.try_recv() {
+                match rqst {
+                    BackendResp::Close => {
+                        // the remote actively close their end
+                        // but we can send close later when the broker get dropped
+                        // just set a flag here
+                        self.close = true;
+                        Ok(None)
+                    }
+                    BackendResp::Data(data) => Ok(Some(data.into_inner())),
+                    _ => unreachable!(),
+                }
+            } else {
+                Ok(None)
+            }
+        } else {
+            Err(SshError::from("Read data on a closed channel"))
+        }
+    }
+
+    pub(super) fn recv_to_end(&mut self) -> SshResult<Vec<u8>> {
+        let mut buf = vec![];
+        while !self.close {
+            buf.append(&mut self.recv()?);
+        }
+        Ok(buf)
     }
 }
 

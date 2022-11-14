@@ -76,6 +76,13 @@ impl<S> ChannelScp<S>
 where
     S: Read + Write,
 {
+    /// upload a file from local path to remote path
+    ///
+    /// this method is equivalent to shell command
+    /// ```bash
+    /// scp -P port local_path user@ip:remote_path
+    /// ```
+    ///
     pub fn upload<P: AsRef<OsStr> + ?Sized>(
         mut self,
         local_path: &P,
@@ -247,7 +254,13 @@ impl<S> ChannelScp<S>
 where
     S: Read + Write,
 {
-    ///   download
+    /// download a file from remote path to local path
+    ///
+    /// this method is equivalent to shell command
+    /// ```bash
+    /// scp -P port user@ip:remote_path local_path
+    /// ```
+    ///
     pub fn download<P: AsRef<OsStr> + ?Sized>(
         mut self,
         local_path: &P,

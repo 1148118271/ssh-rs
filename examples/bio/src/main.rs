@@ -2,7 +2,7 @@ use ssh_rs::ssh;
 use std::net::{TcpStream, ToSocketAddrs};
 
 fn main() {
-    ssh::debug();
+    ssh::enable_log();
 
     let bio = MyProxy::new("127.0.0.1:22");
 

@@ -1,7 +1,9 @@
 use ssh_rs::{ssh, ShellBrocker};
+use std::thread::sleep;
+use std::time::Duration;
 
 fn main() {
-    ssh::debug();
+    ssh::enable_log();
 
     let mut session = ssh::create_session()
         .username("ubuntu")
@@ -26,14 +28,7 @@ fn run_shell(shell: &mut ShellBrocker) {
 
     shell.write(b"ls -all\n").unwrap();
 
-    let vec = shell.read().unwrap();
-    println!("{}", String::from_utf8(vec).unwrap());
-    let vec = shell.read().unwrap();
-    println!("{}", String::from_utf8(vec).unwrap());
-    let vec = shell.read().unwrap();
-    println!("{}", String::from_utf8(vec).unwrap());
-    let vec = shell.read().unwrap();
-    println!("{}", String::from_utf8(vec).unwrap());
+    sleep(Duration::from_secs(2));
     let vec = shell.read().unwrap();
     println!("{}", String::from_utf8(vec).unwrap());
 }

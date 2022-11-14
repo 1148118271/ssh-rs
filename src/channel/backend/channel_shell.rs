@@ -46,10 +46,19 @@ impl ShellBrocker {
         self.send(data)
     }
 
+    /// this method will try to read as much data as we can from the server,
+    /// but it will block until at least one packet is received
+    ///
     pub fn read(&mut self) -> SshResult<Vec<u8>> {
-        self.recv()
+        let mut out = self.recv()?;
+        while let Ok(Some(mut data)) = self.try_recv() {
+            out.append(&mut data)
+        }
+        Ok(out)
     }
 
+    /// this method send `buf` to the remote pty
+    ///
     pub fn write(&mut self, buf: &[u8]) -> SshResult<()> {
         self.send_data(buf.to_vec().into())?;
         Ok(())
