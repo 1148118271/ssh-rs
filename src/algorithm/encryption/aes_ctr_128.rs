@@ -8,7 +8,7 @@ use aes::Aes128Ctr;
 const BSIZE: usize = 16;
 const IV_SIZE: usize = 16;
 
-pub struct AesCtr128 {
+pub(super) struct AesCtr128 {
     pub(crate) client_key: Aes128Ctr,
     pub(crate) server_key: Aes128Ctr,
 

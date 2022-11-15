@@ -1,10 +1,9 @@
-use crate::algorithm::key_exchange::KeyExchange;
+use super::{super::hash::HashType, KeyExchange};
 use ring::agreement::{EphemeralPrivateKey, PublicKey, UnparsedPublicKey, ECDH_P256};
 
-use crate::algorithm::hash::HashType;
 use crate::{SshError, SshResult};
 
-pub struct EcdhP256 {
+pub(super) struct EcdhP256 {
     pub private_key: EphemeralPrivateKey,
     pub public_key: PublicKey,
 }

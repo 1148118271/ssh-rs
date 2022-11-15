@@ -4,10 +4,10 @@ mod ed25519;
 mod rsa;
 
 #[cfg(feature = "dangerous-rsa-sha1")]
-pub(crate) use self::rsa::RsaSha1;
-pub(crate) use self::rsa::RsaSha256;
+use self::rsa::RsaSha1;
+use self::rsa::RsaSha256;
 use crate::constant::algorithms as constant;
-pub(crate) use ed25519::Ed25519;
+use ed25519::Ed25519;
 
 /// # 公钥算法
 /// 主要用于对服务端签名的验证

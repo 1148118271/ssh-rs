@@ -11,8 +11,8 @@ mod curve25519;
 mod ecdh_sha2_nistp256;
 
 use crate::constant::algorithms as constant;
-pub(crate) use curve25519::CURVE25519;
-pub(crate) use ecdh_sha2_nistp256::EcdhP256;
+use curve25519::CURVE25519;
+use ecdh_sha2_nistp256::EcdhP256;
 
 pub(crate) trait KeyExchange: Send + Sync {
     fn new() -> SshResult<Self>
@@ -31,7 +31,7 @@ pub(crate) fn agree_ephemeral<B: AsRef<[u8]>>(
         private_key,
         peer_public_key,
         ring::error::Unspecified,
-        |_key_material| Ok(_key_material.to_vec()),
+        |key_material| Ok(key_material.to_vec()),
     ) {
         Ok(o) => Ok(o),
         Err(_) => Err(SshError::from("encryption error.")),

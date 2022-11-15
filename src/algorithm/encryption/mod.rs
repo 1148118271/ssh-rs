@@ -7,7 +7,7 @@ use crate::constant::algorithms as constant;
 use crate::SshResult;
 
 use super::{hash::HashCtx, mac::MacNone};
-pub(crate) use {aes_ctr_128::AesCtr128, chacha20_poly1305_openssh::ChaCha20Poly1305};
+use {aes_ctr_128::AesCtr128, chacha20_poly1305_openssh::ChaCha20Poly1305};
 
 /// # 加密算法
 /// 在密钥交互中将协商出一种加密算法和一个密钥。当加密生效时，每个数据包的数据包长度、填

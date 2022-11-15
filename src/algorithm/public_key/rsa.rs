@@ -3,7 +3,7 @@ use crate::model::Data;
 use crate::SshError;
 use rsa::PublicKey;
 
-pub struct RsaSha256;
+pub(super) struct RsaSha256;
 
 impl PubK for RsaSha256 {
     fn new() -> Self
@@ -30,7 +30,7 @@ impl PubK for RsaSha256 {
 }
 
 #[cfg(feature = "dangerous-rsa-sha1")]
-pub struct RsaSha1;
+pub(super) struct RsaSha1;
 #[cfg(feature = "dangerous-rsa-sha1")]
 impl PubK for RsaSha1 {
     fn new() -> Self
