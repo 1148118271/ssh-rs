@@ -55,18 +55,26 @@ impl Channel {
     where
         S: Read + Write,
     {
-        let maybe_remain = self.flow_control.tune_on_send(&mut self.pending_send);
+        // try to send as much as we can
+        while !self.pending_send.is_empty() {
+            if self.flow_control.can_send() {
+                let maybe_remain = self.flow_control.tune_on_send(&mut self.pending_send);
 
-        // send it
-        let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
-            .put_u32(self.server_channel_no)
-            .put_u8s(&self.pending_send);
+                // send it
+                let mut data = Data::new();
+                data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
+                    .put_u32(self.server_channel_no)
+                    .put_u8s(&self.pending_send);
 
-        // update remain
-        self.pending_send = maybe_remain;
+                // update remain
+                self.pending_send = maybe_remain;
 
-        self.send(data, client, stream)
+                self.send(data, client, stream)?;
+            } else {
+                break;
+            }
+        }
+        Ok(())
     }
 
     pub fn send<S>(&mut self, data: Data, client: &mut Client, stream: &mut S) -> SshResult<()>

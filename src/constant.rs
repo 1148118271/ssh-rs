@@ -80,7 +80,7 @@ pub(crate) mod scp {
 /// 一些默认大小
 #[allow(dead_code)]
 pub(crate) mod size {
-    pub const FILE_TRUNK: usize = 30000;
+    pub const FILE_CHUNK: usize = 30000;
     /// 最大数据包大小
     pub const BUF_SIZE: usize = 32768;
     /// 默认客户端的窗口大小

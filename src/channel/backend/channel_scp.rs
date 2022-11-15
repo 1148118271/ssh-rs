@@ -53,7 +53,6 @@ impl ScpBroker {
     }
 
     fn get_end(&mut self) -> SshResult<()> {
-        log::trace!("Try get end");
         let vec = self.recv()?;
         if vec.is_empty() {
             Err(SshError::from("read a closed channel"))
@@ -187,14 +186,14 @@ impl ScpBroker {
         self.get_end()?;
 
         let mut count = 0;
+        let mut chunk = [0u8; size::FILE_CHUNK];
 
         loop {
-            let mut s = [0u8; size::FILE_TRUNK];
-            let i = file.read(&mut s)?;
+            let i = file.read(&mut chunk)?;
             count += i;
-            self.send_bytes(&s[..i])?;
+            self.send_bytes(&chunk[..i])?;
             if count == scp_file.size as usize {
-                self.send_bytes(&[0])?;
+                self.send_end()?;
                 break;
             }
         }
