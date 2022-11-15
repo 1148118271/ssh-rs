@@ -1,0 +1,260 @@
+// pub(crate) use session_inner::SessionInner;
+mod session_broker;
+mod session_local;
+
+pub use session_broker::SessionBroker;
+pub use session_local::LocalSession;
+
+use std::{
+    io::{Read, Write},
+    net::{TcpStream, ToSocketAddrs},
+    path::Path,
+};
+
+use crate::{
+    algorithm::{Compress, Digest, Enc, Kex, Mac, PubKey},
+    client::Client,
+    config::{algorithm::AlgList, version::SshVersion, Config},
+    error::SshResult,
+    model::{Packet, SecPacket},
+};
+
+enum SessionState<S>
+where
+    S: Read + Write,
+{
+    Init(Config, S),
+    Version(Config, S),
+    Auth(Client, S),
+    Connected(Client, S),
+}
+
+pub struct SessionConnector<S>
+where
+    S: Read + Write,
+{
+    inner: SessionState<S>,
+}
+
+impl<S> SessionConnector<S>
+where
+    S: Read + Write,
+{
+    fn connect(self) -> SshResult<Self> {
+        match self.inner {
+            SessionState::Init(config, stream) => Self {
+                inner: SessionState::Version(config, stream),
+            }
+            .connect(),
+            SessionState::Version(mut config, mut stream) => {
+                log::info!("start for version negotiation.");
+                // Receive the server version
+                let version = SshVersion::from(&mut stream, config.timeout)?;
+                // Version validate
+                version.validate()?;
+                // Send Client version
+                SshVersion::write(&mut stream)?;
+                // Store the version info
+                config.ver = version;
+
+                // from now on
+                // each step of the interaction is subject to the ssh constraints on the packet
+                // so we create a client to hide the underlay details
+                let client = Client::new(config);
+
+                Self {
+                    inner: SessionState::Auth(client, stream),
+                }
+                .connect()
+            }
+            SessionState::Auth(mut client, mut stream) => {
+                // before auth,
+                // we should have a key exchange at first
+                let mut digest = Digest::new();
+                let server_algs = SecPacket::from_stream(&mut stream, &mut client)?;
+                digest.hash_ctx.set_i_s(server_algs.get_inner());
+                let server_algs = AlgList::unpack(server_algs)?;
+                client.key_agreement(&mut stream, server_algs, &mut digest)?;
+                client.do_auth(&mut stream, &mut digest)?;
+                Ok(Self {
+                    inner: SessionState::Connected(client, stream),
+                })
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    /// To run this ssh session on the local thread
+    ///
+    /// It will return a [LocalSession] which doesn't support multithread concurrency
+    ///
+    pub fn run_local(self) -> LocalSession<S> {
+        if let SessionState::Connected(client, stream) = self.inner {
+            LocalSession::new(client, stream)
+        } else {
+            unreachable!("Why you here?")
+        }
+    }
+
+    /// close the session and consume it
+    ///
+    pub fn close(self) {
+        drop(self)
+    }
+}
+
+impl<S> SessionConnector<S>
+where
+    S: Read + Write + Send + 'static,
+{
+    /// To spwan a new thread to run this ssh session
+    ///
+    /// It will return a [SessionBroker] which supports multithread concurrency
+    ///
+    pub fn run_backend(self) -> SessionBroker {
+        if let SessionState::Connected(client, stream) = self.inner {
+            SessionBroker::new(client, stream)
+        } else {
+            unreachable!("Why you here?")
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct SessionBuilder {
+    config: Config,
+}
+
+impl SessionBuilder {
+    pub fn new() -> Self {
+        Self {
+            ..Default::default()
+        }
+    }
+
+    pub fn disable_default() -> Self {
+        Self {
+            config: Config::disable_default(),
+        }
+    }
+
+    /// add a globle r/w timeout for local ssh mode
+    ///
+    /// set 0 to disable
+    ///
+    pub fn timeout(mut self, timeout: u128) -> Self {
+        self.config.timeout = timeout;
+        self
+    }
+
+    pub fn username(mut self, username: &str) -> Self {
+        self.config.auth.username(username).unwrap();
+        self
+    }
+
+    pub fn password(mut self, password: &str) -> Self {
+        self.config.auth.password(password).unwrap();
+        self
+    }
+
+    pub fn private_key<K>(mut self, private_key: K) -> Self
+    where
+        K: ToString,
+    {
+        match self.config.auth.private_key(private_key) {
+            Ok(_) => (),
+            Err(e) => log::error!(
+                "Parse private key from string: {}, will fallback to password authentication",
+                e
+            ),
+        }
+        self
+    }
+
+    pub fn private_key_path<P>(mut self, key_path: P) -> Self
+    where
+        P: AsRef<Path>,
+    {
+        match self.config.auth.private_key_path(key_path) {
+            Ok(_) => (),
+            Err(e) => log::error!(
+                "Parse private key from file: {}, will fallback to password authentication",
+                e
+            ),
+        }
+        self
+    }
+
+    pub fn add_kex_algorithms(mut self, alg: Kex) -> Self {
+        self.config
+            .algs
+            .key_exchange
+            .0
+            .push(alg.as_str().to_owned());
+        self
+    }
+
+    pub fn add_pubkey_algorithms(mut self, alg: PubKey) -> Self {
+        self.config.algs.public_key.0.push(alg.as_str().to_owned());
+        self
+    }
+
+    pub fn add_enc_algorithms(mut self, alg: Enc) -> Self {
+        self.config
+            .algs
+            .c_encryption
+            .0
+            .push(alg.as_str().to_owned());
+        self.config
+            .algs
+            .s_encryption
+            .0
+            .push(alg.as_str().to_owned());
+        self
+    }
+
+    pub fn add_mac_algortihms(mut self, alg: Mac) -> Self {
+        self.config.algs.c_mac.0.push(alg.as_str().to_owned());
+        self.config.algs.s_mac.0.push(alg.as_str().to_owned());
+        self
+    }
+
+    pub fn add_compress_algorithms(mut self, alg: Compress) -> Self {
+        self.config
+            .algs
+            .c_compression
+            .0
+            .push(alg.as_str().to_owned());
+        self.config
+            .algs
+            .s_compression
+            .0
+            .push(alg.as_str().to_owned());
+        self
+    }
+
+    pub fn connect<A>(self, addr: A) -> SshResult<SessionConnector<TcpStream>>
+    where
+        A: ToSocketAddrs,
+    {
+        // connect tcp by default
+        let tcp = TcpStream::connect(addr)?;
+        // default nonblocking
+        tcp.set_nonblocking(true).unwrap();
+        self.connect_bio(tcp)
+    }
+
+    /// connect to target server w/ a bio object
+    ///
+    /// which requires to implement `std::io::{Read, Write}`
+    ///
+    pub fn connect_bio<S>(self, stream: S) -> SshResult<SessionConnector<S>>
+    where
+        S: Read + Write,
+    {
+        SessionConnector {
+            inner: SessionState::Init(self.config, stream),
+        }
+        .connect()
+    }
+}

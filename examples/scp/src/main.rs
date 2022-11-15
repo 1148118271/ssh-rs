@@ -1,10 +1,13 @@
 use ssh_rs::ssh;
 
 fn main() {
-    let mut session = ssh::create_session();
-    session.set_user_and_password("ubuntu", "password");
-    session.connect("127.0.0.1:22").unwrap();
-    // Usage 1
+    let mut session = ssh::create_session()
+        .username("ubuntu")
+        .password("password")
+        .private_key_path("./id_rsa")
+        .connect("127.0.0.1:22")
+        .unwrap()
+        .run_local();
 
     // upload a file
     let scp = session.open_scp().unwrap();
@@ -25,13 +28,13 @@ fn main() {
     let scp = session.open_scp().unwrap();
     scp.upload("./src", "./test").unwrap();
     assert_file("/home/ubuntu/test/src/main.rs");
-    assert_file("/home/ubuntu/test/src");
+    assert_dir("/home/ubuntu/test/src");
 
     // upload a with a rename
     let scp = session.open_scp().unwrap();
     scp.upload("./src", "./crs").unwrap();
     assert_file("/home/ubuntu/crs/main.rs");
-    assert_file("/home/ubuntu/crs");
+    assert_dir("/home/ubuntu/crs");
 
     // download a file
     let scp = session.open_scp().unwrap();
@@ -48,44 +51,43 @@ fn main() {
     let _ = std::fs::create_dir("dir");
     scp.download("./dir", "test/a").unwrap();
     assert_file("./dir/a");
-    assert_file("./dir");
+    assert_dir("./dir");
 
     // download a dir
     let scp = session.open_scp().unwrap();
     scp.download("./", "test").unwrap();
     assert_file("./test/a");
-    assert_file("./test");
+    assert_dir("./test");
 
     // download with a rename
     let scp = session.open_scp().unwrap();
     scp.download("./dir2", "test").unwrap();
     assert_file("./dir2/a");
-    assert_file("./dir2");
+    assert_dir("./dir2");
 
     // download with a rename #2
     let scp = session.open_scp().unwrap();
     scp.download("./dir2/", "test").unwrap();
     assert_file("./dir2/a");
-    assert_file("./dir2");
+    assert_dir("./dir2");
 
-    // Usage 2
-    // let channel: Channel = session.open_channel().unwrap();
-    // let scp = channel.open_scp().unwrap();
-    // scp.upload("local path", "remote path").unwrap();
-
-    // let channel: Channel = session.open_channel().unwrap();
-    // let scp = channel.open_scp().unwrap();
-    // scp.download("local path", "remote path").unwrap();
-
-    session.close().unwrap();
+    session.close();
 }
 
 fn assert_file(filename: &str) {
     let file = std::path::Path::new(filename);
 
-    println!("Assert {}", filename);
+    println!("Assert file {}", filename);
     assert!(file.exists());
 
-    let _ = std::fs::remove_file(file);
-    let _ = std::fs::remove_dir(file);
+    std::fs::remove_file(file).unwrap();
+}
+
+fn assert_dir(dirname: &str) {
+    let dir = std::path::Path::new(dirname);
+
+    println!("Assert dir {}", dirname);
+    assert!(dir.exists());
+
+    std::fs::remove_dir(dir).unwrap();
 }

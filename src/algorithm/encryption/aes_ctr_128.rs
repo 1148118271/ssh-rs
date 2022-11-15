@@ -1,5 +1,5 @@
 use crate::algorithm::encryption::Encryption;
-use crate::algorithm::hash::hash::Hash;
+use crate::algorithm::hash::Hash;
 use crate::algorithm::mac::Mac;
 use crate::{SshError, SshResult};
 use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};

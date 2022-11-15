@@ -7,10 +7,14 @@ use ring::agreement::{EphemeralPrivateKey, UnparsedPublicKey};
 ///
 /// 密钥交换方法规定如何生成用于加密和验证的一次性会话密钥，以及如何进行服务器验证。
 ///
-pub(crate) mod curve25519;
-pub(crate) mod ecdh_sha2_nistp256;
+mod curve25519;
+mod ecdh_sha2_nistp256;
 
-pub trait KeyExchange: Send + Sync {
+use crate::constant::algorithms as constant;
+pub(crate) use curve25519::CURVE25519;
+pub(crate) use ecdh_sha2_nistp256::EcdhP256;
+
+pub(crate) trait KeyExchange: Send + Sync {
     fn new() -> SshResult<Self>
     where
         Self: Sized;
@@ -31,5 +35,13 @@ pub(crate) fn agree_ephemeral<B: AsRef<[u8]>>(
     ) {
         Ok(o) => Ok(o),
         Err(_) => Err(SshError::from("encryption error.")),
+    }
+}
+
+pub(crate) fn from(s: &str) -> SshResult<Box<dyn KeyExchange>> {
+    match s {
+        constant::kex::CURVE25519_SHA256 => Ok(Box::new(CURVE25519::new()?)),
+        constant::kex::ECDH_SHA2_NISTP256 => Ok(Box::new(EcdhP256::new()?)),
+        _ => unreachable!("Currently dont support"),
     }
 }
