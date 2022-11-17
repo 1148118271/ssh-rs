@@ -6,7 +6,7 @@ use ring::aead::chacha20_poly1305_openssh::{OpeningKey, SealingKey};
 
 const BSIZE: usize = 64;
 
-pub struct ChaCha20Poly1305 {
+pub(super) struct ChaCha20Poly1305 {
     client_key: SealingKey,
     server_key: OpeningKey,
 }

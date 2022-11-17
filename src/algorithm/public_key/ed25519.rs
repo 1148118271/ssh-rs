@@ -3,7 +3,7 @@ use crate::model::Data;
 use crate::SshError;
 use ring::signature;
 
-pub struct Ed25519;
+pub(super) struct Ed25519;
 
 impl PublicKey for Ed25519 {
     fn new() -> Self

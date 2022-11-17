@@ -1,10 +1,9 @@
-use crate::algorithm::hash::HashType;
-use crate::algorithm::key_exchange::KeyExchange;
+use super::{super::hash::HashType, KeyExchange};
 use crate::error::SshError;
 use crate::SshResult;
 use ring::agreement::{EphemeralPrivateKey, PublicKey, UnparsedPublicKey, X25519};
 
-pub struct CURVE25519 {
+pub(super) struct CURVE25519 {
     pub private_key: EphemeralPrivateKey,
     pub public_key: PublicKey,
 }

@@ -4,7 +4,7 @@ use ring::hmac::{Context, Tag};
 
 const BSIZE: usize = 20;
 
-pub(crate) struct HMacSha1;
+pub(super) struct HMacSha1;
 
 impl Mac for HMacSha1 {
     fn sign(&self, ik: &[u8], sequence_num: u32, buf: &[u8]) -> Tag {
