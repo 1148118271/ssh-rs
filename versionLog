@@ -1,5 +1,5 @@
-v0.3.0 (TBD)
-    1. 新增SessionBuilder以及相关api，供用户个性化设置ssh交互所需要的的密码算法
+v0.3.0 (2022-11-18)
+    1. 整体结构更新
     2. 默认禁用ssh-rsa作为公钥加密算法，如需连接老版本服务器，需要启用dangerous-algorithms特性，并且自行add_pubkey_algorithms
 
 
