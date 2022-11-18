@@ -2,7 +2,6 @@ v0.3.0 (2022-11-18)
     1. 整体结构更新
     2. 默认禁用ssh-rsa作为公钥加密算法，如需连接老版本服务器，需要启用dangerous-algorithms特性，并且自行add_pubkey_algorithms
 
-
 v0.2.2 (2022-11-05)
     1.除了默认的TcpStream之外，添加了一个新的 connect_bio API，要求用户提供其缓冲的输入/输出对象。
     2.数据传输大于1GB密钥重新交换
