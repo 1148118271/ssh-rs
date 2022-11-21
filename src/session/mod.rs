@@ -168,7 +168,6 @@ impl SessionBuilder {
                 e
             ),
         }
-        self.config.tune_alglist_on_private_key();
         self
     }
 
@@ -183,7 +182,6 @@ impl SessionBuilder {
                 e
             ),
         }
-        self.config.tune_alglist_on_private_key();
         self
     }
 
@@ -298,10 +296,11 @@ impl SessionBuilder {
     ///
     /// which requires to implement `std::io::{Read, Write}`
     ///
-    pub fn connect_bio<S>(self, stream: S) -> SshResult<SessionConnector<S>>
+    pub fn connect_bio<S>(mut self, stream: S) -> SshResult<SessionConnector<S>>
     where
         S: Read + Write,
     {
+        self.config.tune_alglist_on_private_key();
         SessionConnector {
             inner: SessionState::Init(self.config, stream),
         }
