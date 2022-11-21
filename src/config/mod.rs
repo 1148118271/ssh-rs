@@ -41,6 +41,10 @@ impl Config {
                         .public_key
                         .0
                         .insert(0, PubKeyAlgs::RsaSha2_256.as_str().to_owned());
+                    self.algs
+                        .public_key
+                        .0
+                        .insert(0, PubKeyAlgs::RsaSha2_512.as_str().to_owned());
                 }
                 auth::KeyType::SshEd25519 => {
                     self.algs

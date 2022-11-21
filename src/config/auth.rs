@@ -84,6 +84,10 @@ impl KeyPair {
 
     fn sign(&self, sd: &[u8], alg: &str) -> Vec<u8> {
         let (scheme, digest) = match alg {
+            algorithms::pubkey::RSA_SHA2_512 => (
+                rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha512>(),
+                ring::digest::digest(&ring::digest::SHA512, sd),
+            ),
             algorithms::pubkey::RSA_SHA2_256 => (
                 rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha256>(),
                 ring::digest::digest(&ring::digest::SHA256, sd),
@@ -128,7 +132,6 @@ impl KeyPair {
         sd.put_u8s(session_id.as_slice());
         sd.extend_from_slice(buf);
         let sign = self.sign(&sd, alg);
-        println!("{:?}", sign.len());
         let mut ss = Data::new();
         ss.put_str(alg);
         ss.put_u8s(&sign);

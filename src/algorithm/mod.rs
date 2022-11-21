@@ -40,6 +40,7 @@ pub enum PubKey {
     #[cfg(feature = "dangerous-rsa-sha1")]
     SshRsa,
     RsaSha2_256,
+    RsaSha2_512,
 }
 
 impl PubKey {
@@ -49,6 +50,7 @@ impl PubKey {
             #[cfg(feature = "dangerous-rsa-sha1")]
             PubKey::SshRsa => constant::pubkey::SSH_RSA,
             PubKey::RsaSha2_256 => constant::pubkey::RSA_SHA2_256,
+            PubKey::RsaSha2_512 => constant::pubkey::RSA_SHA2_512,
         }
     }
 }

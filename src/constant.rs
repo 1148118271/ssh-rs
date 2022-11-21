@@ -158,7 +158,7 @@ pub mod algorithms {
         #[cfg(feature = "dangerous-rsa-sha1")]
         pub const SSH_RSA: &str = "ssh-rsa";
         pub const RSA_SHA2_256: &str = "rsa-sha2-256";
-        // pub const RSA_SHA2_512: &str = "rsa-sha2-512";
+        pub const RSA_SHA2_512: &str = "rsa-sha2-512";
     }
 
     /// symmetrical encryption algorithm

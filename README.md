@@ -17,18 +17,18 @@ or [PR](https://github.com/1148118271/ssh-rs/pulls) .
 
 <!-- code_chunk_output -->
 
-- [ssh-rs ✨](#ssh-rs)
-  - [Content](#content)
-  - [Connection method：](#connection-method)
+* [ssh-rs ✨](#ssh-rs)
+  + [Content](#content)
+  + [Connection method：](#connection-method)
     - [1. Password:](#1-password)
     - [2. Public key:](#2-public-key)
       - [1. Use key file path：](#1-use-key-file-path)
       - [2. Use key string：](#2-use-key-string)
       - [3. Use them together](#3-use-them-together)
-  - [Enable global logging：](#enable-global-logging)
-  - [Set timeout：](#set-timeout)
-  - [How to use：](#how-to-use)
-  - [Algorithm support：](#algorithm-support)
+  + [Enable global logging：](#enable-global-logging)
+  + [Set timeout：](#set-timeout)
+  + [How to use：](#how-to-use)
+  + [Algorithm support：](#algorithm-support)
     - [1. Kex algorithms](#1-kex-algorithms)
     - [2. Server host key algorithms](#2-server-host-key-algorithms)
     - [3. Encryption algorithms (client to server)](#3-encryption-algorithms-client-to-server)
@@ -56,7 +56,7 @@ let mut session = ssh::create_session()
 
 ### 2. Public key:
 
-* **Currently, only `RSA-PKCS#1-PEM` type encrypted files with the encryption format `-----BEGIN RSA PRIVATE KEY-----` are supported.**
+* **Currently, only RSA keys/key files are supported.**
 
 #### 1. Use key file path：
 
@@ -163,6 +163,7 @@ match ssh::create_session()
 ### 2. Server host key algorithms
 
 * `ssh-ed25519` (coming soon)
+* `rsa-sha2-512`
 * `rsa-sha2-256`
 * `rsa-sha` (behind feature "dangerous-rsa-sha1")
 
