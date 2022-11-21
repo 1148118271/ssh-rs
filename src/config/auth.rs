@@ -12,32 +12,23 @@ use std::path::Path;
 
 #[derive(Clone, Default)]
 pub struct KeyPair {
-    pub(crate) private_key: String,
-    pub(crate) _key_type: KeyType,
+    pub(super) private_key: String,
+    pub(super) key_type: KeyType,
 }
 
 impl KeyPair {
-    pub fn from_path<P: AsRef<Path>>(key_path: P, key_type: KeyType) -> SshResult<Self> {
-        let mut file = match File::open(key_path) {
-            Ok(file) => file,
-            Err(e) => return Err(SshError::from(e.to_string())),
-        };
-        let mut prks = String::new();
-        file.read_to_string(&mut prks)?;
-        KeyPair::from_str(&prks, key_type)
-    }
-
-    pub fn from_str(key_str: &str, key_type: KeyType) -> SshResult<Self> {
+    pub fn from_str(key_str: &str) -> SshResult<Self> {
         // first validate the key
-        let _rprk = match rsa::RsaPrivateKey::from_pkcs1_pem(key_str) {
-            Ok(e) => e,
-            Err(e) => return Err(SshError::from(e.to_string())),
+        let key_type = if rsa::RsaPrivateKey::from_pkcs1_pem(key_str).is_ok() {
+            KeyType::SshRsa
+        } else {
+            return Err(SshError::from("Unable to detect the pulic key type"));
         };
 
         // then store it
         let pair = KeyPair {
             private_key: key_str.to_string(),
-            _key_type: key_type,
+            key_type,
         };
         Ok(pair)
     }
@@ -90,9 +81,11 @@ impl KeyPair {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone)]
-pub enum KeyType {
+pub(super) enum KeyType {
     SshRsa,
+    SshEd25519,
 }
 
 impl Default for KeyType {
@@ -136,7 +129,7 @@ impl AuthInfo {
     where
         K: ToString,
     {
-        self.key_pair = Some((KeyPair::from_str(&k.to_string(), KeyType::SshRsa))?);
+        self.key_pair = Some((KeyPair::from_str(&k.to_string()))?);
         Ok(())
     }
 
@@ -144,7 +137,14 @@ impl AuthInfo {
     where
         P: AsRef<Path>,
     {
-        self.key_pair = Some((KeyPair::from_path(p, KeyType::SshRsa))?);
+        let mut file = match File::open(p) {
+            Ok(file) => file,
+            Err(e) => return Err(SshError::from(e.to_string())),
+        };
+        let mut prks = String::new();
+        file.read_to_string(&mut prks)?;
+
+        self.key_pair = Some((KeyPair::from_str(&prks))?);
         Ok(())
     }
 }
