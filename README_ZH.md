@@ -79,6 +79,7 @@ ssh::create_session().timeout(50);
 #### 2. 主机密钥算法
 
 * `ssh-ed25519`
+* `rsa-sha2-512`
 * `rsa-sha2-256`
 * `rsa-sha` (features = ["dangerous-rsa-sha1"])
 

@@ -56,7 +56,7 @@ let mut session = ssh::create_session()
 
 ### 2. Public key:
 
-* **Currently, only RSA keys/key files are supported.**
+* **Currently, only RSA, ED25519 keys/key files are supported.**
 
 #### 1. Use key file path：
 
@@ -162,7 +162,7 @@ match ssh::create_session()
 
 ### 2. Server host key algorithms
 
-* `ssh-ed25519` (coming soon)
+* `ssh-ed25519`
 * `rsa-sha2-512`
 * `rsa-sha2-256`
 * `rsa-sha` (behind feature "dangerous-rsa-sha1")

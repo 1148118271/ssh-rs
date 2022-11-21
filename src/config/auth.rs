@@ -67,9 +67,9 @@ impl KeyPair {
             }
             KeyType::SshRsa => {
                 let prk = ssh_key::PrivateKey::from_openssh(&self.private_key).unwrap();
-                let rpuk = prk.key_data().rsa().unwrap();
-                let es = rpuk.public.e.as_bytes();
-                let ns = rpuk.public.n.as_bytes();
+                let rsa = prk.key_data().rsa().unwrap();
+                let es = rsa.public.e.as_bytes();
+                let ns = rsa.public.n.as_bytes();
                 let mut blob = Data::new();
                 blob.put_str(alg);
                 blob.put_mpint(es);
@@ -77,45 +77,58 @@ impl KeyPair {
                 blob.to_vec()
             }
             KeyType::SshEd25519 => {
-                unreachable!()
+                let prk = ssh_key::PrivateKey::from_openssh(&self.private_key).unwrap();
+                let ed25519 = prk.key_data().ed25519().unwrap();
+                let mut blob = Data::new();
+                blob.put_str(alg);
+                blob.put_u8s(ed25519.public.as_ref());
+                blob.to_vec()
             }
         }
     }
 
     fn sign(&self, sd: &[u8], alg: &str) -> Vec<u8> {
-        let (scheme, digest) = match alg {
-            algorithms::pubkey::RSA_SHA2_512 => (
-                rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha512>(),
-                ring::digest::digest(&ring::digest::SHA512, sd),
-            ),
-            algorithms::pubkey::RSA_SHA2_256 => (
-                rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha256>(),
-                ring::digest::digest(&ring::digest::SHA256, sd),
-            ),
-            #[cfg(feature = "dangerous-rsa-sha1")]
-            algorithms::pubkey::SSH_RSA => (
-                rsa::PaddingScheme::new_pkcs1v15_sign::<sha1::Sha1>(),
-                ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, sd),
-            ),
-            _ => todo!(),
-        };
-        let msg = digest.as_ref();
-
         match self.key_type {
-            KeyType::PemRsa => {
-                let rprk = rsa::RsaPrivateKey::from_pkcs1_pem(self.private_key.as_str()).unwrap();
+            KeyType::PemRsa | KeyType::SshRsa => {
+                let (scheme, digest) = match alg {
+                    algorithms::pubkey::RSA_SHA2_512 => (
+                        rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha512>(),
+                        ring::digest::digest(&ring::digest::SHA512, sd),
+                    ),
+                    algorithms::pubkey::RSA_SHA2_256 => (
+                        rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha256>(),
+                        ring::digest::digest(&ring::digest::SHA256, sd),
+                    ),
+                    #[cfg(feature = "dangerous-rsa-sha1")]
+                    algorithms::pubkey::SSH_RSA => (
+                        rsa::PaddingScheme::new_pkcs1v15_sign::<sha1::Sha1>(),
+                        ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, sd),
+                    ),
+                    _ => todo!(),
+                };
 
-                rprk.sign(scheme, msg).unwrap()
-            }
-            KeyType::SshRsa => {
-                let prk = ssh_key::PrivateKey::from_openssh(&self.private_key).unwrap();
-                let rsa = prk.key_data().rsa().unwrap();
-                let rprk = rsa::RsaPrivateKey::try_from(rsa).unwrap();
+                let msg = digest.as_ref();
+                let rprk = match self.key_type {
+                    KeyType::PemRsa => {
+                        rsa::RsaPrivateKey::from_pkcs1_pem(self.private_key.as_str()).unwrap()
+                    }
+                    KeyType::SshRsa => {
+                        // the sign method in ssh_key itself can only work with sha2-512
+                        // so we convert it to the raw rsa key
+                        let prk = ssh_key::PrivateKey::from_openssh(&self.private_key).unwrap();
+                        let rsa = prk.key_data().rsa().unwrap();
+                        rsa::RsaPrivateKey::try_from(rsa).unwrap()
+                    }
+                    _ => unreachable!(),
+                };
 
                 rprk.sign(scheme, msg).unwrap()
             }
             KeyType::SshEd25519 => {
-                unreachable!()
+                use signature::Signer;
+                let prk = ssh_key::PrivateKey::from_openssh(&self.private_key).unwrap();
+                let sign = prk.try_sign(sd).unwrap();
+                sign.as_bytes().to_vec()
             }
         }
     }
