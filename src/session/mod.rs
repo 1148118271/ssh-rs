@@ -168,6 +168,7 @@ impl SessionBuilder {
                 e
             ),
         }
+        self.config.tune_alglist_on_private_key();
         self
     }
 
@@ -182,6 +183,7 @@ impl SessionBuilder {
                 e
             ),
         }
+        self.config.tune_alglist_on_private_key();
         self
     }
 
