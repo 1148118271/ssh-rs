@@ -36,7 +36,7 @@ impl Config {
     pub(crate) fn tune_alglist_on_private_key(&mut self) {
         if let Some(ref key_pair) = self.auth.key_pair {
             match key_pair.key_type {
-                auth::KeyType::SshRsa => {
+                auth::KeyType::PemRsa | auth::KeyType::SshRsa => {
                     self.algs
                         .public_key
                         .0
