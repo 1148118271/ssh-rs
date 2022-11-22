@@ -1,7 +1,8 @@
-use crate::algorithm::hash::HashCtx;
-use crate::algorithm::hash::HashType;
+use crate::algorithm::{
+    hash::{self, HashCtx, HashType},
+    PubKey,
+};
 use crate::model::Data;
-use crate::{algorithm::hash, constant::algorithms};
 use crate::{SshError, SshResult};
 use rsa::pkcs1::DecodeRsaPrivateKey;
 use rsa::PublicKeyParts;
@@ -51,7 +52,7 @@ impl KeyPair {
         Ok(pair)
     }
 
-    pub fn get_blob(&self, alg: &str) -> Vec<u8> {
+    pub fn get_blob(&self, alg: &PubKey) -> Vec<u8> {
         match self.key_type {
             KeyType::PemRsa => {
                 // already valid key string, just unwrap it.
@@ -60,7 +61,7 @@ impl KeyPair {
                 let es = rpuk.e().to_bytes_be();
                 let ns = rpuk.n().to_bytes_be();
                 let mut blob = Data::new();
-                blob.put_str(alg);
+                blob.put_str(alg.as_ref());
                 blob.put_mpint(&es);
                 blob.put_mpint(&ns);
                 blob.to_vec()
@@ -71,7 +72,7 @@ impl KeyPair {
                 let es = rsa.public.e.as_bytes();
                 let ns = rsa.public.n.as_bytes();
                 let mut blob = Data::new();
-                blob.put_str(alg);
+                blob.put_str(alg.as_ref());
                 blob.put_mpint(es);
                 blob.put_mpint(ns);
                 blob.to_vec()
@@ -80,27 +81,27 @@ impl KeyPair {
                 let prk = ssh_key::PrivateKey::from_openssh(&self.private_key).unwrap();
                 let ed25519 = prk.key_data().ed25519().unwrap();
                 let mut blob = Data::new();
-                blob.put_str(alg);
+                blob.put_str(alg.as_ref());
                 blob.put_u8s(ed25519.public.as_ref());
                 blob.to_vec()
             }
         }
     }
 
-    fn sign(&self, sd: &[u8], alg: &str) -> Vec<u8> {
+    fn sign(&self, sd: &[u8], alg: &PubKey) -> Vec<u8> {
         match self.key_type {
             KeyType::PemRsa | KeyType::SshRsa => {
                 let (scheme, digest) = match alg {
-                    algorithms::pubkey::RSA_SHA2_512 => (
+                    PubKey::RsaSha2_512 => (
                         rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha512>(),
                         ring::digest::digest(&ring::digest::SHA512, sd),
                     ),
-                    algorithms::pubkey::RSA_SHA2_256 => (
+                    PubKey::RsaSha2_256 => (
                         rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha256>(),
                         ring::digest::digest(&ring::digest::SHA256, sd),
                     ),
                     #[cfg(feature = "dangerous-rsa-sha1")]
-                    algorithms::pubkey::SSH_RSA => (
+                    PubKey::SshRsa => (
                         rsa::PaddingScheme::new_pkcs1v15_sign::<sha1::Sha1>(),
                         ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, sd),
                     ),
@@ -138,7 +139,7 @@ impl KeyPair {
         buf: &[u8],
         hash_ctx: HashCtx,
         hash_type: HashType,
-        alg: &str,
+        alg: &PubKey,
     ) -> Vec<u8> {
         let session_id = hash::digest(hash_ctx.as_bytes().as_slice(), hash_type);
         let mut sd = Data::new();
@@ -146,7 +147,7 @@ impl KeyPair {
         sd.extend_from_slice(buf);
         let sign = self.sign(&sd, alg);
         let mut ss = Data::new();
-        ss.put_str(alg);
+        ss.put_str(alg.as_ref());
         ss.put_u8s(&sign);
         ss.to_vec()
     }

@@ -93,7 +93,7 @@ impl Client {
             let pubkey_alg = &self.negotiated.public_key[0];
             log::info!(
                 "public key authentication. algorithm: {}",
-                pubkey_alg.as_str()
+                pubkey_alg.as_ref()
             );
             let mut data = Data::new();
             data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
@@ -101,7 +101,7 @@ impl Client {
                 .put_str(ssh_str::SSH_CONNECTION)
                 .put_str(ssh_str::PUBLIC_KEY)
                 .put_u8(false as u8)
-                .put_str(pubkey_alg.as_str())
+                .put_str(pubkey_alg.as_ref())
                 .put_u8s(
                     &self
                         .config
@@ -109,7 +109,7 @@ impl Client {
                         .key_pair
                         .as_ref()
                         .unwrap()
-                        .get_blob(pubkey_alg.as_str()),
+                        .get_blob(pubkey_alg),
                 );
             data
         };
@@ -133,7 +133,7 @@ impl Client {
                 .put_str(ssh_str::SSH_CONNECTION)
                 .put_str(ssh_str::PUBLIC_KEY)
                 .put_u8(true as u8)
-                .put_str(pubkey_alg.as_str())
+                .put_str(pubkey_alg.as_ref())
                 .put_u8s(
                     &self
                         .config
@@ -141,13 +141,13 @@ impl Client {
                         .key_pair
                         .as_ref()
                         .unwrap()
-                        .get_blob(pubkey_alg.as_str()),
+                        .get_blob(pubkey_alg),
                 );
             let signature = self.config.auth.key_pair.as_ref().unwrap().signature(
                 data.as_slice(),
                 digest.hash_ctx.clone(),
                 digest.key_exchange.as_ref().unwrap().get_hash_type(),
-                pubkey_alg.as_str(),
+                pubkey_alg,
             );
             data.put_u8s(&signature);
             data

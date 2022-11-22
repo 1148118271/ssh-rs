@@ -1,6 +1,7 @@
 use std::{
     fmt::{Debug, Display},
     ops::{Deref, DerefMut},
+    str::FromStr,
 };
 
 use crate::{
@@ -35,8 +36,8 @@ macro_rules! crate_type {
                     f,
                     "{}",
                     self.iter()
-                        .map(|&x| x.as_str())
-                        .collect::<Vec<&'static str>>()
+                        .map(|&x| x.as_ref().to_owned())
+                        .collect::<Vec<String>>()
                         .join(",")
                 )
             }
@@ -47,7 +48,7 @@ macro_rules! crate_type {
             fn try_from(v: Vec<String>) -> Result<Self, Self::Error> {
                 let v = v
                     .iter()
-                    .filter_map(|x| <$value_type>::from_str(x.as_str()))
+                    .filter_map(|x| <$value_type>::from_str(x.as_str()).ok())
                     .collect::<Vec<$value_type>>();
                 Ok(Self(v))
             }

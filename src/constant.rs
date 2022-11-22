@@ -143,42 +143,5 @@ pub(crate) mod ssh_msg_code {
     pub const SSH_OPEN_RESOURCE_SHORTAGE: u32 = 4;
 }
 
-/// 加密算法常量
-#[allow(dead_code)]
-pub mod algorithms {
-    /// key exchange algorithm
-    pub(crate) mod kex {
-        pub const CURVE25519_SHA256: &str = "curve25519-sha256";
-        pub const ECDH_SHA2_NISTP256: &str = "ecdh-sha2-nistp256";
-    }
-
-    /// pubkey hash algorithm
-    pub(crate) mod pubkey {
-        pub const SSH_ED25519: &str = "ssh-ed25519";
-        #[cfg(feature = "dangerous-rsa-sha1")]
-        pub const SSH_RSA: &str = "ssh-rsa";
-        pub const RSA_SHA2_256: &str = "rsa-sha2-256";
-        pub const RSA_SHA2_512: &str = "rsa-sha2-512";
-    }
-
-    /// symmetrical encryption algorithm
-    pub(crate) mod enc {
-        pub const CHACHA20_POLY1305_OPENSSH: &str = "chacha20-poly1305@openssh.com";
-        pub const AES128_CTR: &str = "aes128-ctr";
-    }
-
-    /// MAC(message authentication code) algorithm
-    pub(crate) mod mac {
-        pub const HMAC_SHA1: &str = "hmac-sha1";
-        pub const HMAC_SHA2_256: &str = "hmac-sha2-256";
-        pub const HMAC_SHA2_512: &str = "hmac-sha2-512";
-    }
-
-    /// compression algorithm
-    pub(crate) mod compress {
-        pub const NONE: &str = "none";
-    }
-}
-
 /// 密钥交换后进行HASH时候需要的常量值
 pub(crate) const ALPHABET: [u8; 6] = [b'A', b'B', b'C', b'D', b'E', b'F'];
