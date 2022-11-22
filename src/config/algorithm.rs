@@ -13,7 +13,7 @@ use crate::{
     util,
 };
 
-macro_rules! crate_type {
+macro_rules! create_wrapped_type {
     ($name: ident, $value_type: ty) => {
         #[derive(Clone, Default)]
         pub(crate) struct $name(Vec<$value_type>);
@@ -62,11 +62,11 @@ macro_rules! crate_type {
     };
 }
 
-crate_type!(Kexs, Kex);
-crate_type!(PubKeys, PubKey);
-crate_type!(Encs, Enc);
-crate_type!(Macs, Mac);
-crate_type!(Compresses, Compress);
+create_wrapped_type!(Kexs, Kex);
+create_wrapped_type!(PubKeys, PubKey);
+create_wrapped_type!(Encs, Enc);
+create_wrapped_type!(Macs, Mac);
+create_wrapped_type!(Compresses, Compress);
 
 #[derive(Clone, Default)]
 pub(crate) struct AlgList {
