@@ -142,7 +142,6 @@ impl AlgList {
         macro_rules! match_field {
             ($our: expr,  $their:expr, $field: ident, $err_hint: literal) => {
                 $our.$field
-                    .0
                     .iter()
                     .find_map(|k| {
                         if $their.$field.contains(k) {

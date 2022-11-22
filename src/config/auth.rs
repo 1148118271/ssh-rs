@@ -105,7 +105,7 @@ impl KeyPair {
                         rsa::PaddingScheme::new_pkcs1v15_sign::<sha1::Sha1>(),
                         ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, sd),
                     ),
-                    _ => todo!(),
+                    _ => unreachable!(),
                 };
 
                 let msg = digest.as_ref();
