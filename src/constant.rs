@@ -170,6 +170,8 @@ pub mod algorithms {
     /// MAC(message authentication code) algorithm
     pub(crate) mod mac {
         pub const HMAC_SHA1: &str = "hmac-sha1";
+        pub const HMAC_SHA2_256: &str = "hmac-sha2-256";
+        pub const HMAC_SHA2_512: &str = "hmac-sha2-512";
     }
 
     /// compression algorithm

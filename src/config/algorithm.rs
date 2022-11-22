@@ -221,7 +221,11 @@ impl ToString for Encryption {
 pub struct Mac(pub Vec<String>);
 impl Mac {
     pub fn client_default() -> Self {
-        Mac(vec![constant::mac::HMAC_SHA1.to_string()])
+        Mac(vec![
+            constant::mac::HMAC_SHA2_256.to_string(),
+            constant::mac::HMAC_SHA2_512.to_string(),
+            constant::mac::HMAC_SHA1.to_string(),
+        ])
     }
 }
 impl ToString for Mac {
