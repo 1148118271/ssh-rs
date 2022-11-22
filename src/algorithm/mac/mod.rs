@@ -2,7 +2,6 @@ use ring::hmac::Tag;
 
 mod hmac_sha1;
 mod hmac_sha2;
-use crate::constant::algorithms as constant;
 use hmac_sha1::HMacSha1;
 use hmac_sha2::{HmacSha2_256, HmacSha2_512};
 
@@ -14,12 +13,11 @@ pub(crate) trait Mac: Send + Sync {
     fn bsize(&self) -> usize;
 }
 
-pub(crate) fn from(s: &str) -> Box<dyn Mac> {
+pub(crate) fn from(s: &super::Mac) -> Box<dyn Mac> {
     match s {
-        constant::mac::HMAC_SHA1 => Box::new(HMacSha1::new()),
-        constant::mac::HMAC_SHA2_256 => Box::new(HmacSha2_256::new()),
-        constant::mac::HMAC_SHA2_512 => Box::new(HmacSha2_512::new()),
-        _ => unreachable!("Currently dont support"),
+        super::Mac::HmacSha1 => Box::new(HMacSha1::new()),
+        super::Mac::HmacSha2_256 => Box::new(HmacSha2_256::new()),
+        super::Mac::HmacSha2_512 => Box::new(HmacSha2_512::new()),
     }
 }
 

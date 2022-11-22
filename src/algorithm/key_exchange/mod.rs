@@ -10,7 +10,7 @@ use ring::agreement::{EphemeralPrivateKey, UnparsedPublicKey};
 mod curve25519;
 mod ecdh_sha2_nistp256;
 
-use crate::constant::algorithms as constant;
+use super::Kex;
 use curve25519::CURVE25519;
 use ecdh_sha2_nistp256::EcdhP256;
 
@@ -38,10 +38,9 @@ pub(crate) fn agree_ephemeral<B: AsRef<[u8]>>(
     }
 }
 
-pub(crate) fn from(s: &str) -> SshResult<Box<dyn KeyExchange>> {
+pub(crate) fn from(s: &Kex) -> SshResult<Box<dyn KeyExchange>> {
     match s {
-        constant::kex::CURVE25519_SHA256 => Ok(Box::new(CURVE25519::new()?)),
-        constant::kex::ECDH_SHA2_NISTP256 => Ok(Box::new(EcdhP256::new()?)),
-        _ => unreachable!("Currently dont support"),
+        Kex::Curve25519Sha256 => Ok(Box::new(CURVE25519::new()?)),
+        Kex::EcdhSha2Nistrp256 => Ok(Box::new(EcdhP256::new()?)),
     }
 }

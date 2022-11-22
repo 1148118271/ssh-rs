@@ -3,10 +3,9 @@ mod chacha20_poly1305_openssh;
 
 use crate::algorithm::hash::Hash;
 use crate::algorithm::mac::Mac;
-use crate::constant::algorithms as constant;
 use crate::SshResult;
 
-use super::{hash::HashCtx, mac::MacNone};
+use super::{hash::HashCtx, mac::MacNone, Enc};
 use {aes_ctr_128::AesCtr128, chacha20_poly1305_openssh::ChaCha20Poly1305};
 
 /// # 加密算法
@@ -31,11 +30,10 @@ pub(crate) trait Encryption: Send + Sync {
     fn is_cp(&self) -> bool;
 }
 
-pub(crate) fn from(s: &str, hash: Hash, mac: Box<dyn Mac>) -> Box<dyn Encryption> {
+pub(crate) fn from(s: &Enc, hash: Hash, mac: Box<dyn Mac>) -> Box<dyn Encryption> {
     match s {
-        constant::enc::CHACHA20_POLY1305_OPENSSH => Box::new(ChaCha20Poly1305::new(hash, mac)),
-        constant::enc::AES128_CTR => Box::new(AesCtr128::new(hash, mac)),
-        _ => unreachable!("Currently dont support"),
+        Enc::Chacha20Poly1305Openssh => Box::new(ChaCha20Poly1305::new(hash, mac)),
+        Enc::Aes128Ctr => Box::new(AesCtr128::new(hash, mac)),
     }
 }
 
