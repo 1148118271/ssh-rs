@@ -157,12 +157,15 @@ match ssh::create_session()
 
 * `curve25519-sha256`
 * `ecdh-sha2-nistp256`
+* `diffie-hellman-group14-sha256`
+* `diffie-hellman-group14-sha1`
+* `diffie-hellman-group1-sha1` (behind feature "dangerous-dh-group1-sha1")
 
 ### 2. Server host key algorithms
 
 * `ssh-ed25519`
-* `rsa-sha2-512`
 * `rsa-sha2-256`
+* `rsa-sha2-512`
 * `rsa-sha` (behind feature "dangerous-rsa-sha1")
 
 ### 3. Encryption algorithms (client to server)
@@ -177,10 +180,14 @@ match ssh::create_session()
 
 ### 5. Mac algorithms (client to server)
 
+* `hmac-sha2-256`
+* `hmac-sha2-512`
 * `hmac-sha1`
 
 ### 6. Mac algorithms (server to client)
 
+* `hmac-sha2-256`
+* `hmac-sha2-512`
 * `hmac-sha1`
 
 ### 7. Compression algorithms (client to server)
