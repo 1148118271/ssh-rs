@@ -102,7 +102,13 @@ impl AlgList {
 
     pub fn client_default() -> Self {
         AlgList {
-            key_exchange: vec![Kex::Curve25519Sha256, Kex::EcdhSha2Nistrp256].into(),
+            key_exchange: vec![
+                Kex::Curve25519Sha256,
+                Kex::EcdhSha2Nistrp256,
+                Kex::DiffieHellmanGroup14Sha256,
+                Kex::DiffieHellmanGroup14Sha1,
+            ]
+            .into(),
             public_key: vec![PubKey::RsaSha2_512, PubKey::RsaSha2_256].into(),
             c_encryption: vec![Enc::Chacha20Poly1305Openssh, Enc::Aes128Ctr].into(),
             s_encryption: vec![Enc::Chacha20Poly1305Openssh, Enc::Aes128Ctr].into(),

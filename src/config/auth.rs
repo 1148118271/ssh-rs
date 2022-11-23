@@ -153,7 +153,6 @@ impl KeyPair {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Clone)]
 pub(super) enum KeyType {
     PemRsa,

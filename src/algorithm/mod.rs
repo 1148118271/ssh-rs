@@ -24,6 +24,13 @@ pub enum Kex {
     Curve25519Sha256,
     #[strum(serialize = "ecdh-sha2-nistp256")]
     EcdhSha2Nistrp256,
+    #[cfg(feature = "dangerous-dh-group1-sha1")]
+    #[strum(serialize = "diffie-hellman-group1-sha1")]
+    DiffieHellmanGroup1Sha1,
+    #[strum(serialize = "diffie-hellman-group14-sha1")]
+    DiffieHellmanGroup14Sha1,
+    #[strum(serialize = "diffie-hellman-group14-sha256")]
+    DiffieHellmanGroup14Sha256,
 }
 
 /// pubkey hash algorithm

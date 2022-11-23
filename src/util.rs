@@ -35,7 +35,6 @@ pub(crate) fn cookie() -> Vec<u8> {
     cookie.to_vec()
 }
 
-#[allow(dead_code)]
 pub(crate) fn vec_u8_to_string(v: Vec<u8>, pat: &str) -> SshResult<Vec<String>> {
     let result = from_utf8(v)?;
     let r: Vec<&str> = result.split(pat).collect();
@@ -46,15 +45,6 @@ pub(crate) fn vec_u8_to_string(v: Vec<u8>, pat: &str) -> SshResult<Vec<String>> 
     Ok(vec)
 }
 
-#[allow(dead_code)]
-pub(crate) fn str_to_u32(v: &str) -> SshResult<u32> {
-    match u32::from_str(v) {
-        Ok(v) => Ok(v),
-        Err(_) => Err(SshError::from("str to u32 error")),
-    }
-}
-
-#[allow(dead_code)]
 pub(crate) fn str_to_i64(v: &str) -> SshResult<i64> {
     match i64::from_str(v) {
         Ok(v) => Ok(v),
