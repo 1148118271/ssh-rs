@@ -57,12 +57,16 @@ impl PubKey {
 
 pub enum Mac {
     HmacSha1,
+    HmacSha2_256,
+    HmacSha2_512,
 }
 
 impl Mac {
     pub(crate) fn as_str(&self) -> &'static str {
         match self {
             Mac::HmacSha1 => constant::mac::HMAC_SHA1,
+            Mac::HmacSha2_256 => constant::mac::HMAC_SHA2_256,
+            Mac::HmacSha2_512 => constant::mac::HMAC_SHA2_512,
         }
     }
 }
