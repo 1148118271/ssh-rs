@@ -186,98 +186,58 @@ impl SessionBuilder {
     }
 
     pub fn add_kex_algorithms(mut self, alg: Kex) -> Self {
-        self.config
-            .algs
-            .key_exchange
-            .0
-            .push(alg.as_str().to_owned());
+        self.config.algs.key_exchange.push(alg);
         self
     }
 
     pub fn del_kex_algorithms(mut self, alg: Kex) -> Self {
-        self.config
-            .algs
-            .key_exchange
-            .0
-            .retain(|x| x != alg.as_str());
+        self.config.algs.key_exchange.retain(|x| *x != alg);
         self
     }
 
     pub fn add_pubkey_algorithms(mut self, alg: PubKey) -> Self {
-        self.config.algs.public_key.0.push(alg.as_str().to_owned());
+        self.config.algs.public_key.push(alg);
         self
     }
 
     pub fn del_pubkey_algorithms(mut self, alg: PubKey) -> Self {
-        self.config.algs.public_key.0.retain(|x| x != alg.as_str());
+        self.config.algs.public_key.retain(|x| *x != alg);
         self
     }
 
     pub fn add_enc_algorithms(mut self, alg: Enc) -> Self {
-        self.config
-            .algs
-            .c_encryption
-            .0
-            .push(alg.as_str().to_owned());
-        self.config
-            .algs
-            .s_encryption
-            .0
-            .push(alg.as_str().to_owned());
+        self.config.algs.c_encryption.push(alg);
+        self.config.algs.s_encryption.push(alg);
         self
     }
 
     pub fn del_enc_algorithms(mut self, alg: Enc) -> Self {
-        self.config
-            .algs
-            .c_encryption
-            .0
-            .retain(|x| x != alg.as_str());
-        self.config
-            .algs
-            .s_encryption
-            .0
-            .retain(|x| x != alg.as_str());
+        self.config.algs.c_encryption.retain(|x| *x != alg);
+        self.config.algs.s_encryption.retain(|x| *x != alg);
         self
     }
 
     pub fn add_mac_algortihms(mut self, alg: Mac) -> Self {
-        self.config.algs.c_mac.0.push(alg.as_str().to_owned());
-        self.config.algs.s_mac.0.push(alg.as_str().to_owned());
+        self.config.algs.c_mac.push(alg);
+        self.config.algs.s_mac.push(alg);
         self
     }
 
     pub fn del_mac_algortihms(mut self, alg: Mac) -> Self {
-        self.config.algs.c_mac.0.retain(|x| x != alg.as_str());
-        self.config.algs.s_mac.0.retain(|x| x != alg.as_str());
+        self.config.algs.c_mac.retain(|x| *x != alg);
+        self.config.algs.s_mac.retain(|x| *x != alg);
         self
     }
 
     pub fn add_compress_algorithms(mut self, alg: Compress) -> Self {
-        self.config
-            .algs
-            .c_compression
-            .0
-            .push(alg.as_str().to_owned());
-        self.config
-            .algs
-            .s_compression
-            .0
-            .push(alg.as_str().to_owned());
+        self.config.algs.c_compress.push(alg);
+        self.config.algs.s_compress.push(alg);
         self
     }
 
     pub fn del_compress_algorithms(mut self, alg: Compress) -> Self {
-        self.config
-            .algs
-            .c_compression
-            .0
-            .retain(|x| x != alg.as_str());
-        self.config
-            .algs
-            .s_compression
-            .0
-            .retain(|x| x != alg.as_str());
+        self.config.algs.c_compress.retain(|x| *x != alg);
+        self.config.algs.s_compress.retain(|x| *x != alg);
         self
     }
 

@@ -20,6 +20,8 @@ dangerous-rsa-sha1 = ["sha1"]
 [dependencies]
 log = "0.4"
 rand = "0.8"
+strum = "0.24"
+strum_macros = "0.24"
 # the crate rsa has removed the internal hash implement from 0.7.0
 sha1  = { version = "0.10.5", default-features = false, features = ["oid"], optional = true }
 sha2  = { version = "0.10.6", default-features = false, features = ["oid"]}

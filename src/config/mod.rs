@@ -3,11 +3,11 @@ pub(crate) mod auth;
 pub(crate) mod version;
 use crate::algorithm::PubKey as PubKeyAlgs;
 
-fn insert_or_move_first(v: &mut Vec<String>, alg: &str) {
+fn insert_or_move_first(v: &mut Vec<PubKeyAlgs>, alg: PubKeyAlgs) {
     if let Some(i) = v.iter().position(|each| *each == alg) {
         v.swap(0, i)
     } else {
-        v.insert(0, alg.to_owned())
+        v.insert(0, alg)
     }
 }
 
@@ -52,13 +52,13 @@ impl Config {
         if let Some(ref key_pair) = self.auth.key_pair {
             match key_pair.key_type {
                 auth::KeyType::PemRsa | auth::KeyType::SshRsa => {
-                    let pubkeys = &mut self.algs.public_key.0;
-                    insert_or_move_first(pubkeys, PubKeyAlgs::RsaSha2_256.as_str());
-                    insert_or_move_first(pubkeys, PubKeyAlgs::RsaSha2_512.as_str());
+                    let pubkeys = &mut self.algs.public_key;
+                    insert_or_move_first(pubkeys, PubKeyAlgs::RsaSha2_256);
+                    insert_or_move_first(pubkeys, PubKeyAlgs::RsaSha2_512);
                 }
                 auth::KeyType::SshEd25519 => {
-                    let pubkeys = &mut self.algs.public_key.0;
-                    insert_or_move_first(pubkeys, PubKeyAlgs::SshEd25519.as_str());
+                    let pubkeys = &mut self.algs.public_key;
+                    insert_or_move_first(pubkeys, PubKeyAlgs::SshEd25519);
                 }
             }
         }

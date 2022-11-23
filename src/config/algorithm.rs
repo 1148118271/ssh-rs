@@ -1,53 +1,115 @@
+use std::{
+    fmt::{Debug, Display},
+    ops::{Deref, DerefMut},
+    str::FromStr,
+};
+
 use crate::{
+    algorithm::{Compress, Enc, Kex, Mac, PubKey},
     client::Client,
-    constant::{algorithms as constant, ssh_msg_code},
+    constant::ssh_msg_code,
     error::{SshError, SshResult},
     model::{Data, Packet, SecPacket},
     util,
 };
 
-#[derive(Debug, Clone)]
-pub(crate) struct AlgList {
-    pub key_exchange: KeyExchange,
-    pub public_key: PublicKey,
-    pub c_encryption: Encryption,
-    pub s_encryption: Encryption,
-    pub c_mac: Mac,
-    pub s_mac: Mac,
-    pub c_compression: Compression,
-    pub s_compression: Compression,
+macro_rules! create_wrapped_type {
+    ($name: ident, $value_type: ty) => {
+        #[derive(Clone, Default)]
+        pub(crate) struct $name(Vec<$value_type>);
+        impl Deref for $name {
+            type Target = Vec<$value_type>;
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+
+        impl DerefMut for $name {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.0
+            }
+        }
+
+        impl Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(
+                    f,
+                    "{}",
+                    self.iter()
+                        .map(|&x| x.as_ref().to_owned())
+                        .collect::<Vec<String>>()
+                        .join(",")
+                )
+            }
+        }
+
+        impl TryFrom<Vec<String>> for $name {
+            type Error = SshError;
+            fn try_from(v: Vec<String>) -> Result<Self, Self::Error> {
+                let v = v
+                    .iter()
+                    .filter_map(|x| <$value_type>::from_str(x.as_str()).ok())
+                    .collect::<Vec<$value_type>>();
+                Ok(Self(v))
+            }
+        }
+
+        impl From<Vec<$value_type>> for $name {
+            fn from(v: Vec<$value_type>) -> Self {
+                Self(v)
+            }
+        }
+    };
 }
 
-impl Default for AlgList {
-    fn default() -> Self {
-        Self::new()
+create_wrapped_type!(Kexs, Kex);
+create_wrapped_type!(PubKeys, PubKey);
+create_wrapped_type!(Encs, Enc);
+create_wrapped_type!(Macs, Mac);
+create_wrapped_type!(Compresses, Compress);
+
+#[derive(Clone, Default)]
+pub(crate) struct AlgList {
+    pub key_exchange: Kexs,
+    pub public_key: PubKeys,
+    pub c_encryption: Encs,
+    pub s_encryption: Encs,
+    pub c_mac: Macs,
+    pub s_mac: Macs,
+    pub c_compress: Compresses,
+    pub s_compress: Compresses,
+}
+
+impl Debug for AlgList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "kex: \"{}\", ", self.key_exchange)?;
+        write!(f, "pubkey: \"{}\", ", self.public_key)?;
+        write!(f, "c_enc: \"{}\", ", self.c_encryption)?;
+        write!(f, "s_enc: \"{}\", ", self.s_encryption)?;
+        write!(f, "c_mac: \"{}\", ", self.c_mac)?;
+        write!(f, "s_mac: \"{}\", ", self.s_mac)?;
+        write!(f, "c_compress: \"{}\", ", self.c_compress)?;
+        write!(f, "s_compress: \"{}\"", self.s_compress)
     }
 }
 
 impl AlgList {
     pub fn new() -> Self {
         AlgList {
-            key_exchange: KeyExchange(vec![]),
-            public_key: PublicKey(vec![]),
-            c_encryption: Encryption(vec![]),
-            s_encryption: Encryption(vec![]),
-            c_mac: Mac(vec![]),
-            s_mac: Mac(vec![]),
-            c_compression: Compression(vec![]),
-            s_compression: Compression(vec![]),
+            ..Default::default()
         }
     }
 
     pub fn client_default() -> Self {
         AlgList {
-            key_exchange: KeyExchange::client_default(),
-            public_key: PublicKey::client_default(),
-            c_encryption: Encryption::client_default(),
-            s_encryption: Encryption::client_default(),
-            c_mac: Mac::client_default(),
-            s_mac: Mac::client_default(),
-            c_compression: Compression::client_default(),
-            s_compression: Compression::client_default(),
+            key_exchange: vec![Kex::Curve25519Sha256, Kex::EcdhSha2Nistrp256].into(),
+            public_key: vec![PubKey::RsaSha2_512, PubKey::RsaSha2_256].into(),
+            c_encryption: vec![Enc::Chacha20Poly1305Openssh, Enc::Aes128Ctr].into(),
+            s_encryption: vec![Enc::Chacha20Poly1305Openssh, Enc::Aes128Ctr].into(),
+            c_mac: vec![Mac::HmacSha2_256, Mac::HmacSha2_512, Mac::HmacSha1].into(),
+            s_mac: vec![Mac::HmacSha2_256, Mac::HmacSha2_512, Mac::HmacSha1].into(),
+            c_compress: vec![Compress::None].into(),
+            s_compress: vec![Compress::None].into(),
         }
     }
 
@@ -56,26 +118,33 @@ impl AlgList {
         // 跳过16位cookie
         data.skip(16);
         let mut server_algorithm = Self::new();
-        server_algorithm.key_exchange = KeyExchange(util::vec_u8_to_string(data.get_u8s(), ",")?);
-        server_algorithm.public_key = PublicKey(util::vec_u8_to_string(data.get_u8s(), ",")?);
-        server_algorithm.c_encryption = Encryption(util::vec_u8_to_string(data.get_u8s(), ",")?);
-        server_algorithm.s_encryption = Encryption(util::vec_u8_to_string(data.get_u8s(), ",")?);
-        server_algorithm.c_mac = Mac(util::vec_u8_to_string(data.get_u8s(), ",")?);
-        server_algorithm.s_mac = Mac(util::vec_u8_to_string(data.get_u8s(), ",")?);
-        server_algorithm.c_compression = Compression(util::vec_u8_to_string(data.get_u8s(), ",")?);
-        server_algorithm.s_compression = Compression(util::vec_u8_to_string(data.get_u8s(), ",")?);
-        log::info!("server algorithms: [{:?}]", server_algorithm);
+
+        macro_rules! try_convert {
+            ($hint: literal, $field: ident) => {
+                let alg_string = util::vec_u8_to_string(data.get_u8s(), ",")?;
+                log::info!("server {}: {:?}", $hint, alg_string);
+                server_algorithm.$field = alg_string.try_into()?;
+            };
+        }
+        try_convert!("key exchange", key_exchange);
+        try_convert!("public key", public_key);
+        try_convert!("c2s encryption", c_encryption);
+        try_convert!("s2c encryption", s_encryption);
+        try_convert!("c2s mac", c_mac);
+        try_convert!("s2c mac", s_mac);
+        try_convert!("c2s compression", c_compress);
+        try_convert!("s2c compression", s_compress);
+        log::debug!("converted server algorithms: [{:?}]", server_algorithm);
         Ok(server_algorithm)
     }
 
     pub fn match_with(&self, other: &Self) -> SshResult<Self> {
         macro_rules! match_field {
-            ($our: expr,  $their:expr, $field: ident, $err_hint: expr) => {
+            ($our: expr,  $their:expr, $field: ident, $err_hint: literal) => {
                 $our.$field
-                    .0
                     .iter()
                     .find_map(|k| {
-                        if $their.$field.0.contains(k) {
+                        if $their.$field.contains(k) {
                             Some(k)
                         } else {
                             None
@@ -83,12 +152,12 @@ impl AlgList {
                     })
                     .ok_or_else(|| {
                         log::error!(
-                            "description the {} fails to match, \
+                            "Key_agreement: the {} fails to match, \
                     algorithms supported by the server: {},\
                     algorithms supported by the client: {}",
                             $err_hint,
-                            $their.$field.to_string(),
-                            $our.$field.to_string()
+                            $their.$field,
+                            $our.$field
                         );
                         SshError::from("key exchange error.")
                     })
@@ -108,18 +177,18 @@ impl AlgList {
         let s_mac = match_field!(self, other, s_mac, "server mac algorithm")?;
 
         // compress
-        let c_compress = match_field!(self, other, c_compression, "client compression algorithm")?;
-        let s_compress = match_field!(self, other, s_compression, "server compression algorithm")?;
+        let c_compress = match_field!(self, other, c_compress, "client compression algorithm")?;
+        let s_compress = match_field!(self, other, s_compress, "server compression algorithm")?;
 
         let negotiated = Self {
-            key_exchange: KeyExchange(vec![kex.to_string()]),
-            public_key: PublicKey(vec![pubkey.to_string()]),
-            c_encryption: Encryption(vec![c_enc.to_string()]),
-            s_encryption: Encryption(vec![s_enc.to_string()]),
-            c_mac: Mac(vec![c_mac.to_string()]),
-            s_mac: Mac(vec![s_mac.to_string()]),
-            c_compression: Compression(vec![c_compress.to_string()]),
-            s_compression: Compression(vec![s_compress.to_string()]),
+            key_exchange: vec![*kex].into(),
+            public_key: vec![*pubkey].into(),
+            c_encryption: vec![*c_enc].into(),
+            s_encryption: vec![*s_enc].into(),
+            c_mac: vec![*c_mac].into(),
+            s_mac: vec![*s_mac].into(),
+            c_compress: vec![*c_compress].into(),
+            s_compress: vec![*s_compress].into(),
         };
 
         log::info!("matched algorithms [{:?}]", negotiated);
@@ -129,14 +198,14 @@ impl AlgList {
 
     fn as_i(&self) -> Vec<u8> {
         let mut data = Data::new();
-        data.put_str(self.key_exchange.to_string().as_str());
-        data.put_str(self.public_key.to_string().as_str());
-        data.put_str(self.c_encryption.to_string().as_str());
-        data.put_str(self.s_encryption.to_string().as_str());
-        data.put_str(self.c_mac.to_string().as_str());
-        data.put_str(self.s_mac.to_string().as_str());
-        data.put_str(self.c_compression.to_string().as_str());
-        data.put_str(self.s_compression.to_string().as_str());
+        data.put_str(&self.key_exchange.to_string());
+        data.put_str(&self.public_key.to_string());
+        data.put_str(&self.c_encryption.to_string());
+        data.put_str(&self.s_encryption.to_string());
+        data.put_str(&self.c_mac.to_string());
+        data.put_str(&self.s_mac.to_string());
+        data.put_str(&self.c_compress.to_string());
+        data.put_str(&self.s_compress.to_string());
         data.to_vec()
     }
 }
@@ -164,100 +233,4 @@ impl<'a> Packet<'a> for AlgList {
         assert_eq!(data[0], ssh_msg_code::SSH_MSG_KEXINIT);
         AlgList::from(data)
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct KeyExchange(pub Vec<String>);
-impl KeyExchange {
-    pub fn client_default() -> Self {
-        KeyExchange(vec![
-            constant::kex::CURVE25519_SHA256.to_string(),
-            constant::kex::ECDH_SHA2_NISTP256.to_string(),
-        ])
-    }
-}
-
-impl ToString for KeyExchange {
-    fn to_string(&self) -> String {
-        to_string(&self.0)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct PublicKey(pub Vec<String>);
-impl PublicKey {
-    pub fn client_default() -> Self {
-        PublicKey(vec![
-            constant::pubkey::SSH_ED25519.to_string(),
-            constant::pubkey::RSA_SHA2_512.to_string(),
-            constant::pubkey::RSA_SHA2_256.to_string(),
-        ])
-    }
-}
-
-impl ToString for PublicKey {
-    fn to_string(&self) -> String {
-        to_string(&self.0)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Encryption(pub Vec<String>);
-impl Encryption {
-    pub fn client_default() -> Self {
-        Encryption(vec![
-            constant::enc::CHACHA20_POLY1305_OPENSSH.to_string(),
-            constant::enc::AES128_CTR.to_string(),
-        ])
-    }
-}
-impl ToString for Encryption {
-    fn to_string(&self) -> String {
-        to_string(&self.0)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Mac(pub Vec<String>);
-impl Mac {
-    pub fn client_default() -> Self {
-        Mac(vec![
-            constant::mac::HMAC_SHA2_256.to_string(),
-            constant::mac::HMAC_SHA2_512.to_string(),
-            constant::mac::HMAC_SHA1.to_string(),
-        ])
-    }
-}
-impl ToString for Mac {
-    fn to_string(&self) -> String {
-        to_string(&self.0)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Compression(pub Vec<String>);
-impl Compression {
-    pub fn client_default() -> Self {
-        Compression(vec![constant::compress::NONE.to_string()])
-    }
-}
-impl ToString for Compression {
-    fn to_string(&self) -> String {
-        to_string(&self.0)
-    }
-}
-
-fn to_string(v: &[String]) -> String {
-    let mut s = String::new();
-    if v.is_empty() {
-        return s;
-    }
-    for (i, val) in v.iter().enumerate() {
-        if i == 0 {
-            s.push_str(val);
-            continue;
-        }
-        s.push_str(format!(",{}", val).as_str());
-    }
-    s
 }

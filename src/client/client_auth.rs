@@ -90,15 +90,18 @@ impl Client {
         S: Write,
     {
         let data = {
-            let pubkey_alg = &self.negotiated.public_key.0[0];
-            log::info!("public key authentication. algorithm: {:?}", pubkey_alg);
+            let pubkey_alg = &self.negotiated.public_key[0];
+            log::info!(
+                "public key authentication. algorithm: {}",
+                pubkey_alg.as_ref()
+            );
             let mut data = Data::new();
             data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
                 .put_str(self.config.auth.username.as_str())
                 .put_str(ssh_str::SSH_CONNECTION)
                 .put_str(ssh_str::PUBLIC_KEY)
                 .put_u8(false as u8)
-                .put_str(pubkey_alg)
+                .put_str(pubkey_alg.as_ref())
                 .put_u8s(
                     &self
                         .config
@@ -122,7 +125,7 @@ impl Client {
         S: Write,
     {
         let data = {
-            let pubkey_alg = &self.negotiated.public_key.0[0];
+            let pubkey_alg = &self.negotiated.public_key[0];
 
             let mut data = Data::new();
             data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
@@ -130,7 +133,7 @@ impl Client {
                 .put_str(ssh_str::SSH_CONNECTION)
                 .put_str(ssh_str::PUBLIC_KEY)
                 .put_u8(true as u8)
-                .put_str(pubkey_alg)
+                .put_str(pubkey_alg.as_ref())
                 .put_u8s(
                     &self
                         .config

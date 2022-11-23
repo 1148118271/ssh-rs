@@ -42,11 +42,11 @@ impl Client {
         let negotiated = self.config.algs.match_with(&server_algs)?;
 
         // key exchange algorithm
-        let mut key_exchange = key_exchange::from(negotiated.key_exchange.0[0].as_str())?;
+        let mut key_exchange = key_exchange::from(&negotiated.key_exchange[0])?;
         self.send_qc(stream, key_exchange.get_public_key())?;
 
         // host key algorithm
-        let mut public_key = public_key::from(negotiated.public_key.0[0].as_str());
+        let mut public_key = public_key::from(&negotiated.public_key[0]);
 
         // generate session id
         let session_id = {
@@ -71,10 +71,10 @@ impl Client {
         );
 
         // mac algorithm
-        let mac = mac::from(negotiated.c_mac.0[0].as_str());
+        let mac = mac::from(&negotiated.c_mac[0]);
 
         // encryption algorithm
-        let encryption = encryption::from(negotiated.c_encryption.0[0].as_str(), hash, mac);
+        let encryption = encryption::from(&negotiated.c_encryption[0], hash, mac);
 
         self.session_id = session_id;
         self.negotiated = negotiated;
