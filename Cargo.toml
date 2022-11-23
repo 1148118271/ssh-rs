@@ -25,6 +25,8 @@ sha1  = { version = "0.10.5", default-features = false, features = ["oid"], opti
 sha2  = { version = "0.10.6", default-features = false, features = ["oid"]}
 rsa = "^0.7"
 aes = { version = "0.7", features = ["ctr"] }
+ssh-key = { version = "0.5.1", features = ["rsa", "ed25519"]}
+signature = "1.6.4"
 ring = "0.16.20"
 filetime = "0.2"
 

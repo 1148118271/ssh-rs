@@ -189,6 +189,7 @@ impl PublicKey {
     pub fn client_default() -> Self {
         PublicKey(vec![
             constant::pubkey::SSH_ED25519.to_string(),
+            constant::pubkey::RSA_SHA2_512.to_string(),
             constant::pubkey::RSA_SHA2_256.to_string(),
         ])
     }

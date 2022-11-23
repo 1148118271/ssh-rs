@@ -6,6 +6,7 @@ mod rsa;
 #[cfg(feature = "dangerous-rsa-sha1")]
 use self::rsa::RsaSha1;
 use self::rsa::RsaSha256;
+use self::rsa::RsaSha512;
 use crate::constant::algorithms as constant;
 use ed25519::Ed25519;
 
@@ -25,6 +26,7 @@ pub(crate) fn from(s: &str) -> Box<dyn PublicKey> {
         #[cfg(feature = "dangerous-rsa-sha1")]
         constant::pubkey::SSH_RSA => Box::new(RsaSha1::new()),
         constant::pubkey::RSA_SHA2_256 => Box::new(RsaSha256::new()),
+        constant::pubkey::RSA_SHA2_512 => Box::new(RsaSha512::new()),
         _ => unreachable!("Currently dont support"),
     }
 }
