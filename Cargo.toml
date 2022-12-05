@@ -47,3 +47,13 @@ getrandom = { version = "0.2", features = ["js"] }
 #     "rt",
 #     "time"
 #     ]}
+
+[dev-dependencies]
+paste = "1"
+
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
