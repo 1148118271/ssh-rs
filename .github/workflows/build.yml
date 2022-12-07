@@ -3,7 +3,7 @@ name: Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "*" ]
   pull_request:
     branches: [ "main" ]
 
@@ -19,24 +19,85 @@ jobs:
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
 
-  build-linux:
-    name: Build check on linux & wasm32
+  cargo_clippy:
+    name: Check cargo clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Build Linux
-        run: cargo build
-      - name: Build Wasm32
-        run: rustup target add wasm32-unknown-unknown && cargo build --target wasm32-unknown-unknown
-      - name: Test
-        run: cargo test
-      - name: Doc test
-        run: cargo test --doc
+      - name: Install Clippy
+        run: rustup component add clippy
+      - name: Clippy (no features enabled)
+        run: cargo clippy -- -D warnings
+      - name: Clippy (all features enabled)
+        run: cargo clippy --all-features -- -D warnings
+
+  build-linux:
+    name: Build check on linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Linux (no features enabled)
+        run: cargo build --verbose
+      - name: Build Linux (all features enabled)
+        run: cargo build --verbose --all-features
+  
+  build-wasm32:
+    name: Build check for wasm32
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Add wasm32
+        run: rustup target add wasm32-unknown-unknown
+      - name: Build wasm32 (no features enabled)
+        run: cargo build --target wasm32-unknown-unknown --verbose
+      - name: Build wasm32 (all features enabled)
+        run: cargo build --target wasm32-unknown-unknown --verbose --all-features
 
   build-windows:
     name: Build check on windows
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
-      - name: Build Windows
-        run: cargo build
+      - name: Build Windows (no features enabled)
+        run: cargo build --verbose
+      - name: Build Windows (all features enabled)
+        run: cargo build --verbose --all-features
+
+  cargo-test:
+    name: Check Cargo test
+    runs-on: ubuntu-latest
+    container: 
+      image: alpine:latest
+    env:
+      SSH_RS_TEST_SERVER: localhost:8888
+      SSH_RS_TEST_USER: ubuntu
+      SSH_RS_TEST_PASSWD: password
+      SSH_RS_TEST_PEM_RSA: /root/rsa_old
+      SSH_RS_TEST_OPENSSH_RSA: /root/rsa_new
+      SSH_RS_TEST_ED25519: /root/ed25519
+    steps:
+      - uses: actions/checkout@v3
+      - name: set timezone
+        run: echo 'Europe/London' > /etc/timezone
+      - name: install ssh
+        run: apk add --no-cache --update sudo openssh bash openssh-keygen gcc musl-dev rust cargo
+      - name: add user
+        run: addgroup ubuntu && adduser --shell /bin/ash --disabled-password --home /home/ubuntu --ingroup ubuntu ubuntu && echo "ubuntu:password" | chpasswd
+      - name: config ssh
+        run: ssh-keygen -A && sed -i -E "s|(AuthorizedKeysFile).*|\1 %h/.ssh/authorized_keys|g" /etc/ssh/sshd_config && echo "HostKeyAlgorithms=+ssh-rsa" >> /etc/ssh/sshd_config && echo "PubkeyAcceptedAlgorithms=+ssh-rsa" >> /etc/ssh/sshd_config && echo "KexAlgorithms=+diffie-hellman-group14-sha1,diffie-hellman-group1-sha1" >> /etc/ssh/sshd_config && sed -i -E "s/#?(ChallengeResponseAuthentication|PasswordAuthentication).*/\1 yes/g" /etc/ssh/sshd_config
+      - name: create .ssh
+        run: mkdir -p /home/ubuntu/.ssh && umask 066; touch /home/ubuntu/.ssh/authorized_keys
+      - name: generate rsa files
+        run: ssh-keygen -t rsa -b 4096 -m pem -N '' -f /root/rsa_old && cat /root/rsa_old.pub >> /home/ubuntu/.ssh/authorized_keys
+      - name: generate openssh-rsa files
+        run: ssh-keygen -t rsa -b 4096 -N '' -f /root/rsa_new && cat /root/rsa_new.pub >> /home/ubuntu/.ssh/authorized_keys
+      - name: generate ed25519 files
+        run: ssh-keygen -t ed25519 -N '' -f /root/ed25519 && cat /root/ed25519.pub >> /home/ubuntu/.ssh/authorized_keys
+      - name: change owner
+        run: chown -R ubuntu /home/ubuntu/.ssh
+      - name: run ssh
+        run: mkdir /run/sshd && /usr/sbin/sshd -T &&/usr/sbin/sshd -D -p 8888 &
+      - name: Test
+        run: cargo test --all-features
+      - name: Doc test
+        run: cargo test --doc --all-features
