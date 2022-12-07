@@ -1,3 +1,6 @@
+v0.3.1 (2022-12-07)
+    部分问题修复
+
 v0.3.0 (2022-11-18)
     1. 整体结构更新
     2. 默认禁用ssh-rsa作为公钥加密算法，如需连接老版本服务器，需要启用dangerous-algorithms特性，并且自行add_pubkey_algorithms
