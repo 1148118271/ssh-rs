@@ -67,7 +67,7 @@ ssh::create_session().timeout(50);
 
 
 ### 自定义连接方式:
-[bio示例](examples/scp/src/main.rs)
+[bio示例](examples/bio/src/main.rs)
 
 ### 算法支持：
 
