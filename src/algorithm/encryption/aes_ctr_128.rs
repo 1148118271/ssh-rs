@@ -52,17 +52,15 @@ impl Encryption for AesCtr128 {
             server_key: r,
             mac,
             ik_c_s,
-            ik_s_c
+            ik_s_c,
         }
     }
 
     fn encrypt(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>) {
         let vec = buf.clone();
-        let tag = self.mac.sign(
-            &self.ik_c_s,
-            client_sequence_num,
-            vec.as_slice(),
-        );
+        let tag = self
+            .mac
+            .sign(&self.ik_c_s, client_sequence_num, vec.as_slice());
         self.client_key.apply_keystream(buf);
         buf.extend(tag.as_ref())
     }
@@ -72,11 +70,7 @@ impl Encryption for AesCtr128 {
         let data = &mut buf[..(pl + self.mac.bsize())];
         let (d, m) = data.split_at_mut(pl);
         self.server_key.apply_keystream(d);
-        let tag = self.mac.sign(
-            &self.ik_s_c,
-            server_sequence_number,
-            d,
-        );
+        let tag = self.mac.sign(&self.ik_s_c, server_sequence_number, d);
         let t = tag.as_ref();
         if m != t {
             return Err(SshError::from("encryption error."));
