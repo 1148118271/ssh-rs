@@ -53,7 +53,7 @@ impl Encryption for AesCtr128 {
     fn encrypt(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>) {
         let vec = buf.clone();
         let tag = self.mac.sign(
-            &self.hash.ik_c_s[..self.mac.bsize()],
+            &self.hash.ik_c_s,
             client_sequence_num,
             vec.as_slice(),
         );
@@ -63,11 +63,11 @@ impl Encryption for AesCtr128 {
 
     fn decrypt(&mut self, server_sequence_number: u32, buf: &mut [u8]) -> SshResult<Vec<u8>> {
         let pl = self.packet_len(server_sequence_number, buf);
-        let data = &mut buf[..(pl + 20)];
+        let data = &mut buf[..(pl + self.mac.bsize())];
         let (d, m) = data.split_at_mut(pl);
         self.server_key.apply_keystream(d);
         let tag = self.mac.sign(
-            &self.hash.ik_s_c[..self.mac.bsize()],
+            &self.hash.ik_s_c,
             server_sequence_number,
             d,
         );
