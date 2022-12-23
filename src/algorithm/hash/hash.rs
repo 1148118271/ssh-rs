@@ -24,7 +24,7 @@ use crate::constant;
 /// 如果 K 的熵比 HASH 的内状态（internal state）大小要大，则该过程将造成熵的丢失。
 
 pub struct Hash {
-    /// IV
+    /// 数据加密时只使用一次的随机数  number used once
     pub iv_c_s: Vec<u8>,
     pub iv_s_c: Vec<u8>,
 
@@ -72,9 +72,19 @@ impl Hash {
         hash::digest(key.as_slice(), hash_type)
     }
 
-    pub fn extend_key(&self, key_size: usize) -> (Vec<u8>, Vec<u8>) {
+    pub fn mix_ek(&self, key_size: usize) -> (Vec<u8>, Vec<u8>) {
         let mut ck = self.ek_c_s.to_vec();
         let mut sk = self.ek_s_c.to_vec();
+        while key_size > ck.len() {
+            ck.extend(self.extend(ck.as_slice()));
+            sk.extend(self.extend(sk.as_slice()));
+        }
+        (ck, sk)
+    }
+
+    pub fn mix_ik(&self, key_size: usize) -> (Vec<u8>, Vec<u8>) {
+        let mut ck = self.ik_c_s.to_vec();
+        let mut sk = self.ik_s_c.to_vec();
         while key_size > ck.len() {
             ck.extend(self.extend(ck.as_slice()));
             sk.extend(self.extend(sk.as_slice()));
