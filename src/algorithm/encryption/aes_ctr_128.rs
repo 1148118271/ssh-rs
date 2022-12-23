@@ -12,8 +12,10 @@ pub(super) struct AesCtr128 {
     pub(crate) client_key: Aes128Ctr,
     pub(crate) server_key: Aes128Ctr,
 
-    hash: Hash,
     mac: Box<dyn Mac>,
+    // hmac
+    ik_c_s: Vec<u8>,
+    ik_s_c: Vec<u8>,
 }
 
 impl Encryption for AesCtr128 {
@@ -25,7 +27,7 @@ impl Encryption for AesCtr128 {
     }
 
     fn new(hash: Hash, mac: Box<dyn Mac>) -> Self {
-        let (ck, sk) = hash.extend_key(BSIZE);
+        let (ck, sk) = hash.mix_ek(BSIZE);
         let mut ckey = [0u8; BSIZE];
         let mut skey = [0u8; BSIZE];
 
@@ -42,35 +44,33 @@ impl Encryption for AesCtr128 {
         let c = Aes128Ctr::new_from_slices(&ckey, &civ).unwrap();
         let r = Aes128Ctr::new_from_slices(&skey, &siv).unwrap();
 
+        // hmac
+        let (ik_c_s, ik_s_c) = hash.mix_ik(mac.bsize());
+
         AesCtr128 {
             client_key: c,
             server_key: r,
-            hash,
             mac,
+            ik_c_s,
+            ik_s_c,
         }
     }
 
     fn encrypt(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>) {
         let vec = buf.clone();
-        let tag = self.mac.sign(
-            &self.hash.ik_c_s[..self.mac.bsize()],
-            client_sequence_num,
-            vec.as_slice(),
-        );
+        let tag = self
+            .mac
+            .sign(&self.ik_c_s, client_sequence_num, vec.as_slice());
         self.client_key.apply_keystream(buf);
         buf.extend(tag.as_ref())
     }
 
     fn decrypt(&mut self, server_sequence_number: u32, buf: &mut [u8]) -> SshResult<Vec<u8>> {
         let pl = self.packet_len(server_sequence_number, buf);
-        let data = &mut buf[..(pl + 20)];
+        let data = &mut buf[..(pl + self.mac.bsize())];
         let (d, m) = data.split_at_mut(pl);
         self.server_key.apply_keystream(d);
-        let tag = self.mac.sign(
-            &self.hash.ik_s_c[..self.mac.bsize()],
-            server_sequence_number,
-            d,
-        );
+        let tag = self.mac.sign(&self.ik_s_c, server_sequence_number, d);
         let t = tag.as_ref();
         if m != t {
             return Err(SshError::from("encryption error."));
