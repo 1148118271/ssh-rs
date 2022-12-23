@@ -32,6 +32,7 @@ impl Mac for HmacSha2_256 {
 
 impl Mac for HmacSha2_512 {
     fn sign(&self, ik: &[u8], sequence_num: u32, buf: &[u8]) -> Tag {
+        let ik = &ik[..BSIZE_512];
         let key = hmac::Key::new(hmac::HMAC_SHA512, ik);
         let mut c = Context::with_key(&key);
         c.update(sequence_num.to_be_bytes().as_slice());
