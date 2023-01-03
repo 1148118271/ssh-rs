@@ -1,4 +1,5 @@
 mod aes_ctr_128;
+mod aes_ctr_192;
 mod chacha20_poly1305_openssh;
 
 use crate::algorithm::hash::Hash;
@@ -7,6 +8,7 @@ use crate::SshResult;
 
 use super::{hash::HashCtx, mac::MacNone, Enc};
 use {aes_ctr_128::AesCtr128, chacha20_poly1305_openssh::ChaCha20Poly1305};
+use crate::algorithm::encryption::aes_ctr_192::AesCtr192;
 
 /// # 加密算法
 /// 在密钥交互中将协商出一种加密算法和一个密钥。当加密生效时，每个数据包的数据包长度、填
@@ -20,6 +22,7 @@ use {aes_ctr_128::AesCtr128, chacha20_poly1305_openssh::ChaCha20Poly1305};
 pub(crate) trait Encryption: Send + Sync {
     fn bsize(&self) -> usize;
     fn iv_size(&self) -> usize;
+    fn group_size(&self) -> usize;
     fn new(hash: Hash, mac: Box<dyn Mac>) -> Self
     where
         Self: Sized;
@@ -34,6 +37,7 @@ pub(crate) fn from(s: &Enc, hash: Hash, mac: Box<dyn Mac>) -> Box<dyn Encryption
     match s {
         Enc::Chacha20Poly1305Openssh => Box::new(ChaCha20Poly1305::new(hash, mac)),
         Enc::Aes128Ctr => Box::new(AesCtr128::new(hash, mac)),
+        Enc::Aes192Ctr => Box::new(AesCtr192::new(hash, mac)),
     }
 }
 
@@ -44,8 +48,13 @@ impl Encryption for EncryptionNone {
         8
     }
     fn iv_size(&self) -> usize {
-        unreachable!()
+        8
     }
+
+    fn group_size(&self) -> usize {
+        8
+    }
+
     fn new(_hash: Hash, _mac: Box<dyn Mac>) -> Self
     where
         Self: Sized,

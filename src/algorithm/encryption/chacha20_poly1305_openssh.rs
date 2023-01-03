@@ -20,6 +20,10 @@ impl Encryption for ChaCha20Poly1305 {
         0
     }
 
+    fn group_size(&self) -> usize {
+        64
+    }
+
     fn new(hash: Hash, _mac: Box<dyn Mac>) -> ChaCha20Poly1305 {
         let (ck, sk) = hash.mix_ek(BSIZE);
         let mut sealing_key = [0_u8; BSIZE];

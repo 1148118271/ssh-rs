@@ -15,6 +15,8 @@ pub enum Enc {
     Chacha20Poly1305Openssh,
     #[strum(serialize = "aes128-ctr")]
     Aes128Ctr,
+    #[strum(serialize = "aes192-ctr")]
+    Aes192Ctr,
 }
 
 /// key exchange algorithm

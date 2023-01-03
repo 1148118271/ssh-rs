@@ -110,8 +110,8 @@ impl AlgList {
             ]
             .into(),
             public_key: vec![PubKey::RsaSha2_512, PubKey::RsaSha2_256].into(),
-            c_encryption: vec![Enc::Chacha20Poly1305Openssh, Enc::Aes128Ctr].into(),
-            s_encryption: vec![Enc::Chacha20Poly1305Openssh, Enc::Aes128Ctr].into(),
+            c_encryption: vec![Enc::Chacha20Poly1305Openssh, Enc::Aes128Ctr, Enc::Aes192Ctr].into(),
+            s_encryption: vec![Enc::Chacha20Poly1305Openssh, Enc::Aes128Ctr, Enc::Aes192Ctr].into(),
             c_mac: vec![Mac::HmacSha2_256, Mac::HmacSha2_512, Mac::HmacSha1].into(),
             s_mac: vec![Mac::HmacSha2_256, Mac::HmacSha2_512, Mac::HmacSha1].into(),
             c_compress: vec![Compress::None].into(),
