@@ -150,7 +150,6 @@ impl<'a> SecPacket<'a> {
                 pad += group_size;
             }
             pad as u32
-
         } as u8;
         let packet_len = 1 + pad_len as u32 + payload_len;
         let mut buf = vec![];

@@ -1,11 +1,10 @@
-use aes::Aes192Ctr;
-use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
 use crate::algorithm::encryption::Encryption;
 use crate::algorithm::hash::Hash;
 use crate::algorithm::mac::Mac;
 use crate::error::SshError;
 use crate::SshResult;
-
+use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
+use aes::Aes192Ctr;
 
 const BLOCK_SIZE: usize = 24;
 const IV_SIZE: usize = 16;
@@ -33,7 +32,10 @@ impl Encryption for AesCtr192 {
         16
     }
 
-    fn new(hash: Hash, mac: Box<dyn Mac>) -> Self where Self: Sized {
+    fn new(hash: Hash, mac: Box<dyn Mac>) -> Self
+    where
+        Self: Sized,
+    {
         let (ck, sk) = hash.mix_ek(BLOCK_SIZE);
         let mut ckey = [0u8; BLOCK_SIZE];
         let mut skey = [0u8; BLOCK_SIZE];
@@ -59,7 +61,7 @@ impl Encryption for AesCtr192 {
             server_key: r,
             mac,
             ik_c_s,
-            ik_s_c
+            ik_s_c,
         }
     }
 
