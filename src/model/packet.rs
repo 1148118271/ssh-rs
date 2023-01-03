@@ -137,32 +137,28 @@ impl<'a> SecPacket<'a> {
     {
         let tm = self.client.get_timeout();
         let payload_len = self.payload.len() as u32;
-        let bsize = self.client.get_encryptor().bsize() as i32;
+        let group_size = self.client.get_encryptor().group_size() as i32;
         let pad_len = {
-            let mut pad = (-((payload_len
-                + if self.client.get_encryptor().is_cp() {
-                    1
-                } else {
-                    5
-                }) as i32))
-                & (bsize - 1) as i32;
-            if pad < bsize {
-                pad += bsize;
+            let mut pad = payload_len as i32;
+            if self.client.get_encryptor().is_cp() {
+                pad += 1;
+            } else {
+                pad += 5
+            }
+            pad = (-pad) & (group_size as i32 - 1);
+            if pad < group_size {
+                pad += group_size;
             }
             pad as u32
         } as u8;
         let packet_len = 1 + pad_len as u32 + payload_len;
-
         let mut buf = vec![];
         buf.extend(packet_len.to_be_bytes());
         buf.extend([pad_len]);
         buf.extend(self.payload.iter());
         buf.extend(vec![0; pad_len as usize]);
-
         let seq = self.client.get_seq().get_client();
-
         self.client.get_encryptor().encrypt(seq, &mut buf);
-
         write_with_timeout(stream, tm, &buf)
     }
 

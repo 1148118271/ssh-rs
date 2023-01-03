@@ -1,16 +1,17 @@
 use crate::algorithm::encryption::Encryption;
 use crate::algorithm::hash::Hash;
 use crate::algorithm::mac::Mac;
-use crate::{SshError, SshResult};
+use crate::error::SshError;
+use crate::SshResult;
 use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
-use aes::Aes128Ctr;
+use aes::Aes192Ctr;
 
-const BSIZE: usize = 16;
+const BLOCK_SIZE: usize = 24;
 const IV_SIZE: usize = 16;
 
-pub(super) struct AesCtr128 {
-    pub(crate) client_key: Aes128Ctr,
-    pub(crate) server_key: Aes128Ctr,
+pub(super) struct AesCtr192 {
+    pub(crate) client_key: Aes192Ctr,
+    pub(crate) server_key: Aes192Ctr,
 
     // hmac
     mac: Box<dyn Mac>,
@@ -18,10 +19,11 @@ pub(super) struct AesCtr128 {
     ik_s_c: Vec<u8>,
 }
 
-impl Encryption for AesCtr128 {
+impl Encryption for AesCtr192 {
     fn bsize(&self) -> usize {
-        BSIZE
+        BLOCK_SIZE
     }
+
     fn iv_size(&self) -> usize {
         IV_SIZE
     }
@@ -30,28 +32,31 @@ impl Encryption for AesCtr128 {
         16
     }
 
-    fn new(hash: Hash, mac: Box<dyn Mac>) -> Self {
-        let (ck, sk) = hash.mix_ek(BSIZE);
-        let mut ckey = [0u8; BSIZE];
-        let mut skey = [0u8; BSIZE];
+    fn new(hash: Hash, mac: Box<dyn Mac>) -> Self
+    where
+        Self: Sized,
+    {
+        let (ck, sk) = hash.mix_ek(BLOCK_SIZE);
+        let mut ckey = [0u8; BLOCK_SIZE];
+        let mut skey = [0u8; BLOCK_SIZE];
 
-        let mut civ = [0u8; BSIZE];
-        let mut siv = [0u8; BSIZE];
+        let mut civ = [0u8; IV_SIZE];
+        let mut siv = [0u8; IV_SIZE];
 
-        ckey.clone_from_slice(&ck[..BSIZE]);
-        skey.clone_from_slice(&sk[..BSIZE]);
+        ckey.clone_from_slice(&ck[..BLOCK_SIZE]);
+        skey.clone_from_slice(&sk[..BLOCK_SIZE]);
 
         civ.clone_from_slice(&hash.iv_c_s[..IV_SIZE]);
         siv.clone_from_slice(&hash.iv_s_c[..IV_SIZE]);
 
         // TODO unwrap 未处理
-        let c = Aes128Ctr::new_from_slices(&ckey, &civ).unwrap();
-        let r = Aes128Ctr::new_from_slices(&skey, &siv).unwrap();
+        let c = Aes192Ctr::new_from_slices(&ckey, &civ).unwrap();
+        let r = Aes192Ctr::new_from_slices(&skey, &siv).unwrap();
 
         // hmac
         let (ik_c_s, ik_s_c) = hash.mix_ik(mac.bsize());
 
-        AesCtr128 {
+        AesCtr192 {
             client_key: c,
             server_key: r,
             mac,
