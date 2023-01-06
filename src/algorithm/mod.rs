@@ -17,6 +17,8 @@ pub enum Enc {
     Aes128Ctr,
     #[strum(serialize = "aes192-ctr")]
     Aes192Ctr,
+    #[strum(serialize = "aes256-ctr")]
+    Aes256Ctr,
 }
 
 /// key exchange algorithm
