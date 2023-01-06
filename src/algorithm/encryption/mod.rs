@@ -1,5 +1,4 @@
-mod aes_ctr_128;
-mod aes_ctr_192;
+mod aes_ctr;
 mod chacha20_poly1305_openssh;
 
 use crate::algorithm::hash::Hash;
@@ -7,7 +6,6 @@ use crate::algorithm::mac::Mac;
 use crate::SshResult;
 
 use super::{hash::HashCtx, mac::MacNone, Enc};
-use {aes_ctr_128::AesCtr128, aes_ctr_192::AesCtr192, chacha20_poly1305_openssh::ChaCha20Poly1305};
 
 /// # 加密算法
 /// 在密钥交互中将协商出一种加密算法和一个密钥。当加密生效时，每个数据包的数据包长度、填
@@ -17,7 +15,6 @@ use {aes_ctr_128::AesCtr128, aes_ctr_192::AesCtr192, chacha20_poly1305_openssh::
 /// 钥。
 /// 两个方向上的加密器必须独立运行。如果本地策略允许多种算法，系统实现必须允许独立选择每
 /// 个方向上的算法。但是，在实际使用中，推荐在两个方向上使用相同的算法。
-
 pub(crate) trait Encryption: Send + Sync {
     fn bsize(&self) -> usize;
     fn iv_size(&self) -> usize;
@@ -34,9 +31,12 @@ pub(crate) trait Encryption: Send + Sync {
 
 pub(crate) fn from(s: &Enc, hash: Hash, mac: Box<dyn Mac>) -> Box<dyn Encryption> {
     match s {
-        Enc::Chacha20Poly1305Openssh => Box::new(ChaCha20Poly1305::new(hash, mac)),
-        Enc::Aes128Ctr => Box::new(AesCtr128::new(hash, mac)),
-        Enc::Aes192Ctr => Box::new(AesCtr192::new(hash, mac)),
+        Enc::Chacha20Poly1305Openssh => {
+            Box::new(chacha20_poly1305_openssh::ChaCha20Poly1305::new(hash, mac))
+        }
+        Enc::Aes128Ctr => Box::new(aes_ctr::Ctr128::new(hash, mac)),
+        Enc::Aes192Ctr => Box::new(aes_ctr::Ctr192::new(hash, mac)),
+        Enc::Aes256Ctr => Box::new(aes_ctr::Ctr256::new(hash, mac)),
     }
 }
 
