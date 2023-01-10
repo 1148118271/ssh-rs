@@ -27,9 +27,7 @@ fn main() {
         return;
     }
     // 替换Cargo.toml
-    if replace_cargo(&current_version, &last_version).is_err() {
-        return;
-    }
+    let _ = replace_cargo(&current_version, &last_version);
 }
 
 fn replace_constant(current_version: &str, last_version: &str) -> Result<(), ()> {
