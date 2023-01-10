@@ -13,7 +13,10 @@ fn main() {
         return;
     }
 
-    println!("cargo:warning= current version: {} last version: {}", current_version, last_version);
+    println!(
+        "cargo:warning= current version: {} last version: {}",
+        current_version, last_version
+    );
 
     // 替换lib.rs
     if replace_lib(&current_version, &last_version).is_err() {
@@ -54,7 +57,7 @@ fn replace_file(file_path: &str, current_str: String, last_str: String) -> Resul
     };
     let new_buf_str = buf_str.replace(&current_str, &last_str);
     if fs::write(file_path, new_buf_str).is_err() {
-        return Err(())
+        return Err(());
     }
     Ok(())
 }
