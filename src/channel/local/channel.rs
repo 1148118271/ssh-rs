@@ -1,5 +1,6 @@
 use std::io::{Read, Write};
 
+use crate::model::TerminalSize;
 use crate::{
     algorithm::Digest,
     client::Client,
@@ -8,7 +9,6 @@ use crate::{
     error::{SshError, SshResult},
     model::{Data, FlowControl, Packet, RcMut, SecPacket},
 };
-use crate::model::TerminalSize;
 
 use super::{ChannelExec, ChannelScp, ChannelShell};
 

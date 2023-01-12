@@ -4,9 +4,9 @@ mod flow_control;
 mod packet;
 mod scp_file;
 mod sequence;
+mod terminal;
 mod timeout;
 mod u32iter;
-mod terminal;
 
 use std::{
     cell::RefCell,

@@ -2,8 +2,8 @@ use super::channel::ChannelBroker;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::error::SshResult;
 use crate::model::Data;
-use std::ops::{Deref, DerefMut};
 use crate::TerminalSize;
+use std::ops::{Deref, DerefMut};
 
 pub struct ShellBrocker(ChannelBroker);
 

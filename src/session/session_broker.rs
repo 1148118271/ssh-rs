@@ -10,7 +10,16 @@ use std::{
 
 use log::info;
 
-use crate::{algorithm::Digest, channel::{BackendChannel, ExecBroker}, client::Client, config::algorithm::AlgList, constant::{size, ssh_msg_code, ssh_str}, error::{SshError, SshResult}, model::{ArcMut, BackendResp, BackendRqst, Data, Packet, SecPacket, U32Iter}, ChannelBroker, ScpBroker, ShellBrocker, TerminalSize};
+use crate::{
+    algorithm::Digest,
+    channel::{BackendChannel, ExecBroker},
+    client::Client,
+    config::algorithm::AlgList,
+    constant::{size, ssh_msg_code, ssh_str},
+    error::{SshError, SshResult},
+    model::{ArcMut, BackendResp, BackendRqst, Data, Packet, SecPacket, U32Iter},
+    ChannelBroker, ScpBroker, ShellBrocker, TerminalSize,
+};
 
 pub struct SessionBroker {
     channel_num: ArcMut<U32Iter>,

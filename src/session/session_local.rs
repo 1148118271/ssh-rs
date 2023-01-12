@@ -4,6 +4,7 @@ use std::{
     rc::Rc,
 };
 
+use crate::model::TerminalSize;
 use crate::{
     channel::{LocalChannel, LocalExec, LocalScp, LocalShell},
     client::Client,
@@ -11,8 +12,6 @@ use crate::{
     error::{SshError, SshResult},
     model::{Data, Packet, RcMut, SecPacket, U32Iter},
 };
-use crate::model::TerminalSize;
-
 
 pub struct LocalSession<S>
 where

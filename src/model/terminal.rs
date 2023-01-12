@@ -1,14 +1,12 @@
-
 pub enum TerminalSizeType {
     Character,
     Pixel,
 }
 
-
 pub struct TerminalSize {
     width: u32,
     height: u32,
-    type_ : TerminalSizeType,
+    type_: TerminalSizeType,
 }
 
 impl TerminalSize {

@@ -4,7 +4,13 @@ use std::{
     vec,
 };
 
-use crate::{client::Client, constant::ssh_msg_code, error::{SshError, SshResult}, model::{BackendResp, BackendRqst, Data, FlowControl, Packet}, TerminalSize};
+use crate::{
+    client::Client,
+    constant::ssh_msg_code,
+    error::{SshError, SshResult},
+    model::{BackendResp, BackendRqst, Data, FlowControl, Packet},
+    TerminalSize,
+};
 
 use super::{channel_exec::ExecBroker, channel_scp::ScpBroker, channel_shell::ShellBrocker};
 
