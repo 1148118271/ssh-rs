@@ -143,5 +143,140 @@ pub(crate) mod ssh_msg_code {
     pub const SSH_OPEN_RESOURCE_SHORTAGE: u32 = 4;
 }
 
+/// sftp 消息码
+///
+#[allow(dead_code)]
+pub(crate) mod sftp_msg_code {
+    // 客户端初始化
+    pub const SSH_FXP_INIT: u8 = 1;
+    // 服务器初始化
+    pub const SSH_FXP_VERSION: u8 = 2;
+    // 打开文件包
+    pub const SSH_FXP_OPEN: u8 = 3;
+    // 关闭句柄
+    pub const SSH_FXP_CLOSE: u8 = 4;
+    // 读取文件
+    pub const SSH_FXP_READ: u8 = 5;
+    // 写入文件
+    pub const SSH_FXP_WRITE: u8 = 6;
+    // 获取文件属性 - 根据文件路径
+    pub const SSH_FXP_LSTAT: u8 = 7;
+    // 获取文件属性 - 根据文件句柄
+    pub const SSH_FXP_FSTAT: u8 = 8;
+    // 设置文件属性 - 根据文件路径
+    pub const SSH_FXP_SETSTAT: u8 = 9;
+    // 设置文件属性 - 根据文件句柄
+    pub const SSH_FXP_FSETSTAT: u8 = 10;
+    // 打开目录
+    pub const SSH_FXP_OPENDIR: u8 = 11;
+    // 读取目录
+    pub const SSH_FXP_READDIR: u8 = 12;
+    // 删除文件
+    pub const SSH_FXP_REMOVE: u8 = 13;
+    // 创建目录
+    pub const SSH_FXP_MKDIR: u8 = 14;
+    // 删除目录
+    pub const SSH_FXP_RMDIR: u8 = 15;
+    // 相对路径转为绝对路径
+    pub const SSH_FXP_REALPATH: u8 = 16;
+    // 同 SSH_FXP_LSTAT
+    // SH_FXP_STAT遵循在服务器上的符号链接，然而SSH_FXP_LSTAT不遵循符号链接
+    pub const SSH_FXP_STAT: u8 = 17;
+    // 重命名文件
+    pub const SSH_FXP_RENAME: u8 = 18;
+    // 读取符号链接的目标
+    pub const SSH_FXP_READLINK: u8 = 19;
+    // 请求创建链接
+    pub const SSH_FXP_LINK: u8 = 21;
+    // 在指定的文件上创建字节范围锁
+    pub const SSH_FXP_BLOCK: u8 = 22;
+    // 移除之前获取的字节范围锁
+    pub const SSH_FXP_UNBLOCK: u8 = 23;
+    // 响应状态
+    pub const SSH_FXP_STATUS: u8 = 101;
+    // 句柄响应
+    pub const SSH_FXP_HANDLE: u8 = 102;
+    // 数据响应
+    pub const SSH_FXP_DATA: u8 = 103;
+    // 名称响应
+    pub const SSH_FXP_NAME: u8 = 104;
+    // 属性响应
+    pub const SSH_FXP_ATTRS: u8 = 105;
+
+    // 拓展
+    pub const SSH_FXP_EXTENDED: u8 = 200;
+    pub const SSH_FXP_EXTENDED_REPLY: u8 = 201;
+}
+
+/// sftp 状态码
+///
+#[allow(dead_code)]
+pub(crate) mod sftp_msg_status_code {
+    // 操作成功完成
+    pub const SSH_FX_OK: u8 = 0;
+    // 读取超长/没有更多的返回目录项
+    pub const SSH_FX_EOF: u8 = 1;
+    // 引用了一个不存在的文件
+    pub const SSH_FX_NO_SUCH_FILE: u8 = 2;
+    // 用户权限不足
+    pub const SSH_FX_PERMISSION_DENIED: u8 = 3;
+    // 返回错误但是不存在特定错误码
+    pub const SSH_FX_FAILURE: u8 = 4;
+    // 数据包格式错误或者协议不兼容
+    pub const SSH_FX_BAD_MESSAGE: u8 = 5;
+    // 没有连接到服务器(只能本地返回此错误)
+    pub const SSH_FX_NO_CONNECTION: u8 = 6;
+    // 与服务器连接丢失(只能本地返回此错误)
+    pub const SSH_FX_CONNECTION_LOST: u8 = 7;
+    // 服务器不支持该操作
+    pub const SSH_FX_OP_UNSUPPORTED: u8 = 8;
+    // 句柄值无效
+    pub const SSH_FX_INVALID_HANDLE: u8 = 9;
+    // 文件路径不存在或者无效
+    pub const SSH_FX_NO_SUCH_PATH: u8 = 10;
+    // 文件已存在
+    pub const SSH_FX_FILE_ALREADY_EXISTS: u8 = 11;
+    // 文件处于只读/保护状态
+    pub const SSH_FX_WRITE_PROTECT: u8 = 12;
+    // 无法完成指定的操作-驱动器中没有可用的介质
+    pub const SSH_FX_NO_MEDIA: u8 = 13;
+    // 无法完成指定的操作-文件系统上可用空间不足
+    pub const SSH_FX_NO_SPACE_ON_FILESYSTEM: u8 = 14;
+    // 超过用户的储存配额
+    pub const SSH_FX_QUOTA_EXCEEDED: u8 = 15;
+    // 未知的请求引用主题
+    pub const SSH_FX_UNKNOWN_PRINCIPAL: u8 = 16;
+    // 文件被锁定,无法打开
+    pub const SSH_FX_LOCK_CONFLICT: u8 = 17;
+    // 目录不为空
+    pub const SSH_FX_DIR_NOT_EMPTY: u8 = 18;
+    // 指定的文件不是目录
+    pub const SSH_FX_NOT_A_DIRECTORY: u8 = 19;
+    // 文件名无效
+    pub const SSH_FX_INVALID_FILENAME: u8 = 20;
+    // 过多的符号链接
+    pub const SSH_FX_LINK_LOOP: u8 = 21;
+    // 文件无法删除
+    pub const SSH_FX_CANNOT_DELETE: u8 = 22;
+    // 参数超出范围/多参数不能以前使用
+    pub const SSH_FX_INVALID_PARAMETER: u8 = 23;
+    // 指定的目录是上下文的目录,某些目录无法使用
+    pub const SSH_FX_FILE_IS_A_DIRECTORY: u8 = 24;
+    // 读取或写入失败,另一个进程的字节范围锁与请求重叠
+    pub const SSH_FX_BYTE_RANGE_LOCK_CONFLICT: u8 = 25;
+    // 字节范围锁请求被拒绝
+    pub const SSH_FX_BYTE_RANGE_LOCK_REFUSED: u8 = 26;
+    // 删除文件操作被挂起
+    pub const SSH_FX_DELETE_PENDING: u8 = 27;
+    // 文件已损坏
+    pub const SSH_FX_FILE_CORRUPT: u8 = 28;
+    // 无法将指定的主体指派为文件的所有者
+    pub const SSH_FX_OWNER_INVALID: u8 = 29;
+    // 无法将指定的主体分配为文件的主要组
+    pub const SSH_FX_GROUP_INVALID: u8 = 30;
+    // 无法完成请求操作,因为尚未授权指定的字节范围锁定
+    pub const SSH_FX_NO_MATCHING_BYTE_RANGE_LOCK: u8 = 31;
+}
+
 /// 密钥交换后进行HASH时候需要的常量值
 pub(crate) const ALPHABET: [u8; 6] = [b'A', b'B', b'C', b'D', b'E', b'F'];
