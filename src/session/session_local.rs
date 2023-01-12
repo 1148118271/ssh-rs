@@ -11,6 +11,8 @@ use crate::{
     error::{SshError, SshResult},
     model::{Data, Packet, RcMut, SecPacket, U32Iter},
 };
+use crate::model::TerminalSize;
+
 
 pub struct LocalSession<S>
 where
@@ -57,8 +59,16 @@ where
     /// open a [LocalShell] channel which can download/upload files/directories
     ///
     pub fn open_shell(&mut self) -> SshResult<LocalShell<S>> {
+        self.open_shell_terminal(TerminalSize::from(80, 24))
+    }
+
+    /// open a [LocalShell] channel
+    ///
+    /// custom terminal dimensions
+    ///
+    pub fn open_shell_terminal(&mut self, tv: TerminalSize) -> SshResult<LocalShell<S>> {
         let channel = self.open_channel()?;
-        channel.shell(24, 80)
+        channel.shell(tv)
     }
 
     pub fn get_raw_io(&mut self) -> RcMut<S> {

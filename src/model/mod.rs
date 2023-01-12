@@ -6,12 +6,15 @@ mod scp_file;
 mod sequence;
 mod timeout;
 mod u32iter;
+mod terminal;
 
 use std::{
     cell::RefCell,
     rc::Rc,
     sync::{Arc, Mutex},
 };
+
+pub use terminal::*;
 
 pub(crate) use backend_msg::*;
 pub(crate) use data::Data;

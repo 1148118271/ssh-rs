@@ -3,29 +3,31 @@ use crate::constant::{ssh_msg_code, ssh_str};
 use crate::error::SshResult;
 use crate::model::Data;
 use std::ops::{Deref, DerefMut};
+use crate::TerminalSize;
 
 pub struct ShellBrocker(ChannelBroker);
 
 impl ShellBrocker {
-    pub(crate) fn open(channel: ChannelBroker) -> SshResult<Self> {
+    pub(crate) fn open(channel: ChannelBroker, tv: TerminalSize) -> SshResult<Self> {
         // shell 形式需要一个伪终端
         let mut channel_shell = ShellBrocker(channel);
-        channel_shell.request_pty()?;
+        channel_shell.request_pty(tv)?;
         channel_shell.get_shell()?;
         Ok(channel_shell)
     }
 
-    fn request_pty(&mut self) -> SshResult<()> {
+    fn request_pty(&mut self, tv: TerminalSize) -> SshResult<()> {
+        let tvs = tv.fetch();
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.server_channel_no)
             .put_str(ssh_str::PTY_REQ)
             .put_u8(true as u8)
             .put_str(ssh_str::XTERM_VAR)
-            .put_u32(80)
-            .put_u32(24)
-            .put_u32(640)
-            .put_u32(480);
+            .put_u32(tvs.0)
+            .put_u32(tvs.1)
+            .put_u32(tvs.2)
+            .put_u32(tvs.3);
         let model = [
             128, // TTY_OP_ISPEED
             0, 1, 0xc2, 0,   // 115200

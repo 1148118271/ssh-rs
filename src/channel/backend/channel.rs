@@ -4,12 +4,7 @@ use std::{
     vec,
 };
 
-use crate::{
-    client::Client,
-    constant::ssh_msg_code,
-    error::{SshError, SshResult},
-    model::{BackendResp, BackendRqst, Data, FlowControl, Packet},
-};
+use crate::{client::Client, constant::ssh_msg_code, error::{SshError, SshResult}, model::{BackendResp, BackendRqst, Data, FlowControl, Packet}, TerminalSize};
 
 use super::{channel_exec::ExecBroker, channel_scp::ScpBroker, channel_shell::ShellBrocker};
 
@@ -208,8 +203,8 @@ impl ChannelBroker {
 
     /// open a [ShellBrocker] channel which  can be used as a pseudo terminal (AKA PTY)
     ///
-    pub fn shell(self) -> SshResult<ShellBrocker> {
-        ShellBrocker::open(self)
+    pub fn shell(self, tv: TerminalSize) -> SshResult<ShellBrocker> {
+        ShellBrocker::open(self, tv)
     }
 
     /// close the backend channel and consume the channel broker itself
