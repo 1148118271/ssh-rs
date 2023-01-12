@@ -1,7 +1,7 @@
 use super::channel::Channel;
 use crate::constant::{ssh_msg_code, ssh_str};
 use crate::error::SshResult;
-use crate::model::Data;
+use crate::model::{Data, TerminalSize};
 use std::{
     io::{Read, Write},
     ops::{Deref, DerefMut},
@@ -13,25 +13,27 @@ impl<S> ChannelShell<S>
 where
     S: Read + Write,
 {
-    pub(crate) fn open(channel: Channel<S>, row: u32, column: u32) -> SshResult<Self> {
+    pub(crate) fn open(channel: Channel<S>, tv: TerminalSize) -> SshResult<Self> {
         // shell 形式需要一个伪终端
         let mut channel_shell = ChannelShell(channel);
-        channel_shell.request_pty(row, column)?;
+        channel_shell.request_pty(tv)?;
         channel_shell.get_shell()?;
         Ok(channel_shell)
     }
 
-    fn request_pty(&mut self, row: u32, column: u32) -> SshResult<()> {
+    fn request_pty(&mut self, tv: TerminalSize) -> SshResult<()> {
+        let tvs = tv.fetch();
+        println!("tvs {:?}", tvs);
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.server_channel_no)
             .put_str(ssh_str::PTY_REQ)
             .put_u8(false as u8)
             .put_str(ssh_str::XTERM_VAR)
-            .put_u32(column)
-            .put_u32(row)
-            .put_u32(0)
-            .put_u32(0);
+            .put_u32(tvs.0)
+            .put_u32(tvs.1)
+            .put_u32(tvs.2)
+            .put_u32(tvs.3);
         let model = [
             128, // TTY_OP_ISPEED
             0, 1, 0xc2, 0,   // 115200

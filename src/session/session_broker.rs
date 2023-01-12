@@ -18,7 +18,7 @@ use crate::{
     constant::{size, ssh_msg_code, ssh_str},
     error::{SshError, SshResult},
     model::{ArcMut, BackendResp, BackendRqst, Data, Packet, SecPacket, U32Iter},
-    ChannelBroker, ScpBroker, ShellBrocker,
+    ChannelBroker, ScpBroker, ShellBrocker, TerminalSize,
 };
 
 pub struct SessionBroker {
@@ -67,8 +67,16 @@ impl SessionBroker {
     /// open a [ShellBrocker] channel which  can be used as a pseudo terminal (AKA PTY)
     ///
     pub fn open_shell(&mut self) -> SshResult<ShellBrocker> {
+        self.open_shell_terminal(TerminalSize::from(80, 24))
+    }
+
+    /// open a [LocalShell] channel
+    ///
+    /// custom terminal dimensions
+    ///
+    pub fn open_shell_terminal(&mut self, tv: TerminalSize) -> SshResult<ShellBrocker> {
         let channel = self.open_channel()?;
-        channel.shell()
+        channel.shell(tv)
     }
 
     /// open a raw channel

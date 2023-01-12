@@ -4,6 +4,7 @@ use std::{
     rc::Rc,
 };
 
+use crate::model::TerminalSize;
 use crate::{
     channel::{LocalChannel, LocalExec, LocalScp, LocalShell},
     client::Client,
@@ -57,8 +58,16 @@ where
     /// open a [LocalShell] channel which can download/upload files/directories
     ///
     pub fn open_shell(&mut self) -> SshResult<LocalShell<S>> {
+        self.open_shell_terminal(TerminalSize::from(80, 24))
+    }
+
+    /// open a [LocalShell] channel
+    ///
+    /// custom terminal dimensions
+    ///
+    pub fn open_shell_terminal(&mut self, tv: TerminalSize) -> SshResult<LocalShell<S>> {
         let channel = self.open_channel()?;
-        channel.shell(24, 80)
+        channel.shell(tv)
     }
 
     pub fn get_raw_io(&mut self) -> RcMut<S> {

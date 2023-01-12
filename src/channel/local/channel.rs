@@ -1,5 +1,6 @@
 use std::io::{Read, Write};
 
+use crate::model::TerminalSize;
 use crate::{
     algorithm::Digest,
     client::Client,
@@ -69,9 +70,9 @@ where
     ///
     /// with `row` lines & `column` characters per one line
     ///
-    pub fn shell(self, row: u32, column: u32) -> SshResult<ChannelShell<S>> {
+    pub fn shell(self, tv: TerminalSize) -> SshResult<ChannelShell<S>> {
         log::info!("shell opened.");
-        ChannelShell::open(self, row, column)
+        ChannelShell::open(self, tv)
     }
 
     /// close the channel gracefully, but donnot consume it

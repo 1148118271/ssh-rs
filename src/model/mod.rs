@@ -4,6 +4,7 @@ mod flow_control;
 mod packet;
 mod scp_file;
 mod sequence;
+mod terminal;
 mod timeout;
 mod u32iter;
 
@@ -12,6 +13,8 @@ use std::{
     rc::Rc,
     sync::{Arc, Mutex},
 };
+
+pub use terminal::*;
 
 pub(crate) use backend_msg::*;
 pub(crate) use data::Data;
