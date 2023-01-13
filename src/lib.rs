@@ -41,6 +41,7 @@ mod slog;
 mod util;
 
 pub mod error;
+mod sftp;
 
 pub use channel::*;
 pub(crate) use error::SshError;

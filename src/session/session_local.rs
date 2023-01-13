@@ -5,13 +5,7 @@ use std::{
 };
 
 use crate::model::TerminalSize;
-use crate::{
-    channel::{LocalChannel, LocalExec, LocalScp, LocalShell},
-    client::Client,
-    constant::{size, ssh_msg_code, ssh_str},
-    error::{SshError, SshResult},
-    model::{Data, Packet, RcMut, SecPacket, U32Iter},
-};
+use crate::{channel::{LocalChannel, LocalExec, LocalScp, LocalShell}, client::Client, constant::{size, ssh_msg_code, ssh_str}, error::{SshError, SshResult}, LocalSftp, model::{Data, Packet, RcMut, SecPacket, U32Iter}};
 
 pub struct LocalSession<S>
 where
@@ -68,6 +62,11 @@ where
     pub fn open_shell_terminal(&mut self, tv: TerminalSize) -> SshResult<LocalShell<S>> {
         let channel = self.open_channel()?;
         channel.shell(tv)
+    }
+
+    pub fn open_sftp(&mut self) -> SshResult<LocalSftp<S>> {
+        let channel = self.open_channel()?;
+        channel.sftp()
     }
 
     pub fn get_raw_io(&mut self) -> RcMut<S> {

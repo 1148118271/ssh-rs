@@ -23,6 +23,10 @@ pub(crate) mod ssh_str {
     pub const SCP: &str = "scp";
     /// 请求一个伪终端
     pub const PTY_REQ: &str = "pty-req";
+    /// 启动一个子系统
+    pub const SUBSYSTEM: &str = "subsystem";
+    /// sftp 子系统
+    pub const SFTP: &str = "sftp";
     /// 伪终端的样式
     pub const XTERM_VAR: &str = "xterm-256color";
 }

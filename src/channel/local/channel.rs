@@ -9,6 +9,7 @@ use crate::{
     error::{SshError, SshResult},
     model::{Data, FlowControl, Packet, RcMut, SecPacket},
 };
+use crate::channel::local::ChannelSftp;
 
 use super::{ChannelExec, ChannelScp, ChannelShell};
 
@@ -73,6 +74,11 @@ where
     pub fn shell(self, tv: TerminalSize) -> SshResult<ChannelShell<S>> {
         log::info!("shell opened.");
         ChannelShell::open(self, tv)
+    }
+
+    pub fn sftp(self) -> SshResult<ChannelSftp<S>> {
+        log::info!("sftp opened.");
+        ChannelSftp::open(self)
     }
 
     /// close the channel gracefully, but donnot consume it
