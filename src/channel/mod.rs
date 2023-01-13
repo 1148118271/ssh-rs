@@ -7,5 +7,5 @@ pub use backend::{ChannelBroker, ExecBroker, ScpBroker, ShellBrocker};
 pub(crate) use local::Channel as LocalChannel;
 pub use local::ChannelExec as LocalExec;
 pub use local::ChannelScp as LocalScp;
-pub use local::ChannelShell as LocalShell;
 pub use local::ChannelSftp as LocalSftp;
+pub use local::ChannelShell as LocalShell;

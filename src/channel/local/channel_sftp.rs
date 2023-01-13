@@ -1,12 +1,11 @@
-use std::ffi::OsStr;
-use std::io::{Read, Write};
-use std::ops::{Deref, DerefMut};
-use std::path::Path;
 use crate::channel::local::Channel;
 use crate::constant::{sftp_msg_code, ssh_msg_code, ssh_str};
 use crate::model::{Data, U32Iter};
 use crate::SshResult;
-
+use std::ffi::OsStr;
+use std::io::{Read, Write};
+use std::ops::{Deref, DerefMut};
+use std::path::Path;
 
 pub struct ChannelSftp<S: Read + Write> {
     channel: Channel<S>,
@@ -14,11 +13,14 @@ pub struct ChannelSftp<S: Read + Write> {
 }
 
 impl<S> ChannelSftp<S>
-    where
-        S: Read + Write,
+where
+    S: Read + Write,
 {
     pub(crate) fn open(channel: Channel<S>) -> SshResult<Self> {
-        let mut sftp = ChannelSftp { channel, req_id: U32Iter::default() };
+        let mut sftp = ChannelSftp {
+            channel,
+            req_id: U32Iter::default(),
+        };
         sftp.get_sftp()?;
         sftp.init()?;
         Ok(sftp)
@@ -48,7 +50,6 @@ impl<S> ChannelSftp<S>
         let mut rd = Data::from(vec);
         rd.get_u32();
 
-
         let t = rd.get_u8();
         let ver = rd.get_u32();
 
@@ -71,12 +72,11 @@ impl<S> ChannelSftp<S>
 
         Ok(())
     }
-
 }
 
 impl<S> Deref for ChannelSftp<S>
-    where
-        S: Read + Write,
+where
+    S: Read + Write,
 {
     type Target = Channel<S>;
     fn deref(&self) -> &Self::Target {
@@ -85,8 +85,8 @@ impl<S> Deref for ChannelSftp<S>
 }
 
 impl<S> DerefMut for ChannelSftp<S>
-    where
-        S: Read + Write,
+where
+    S: Read + Write,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.channel

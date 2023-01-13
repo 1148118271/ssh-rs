@@ -1,5 +1,6 @@
 use std::io::{Read, Write};
 
+use crate::channel::local::ChannelSftp;
 use crate::model::TerminalSize;
 use crate::{
     algorithm::Digest,
@@ -9,7 +10,6 @@ use crate::{
     error::{SshError, SshResult},
     model::{Data, FlowControl, Packet, RcMut, SecPacket},
 };
-use crate::channel::local::ChannelSftp;
 
 use super::{ChannelExec, ChannelScp, ChannelShell};
 

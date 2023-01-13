@@ -1,4 +1,3 @@
-
 pub(crate) struct ReqId(u32);
 
 impl ReqId {

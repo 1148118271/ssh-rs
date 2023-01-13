@@ -5,7 +5,14 @@ use std::{
 };
 
 use crate::model::TerminalSize;
-use crate::{channel::{LocalChannel, LocalExec, LocalScp, LocalShell}, client::Client, constant::{size, ssh_msg_code, ssh_str}, error::{SshError, SshResult}, LocalSftp, model::{Data, Packet, RcMut, SecPacket, U32Iter}};
+use crate::{
+    channel::{LocalChannel, LocalExec, LocalScp, LocalShell},
+    client::Client,
+    constant::{size, ssh_msg_code, ssh_str},
+    error::{SshError, SshResult},
+    model::{Data, Packet, RcMut, SecPacket, U32Iter},
+    LocalSftp,
+};
 
 pub struct LocalSession<S>
 where
