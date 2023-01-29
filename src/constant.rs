@@ -282,5 +282,53 @@ pub(crate) mod sftp_msg_status_code {
     pub const SSH_FX_NO_MATCHING_BYTE_RANGE_LOCK: u8 = 31;
 }
 
+/// file flags
+///
+#[allow(dead_code)]
+pub(crate) mod sftp_file_flags {
+    // 读取文件
+    /// Open the file for reading.
+    ///
+    pub const SSH_FXF_READ: u32 = 0x00000001;
+
+    // 写入文件
+    /// Open the file for writing.
+    /// If both this and SSH_FXF_READ are specified, the file is opened for both reading and writing.
+    ///
+    pub const SSH_FXF_WRITE: u32 = 0x00000002;
+
+    // 追加内容到文件
+    /// Force all writes to append data at the end of the file.
+    /// The offset parameter to write will be ignored.
+    ///
+    pub const SSH_FXF_APPEND: u32 = 0x00000004;
+
+    // 创建文件
+    /// If this flag is specified, then a new file will be created if one
+    /// does not already exist (if O_TRUNC is specified, the new file will
+    /// be truncated to zero length if it previously exists).
+    ///
+    pub const SSH_FXF_CREAT: u32 = 0x00000008;
+
+    // 截断文件
+    /// Forces an existing file with the same name to be truncated to zero
+    /// length when creating a file by specifying SSH_FXF_CREAT.
+    /// SSH_FXF_CREAT MUST also be specified if this flag is used.
+    ///
+    pub const SSH_FXF_TRUNC: u32 = 0x00000010;
+
+    // 创建文件时，不能有旧文件
+    /// Causes the request to fail if the named file already exists.
+    /// SSH_FXF_CREAT MUST also be specified if this flag is used.
+    ///
+    pub const SSH_FXF_EXCL: u32 = 0x00000020;
+
+    // 应将文件视为文本
+    /// Indicates that the server should treat the file as text and
+    /// convert it to the canonical newline convention in use.
+    ///
+    pub const SSH_FXF_TEXT: u32 = 0x00000040;
+}
+
 /// 密钥交换后进行HASH时候需要的常量值
 pub(crate) const ALPHABET: [u8; 6] = [b'A', b'B', b'C', b'D', b'E', b'F'];

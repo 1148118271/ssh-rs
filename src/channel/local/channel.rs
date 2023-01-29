@@ -149,6 +149,10 @@ where
         Ok(maybe_response)
     }
 
+    pub(crate) fn send_sftp_data(&mut self, ) {
+
+    }
+
     /// this method will receive at least one data packet
     ///
     pub(super) fn recv(&mut self) -> SshResult<Vec<u8>> {

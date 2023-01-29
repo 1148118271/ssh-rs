@@ -5,7 +5,7 @@ use crate::SshResult;
 use std::ffi::OsStr;
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};
-use std::path::Path;
+
 
 pub struct ChannelSftp<S: Read + Write> {
     channel: Channel<S>,
@@ -42,36 +42,47 @@ where
             .put_u8(sftp_msg_code::SSH_FXP_INIT)
             .put_u32(2);
         self.send_data(data.to_vec())?;
-        let vec = self.recv().unwrap();
-
-        println!("vec {:?} ", vec);
-        println!("vec len  {:?} ", vec.len());
-
-        let mut rd = Data::from(vec);
-        rd.get_u32();
-
-        let t = rd.get_u8();
-        let ver = rd.get_u32();
-
-        println!("type {}, version {} ", t, ver);
-
+        // 暂时不处理拓展功能
+        let _ = self.recv()?;
         Ok(())
     }
 
-    pub fn open_dir<P: AsRef<OsStr> + ?Sized>(&mut self, p: &P) -> SshResult<()> {
-        let mut data = Data::new();
 
-        data.put_u32(13)
-            .put_u8(sftp_msg_code::SSH_FXP_OPENDIR)
+    /// 打开文件
+    ///
+    /// 使用SSH_FXP_OPEN消息打开和创建文件。
+    ///
+    ///  byte   SSH_FXP_OPEN
+    ///  uint32 request-id
+    ///  string filename [UTF-8]
+    ///  uint32 desired-access
+    ///  uint32 flags
+    ///  ATTRS  attrs
+    ///
+    pub fn open_file(&mut self, p: &str) -> SshResult<()> {
+        let x = Data::new()
+            .put_u8(sftp_msg_code::SSH_FXP_OPEN)
             .put_u32(self.req_id.next().unwrap())
-            .put_str("/opt");
-        self.send_data(data.to_vec())?;
-        let vec = self.recv().unwrap();
+            .put_str(p);
 
-        println!("vec {:?} ", vec);
 
         Ok(())
     }
+
+
+    // pub fn open_dir<P: AsRef<OsStr> + ?Sized>(&mut self, p: &P) -> SshResult<()> {
+    //     let mut data = Data::new();
+    //     data.put_u32(13)
+    //         .put_u8(sftp_msg_code::SSH_FXP_OPENDIR)
+    //         .put_u32(self.req_id.next().unwrap())
+    //         .put_str("/opt");
+    //     self.send_data(data.to_vec())?;
+    //     let vec = self.recv().unwrap();
+    //
+    //     println!("vec {:?} ", vec);
+    //
+    //     Ok(())
+    // }
 }
 
 impl<S> Deref for ChannelSftp<S>
