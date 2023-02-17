@@ -121,7 +121,7 @@ where
 {
     let mut channels = HashMap::<u32, BackendChannel>::new();
     let mut pendings = HashMap::<u32, Sender<BackendResp>>::new();
-    client.set_timeout(0);
+    client.set_timeout(None);
     loop {
         let try_recv = rcv.try_recv();
         if try_recv.is_err() {

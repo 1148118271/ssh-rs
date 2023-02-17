@@ -1,7 +1,7 @@
-use crate::{algorithm::encryption::Encryption, config::Config};
-
 use crate::config::algorithm::AlgList;
+use crate::{algorithm::encryption::Encryption, config::Config};
 use crate::{algorithm::encryption::EncryptionNone, model::Sequence};
+use std::time::Duration;
 
 // the underlay connection
 pub(crate) struct Client {
@@ -31,11 +31,11 @@ impl Client {
         &mut self.sequence
     }
 
-    pub fn get_timeout(&self) -> u128 {
+    pub fn get_timeout(&self) -> Option<Duration> {
         self.config.timeout
     }
 
-    pub fn set_timeout(&mut self, tm: u128) {
+    pub fn set_timeout(&mut self, tm: Option<Duration>) {
         self.config.timeout = tm
     }
 }

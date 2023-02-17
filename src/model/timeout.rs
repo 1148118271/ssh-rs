@@ -1,26 +1,28 @@
 use crate::error::SshErrorKind;
 use crate::{slog::log, SshError, SshResult};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 pub(crate) struct Timeout {
     instant: Instant,
-    timeout_millisec: u128,
+    timeout: Option<Duration>,
 }
 
 impl Timeout {
-    pub fn new(timeout_millisec: u128) -> Self {
+    pub fn new(timeout: Option<Duration>) -> Self {
         Timeout {
             instant: Instant::now(),
-            timeout_millisec,
+            timeout,
         }
     }
 
     pub fn test(&self) -> SshResult<()> {
-        if self.timeout_millisec == 0 {
-            Ok(())
-        } else if self.instant.elapsed().as_millis() > self.timeout_millisec {
-            log::error!("time out.");
-            Err(SshError::from(SshErrorKind::Timeout))
+        if let Some(t) = self.timeout {
+            if self.instant.elapsed() > t {
+                log::error!("time out.");
+                Err(SshError::from(SshErrorKind::Timeout))
+            } else {
+                Ok(())
+            }
         } else {
             Ok(())
         }
