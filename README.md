@@ -50,7 +50,7 @@ use ssh_rs::ssh;
 let mut session = ssh::create_session()
     .username("ubuntu")
     .password("password")
-    .connect("127.0.0.1:22")
+    .connect("127.0.0.1:22", None)
     .unwrap();
 ```
 
@@ -71,7 +71,7 @@ use ssh_rs::ssh;
 let mut session = ssh::create_session()
     .username("ubuntu")
     .private_key_path("./id_rsa")
-    .connect("127.0.0.1:22")
+    .connect("127.0.0.1:22", None))
     .unwrap();
 ```
 
@@ -86,7 +86,7 @@ use ssh_rs::ssh;
 let mut session = ssh::create_session()
     .username("ubuntu")
     .private_key("rsa_string")
-    .connect("127.0.0.1:22")
+    .connect("127.0.0.1:22", None)
     .unwrap();
 ```
 
@@ -100,7 +100,7 @@ let mut session = ssh::create_session()
     .username("username")
     .password("password")
     .private_key_path("/path/to/rsa")
-    .connect("127.0.0.1:22")
+    .connect("127.0.0.1:22", None)
     .unwrap();
 ```
 
@@ -118,12 +118,14 @@ ssh::enable_log();
 ssh::debug()
 ```
 
-## Set timeout：
+## Set timeouts:
 
-* Only global timeouts per r/w are currently supported.
+* SSH R/W timeouts are set with `.timeout(..)`.
+* Connecting to host timeout is set in `.connect(..)`.
 
 ```rust
 use ssh_rs::ssh;
+use std::time::Duration;
 
 ssh::debug();
 let _listener = TcpListener::bind("127.0.0.1:7777").unwrap();
@@ -132,8 +134,8 @@ match ssh::create_session()
     .username("ubuntu")
     .password("password")
     .private_key_path("./id_rsa")
-    .timeout(5 * 1000)
-    .connect("127.0.0.1:7777")
+    .timeout(Some(Duration::from_secs(2))
+    .connect("127.0.0.1:7777", Some(Duration::from_secs(5)))
 {
     Err(e) => println!("Got error {}", e),
     _ => unreachable!(),
