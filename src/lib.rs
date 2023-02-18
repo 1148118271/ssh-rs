@@ -1,6 +1,6 @@
 //! Dependencies
 //! ```toml
-//! ssh-rs = "0.3.2"
+//! ssh-rs = "0.3.3"
 //! ```
 //!
 //!Rust implementation of ssh2.0 client.
