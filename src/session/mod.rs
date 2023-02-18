@@ -247,22 +247,12 @@ impl SessionBuilder {
         A: ToSocketAddrs,
     {
         // connect tcp by default
-        let tcp = TcpStream::connect(addr)?;
-        // default nonblocking
-        tcp.set_nonblocking(true).unwrap();
-        self.connect_bio(tcp)
-    }
+        let tcp = if let Some(ref to) = self.config.timeout {
+            TcpStream::connect_timeout(&addr.to_socket_addrs()?.next().unwrap(), *to)?
+        } else {
+            TcpStream::connect(addr)?
+        };
 
-    pub fn connect_timeout<A>(
-        self,
-        addr: A,
-        timeout: Duration,
-    ) -> SshResult<SessionConnector<TcpStream>>
-    where
-        A: ToSocketAddrs,
-    {
-        // connect tcp by default
-        let tcp = TcpStream::connect_timeout(&addr.to_socket_addrs()?.next().unwrap(), timeout)?;
         // default nonblocking
         tcp.set_nonblocking(true).unwrap();
         self.connect_bio(tcp)
