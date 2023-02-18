@@ -17,7 +17,7 @@ fn main() {
         .add_enc_algorithms(algorithm::Enc::Chacha20Poly1305Openssh)
         .add_compress_algorithms(algorithm::Compress::None)
         .add_mac_algortihms(algorithm::Mac::HmacSha1)
-        .connect("127.0.0.1:22", None)
+        .connect("127.0.0.1:22")
         .unwrap()
         .run_local();
 

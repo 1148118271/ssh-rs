@@ -21,7 +21,7 @@ mod tests {
         let mut session = ssh::create_session()
             .username(&get_username())
             .private_key_path(get_pem_rsa())
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         let exec = session.open_exec().unwrap();
@@ -36,7 +36,7 @@ mod tests {
         let mut session = ssh::create_session()
             .username(&get_username())
             .private_key_path(get_pem_rsa())
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_backend();
         let exec = session.open_exec().unwrap();

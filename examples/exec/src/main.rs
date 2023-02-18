@@ -7,7 +7,7 @@ fn main() {
         .username("ubuntu")
         .password("password")
         .private_key_path("./id_rsa")
-        .connect("127.0.0.1:22", None)
+        .connect("127.0.0.1:22")
         .unwrap()
         .run_local();
     let exec = session.open_exec().unwrap();

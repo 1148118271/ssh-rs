@@ -11,7 +11,7 @@ fn main() {
         .password("password")
         .private_key_path("./id_rsa")
         .timeout(Some(Duration::from_secs(5)))
-        .connect("127.0.0.1:7777", Some(Duration::from_secs(5)))
+        .connect_timeout("127.0.0.1:7777", Duration::from_secs(5))
     {
         Err(e) => println!("Got error {}", e),
         _ => unreachable!(),

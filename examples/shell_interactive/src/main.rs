@@ -4,8 +4,8 @@ use ssh_rs::ssh;
 use std::fs::File;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
-use std::time::Duration;
 use std::{cell::RefCell, rc::Rc};
+use std::time::Duration;
 
 use mio::net::TcpStream;
 use mio::{event::Source, Events, Interest, Poll, Token};

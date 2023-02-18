@@ -27,7 +27,7 @@ mod test {
             .add_enc_algorithms(algorithm::Enc::Chacha20Poly1305Openssh)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha1)
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -44,7 +44,7 @@ mod test {
             .add_enc_algorithms(algorithm::Enc::Aes128Ctr)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha1)
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -60,7 +60,7 @@ mod test {
             .add_enc_algorithms(algorithm::Enc::Aes128Ctr)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha1)
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -76,7 +76,7 @@ mod test {
             .add_enc_algorithms(algorithm::Enc::Aes128Ctr)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha1)
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -92,7 +92,7 @@ mod test {
             .add_enc_algorithms(algorithm::Enc::Aes128Ctr)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha1)
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -108,7 +108,7 @@ mod test {
             .add_enc_algorithms(algorithm::Enc::Aes128Ctr)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha1)
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -124,7 +124,7 @@ mod test {
             .add_enc_algorithms(algorithm::Enc::Chacha20Poly1305Openssh)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha1)
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -140,7 +140,7 @@ mod test {
             .add_enc_algorithms(algorithm::Enc::Chacha20Poly1305Openssh)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha2_256)
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -156,7 +156,7 @@ mod test {
             .add_enc_algorithms(algorithm::Enc::Chacha20Poly1305Openssh)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha2_512)
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();

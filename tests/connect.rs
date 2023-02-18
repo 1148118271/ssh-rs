@@ -24,7 +24,7 @@ mod tests {
         let session = ssh::create_session()
             .username(&get_username())
             .password(&get_passwd())
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -35,7 +35,7 @@ mod tests {
         let session = ssh::create_session()
             .username(&get_username())
             .password(&get_passwd())
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_backend();
         session.close();
@@ -46,7 +46,7 @@ mod tests {
         let session = ssh::create_session()
             .username(&get_username())
             .private_key_path(&get_pem_rsa())
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -57,7 +57,7 @@ mod tests {
         let session = ssh::create_session()
             .username(&get_username())
             .private_key_path(&get_openssh_rsa())
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -68,7 +68,7 @@ mod tests {
         let session = ssh::create_session()
             .username(&get_username())
             .private_key_path(&get_ed25519())
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
@@ -80,7 +80,7 @@ mod tests {
             .username(&get_username())
             .password(&get_passwd())
             .private_key_path("")
-            .connect(get_server(), None)
+            .connect(get_server())
             .unwrap()
             .run_local();
         session.close();
