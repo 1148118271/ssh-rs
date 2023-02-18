@@ -145,7 +145,7 @@ impl ScpBroker {
                 }
             }
 
-            self.send_bytes(&[scp::E as u8, b'\n'])?;
+            self.send_bytes(&[scp::E, b'\n'])?;
             self.get_end()?;
         } else {
             scp_file.size = scp_file.local_path.as_path().metadata()?.len();

@@ -1,5 +1,5 @@
 /// 客户端版本
-pub(crate) const CLIENT_VERSION: &str = "SSH-2.0-SSH_RS-0.3.2";
+pub(crate) const CLIENT_VERSION: &str = "SSH-2.0-SSH_RS-0.3.3";
 pub(crate) const SSH_MAGIC: &[u8] = b"SSH-";
 
 /// ssh通讯时用到的常量字符串

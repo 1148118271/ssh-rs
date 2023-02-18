@@ -5,6 +5,7 @@ use std::fs::File;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
 use std::{cell::RefCell, rc::Rc};
+use std::time::Duration;
 
 use mio::net::TcpStream;
 use mio::{event::Source, Events, Interest, Poll, Token};
@@ -26,7 +27,7 @@ fn main() {
     let mut session = ssh::create_session()
         .username("ubuntu")
         .password("password")
-        .timeout(1000)
+        .timeout(Some(Duration::from_millis(1000)))
         .private_key_path("./id_rsa")
         .connect_bio(tcp)
         .unwrap()

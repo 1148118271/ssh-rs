@@ -1,4 +1,5 @@
 use std::io::{Read, Write};
+use std::time::Duration;
 
 use crate::error::SshResult;
 use crate::{client::Client, model::Data};
@@ -40,7 +41,7 @@ use super::timeout::Timeout;
 /// **mac**
 /// 消息验证码。如果已经协商了消息验证，该域包含 MAC。初始时，MAC 算法必须是"none"。
 
-fn read_with_timeout<S>(stream: &mut S, tm: u128, buf: &mut [u8]) -> SshResult<()>
+fn read_with_timeout<S>(stream: &mut S, tm: Option<Duration>, buf: &mut [u8]) -> SshResult<()>
 where
     S: Read,
 {
@@ -71,7 +72,7 @@ where
     }
 }
 
-fn try_read<S>(stream: &mut S, _tm: u128, buf: &mut [u8]) -> SshResult<usize>
+fn try_read<S>(stream: &mut S, _tm: Option<Duration>, buf: &mut [u8]) -> SshResult<usize>
 where
     S: Read,
 {
@@ -87,7 +88,7 @@ where
     }
 }
 
-fn write_with_timeout<S>(stream: &mut S, tm: u128, buf: &[u8]) -> SshResult<()>
+fn write_with_timeout<S>(stream: &mut S, tm: Option<Duration>, buf: &[u8]) -> SshResult<()>
 where
     S: Write,
 {
@@ -145,7 +146,7 @@ impl<'a> SecPacket<'a> {
             } else {
                 pad += 5
             }
-            pad = (-pad) & (group_size as i32 - 1);
+            pad = (-pad) & (group_size - 1);
             if pad < group_size {
                 pad += group_size;
             }

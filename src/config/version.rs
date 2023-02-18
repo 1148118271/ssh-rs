@@ -1,4 +1,5 @@
 use std::io::{Read, Write};
+use std::time::Duration;
 
 use crate::{
     constant::{self, CLIENT_VERSION},
@@ -22,7 +23,7 @@ impl Default for SshVersion {
     }
 }
 
-fn read_version<S>(stream: &mut S, tm: u128) -> SshResult<Vec<u8>>
+fn read_version<S>(stream: &mut S, tm: Option<Duration>) -> SshResult<Vec<u8>>
 where
     S: Read,
 {
@@ -49,7 +50,7 @@ where
 }
 
 impl SshVersion {
-    pub fn from<S>(stream: &mut S, timeout: u128) -> SshResult<Self>
+    pub fn from<S>(stream: &mut S, timeout: Option<Duration>) -> SshResult<Self>
     where
         S: Read,
     {

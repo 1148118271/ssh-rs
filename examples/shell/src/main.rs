@@ -1,4 +1,5 @@
 use ssh_rs::{ssh, LocalShell, SshErrorKind};
+use std::time::Duration;
 
 fn main() {
     ssh::enable_log();
@@ -6,7 +7,7 @@ fn main() {
     let mut session = ssh::create_session()
         .username("ubuntu")
         .password("password")
-        .timeout(1000)
+        .timeout(Some(Duration::from_millis(1000)))
         .private_key_path("./id_rsa")
         .connect("127.0.0.1:22")
         .unwrap()

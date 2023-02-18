@@ -9,6 +9,7 @@ use std::{
     io::{Read, Write},
     net::{TcpStream, ToSocketAddrs},
     path::Path,
+    time::Duration,
 };
 
 use crate::{
@@ -138,11 +139,8 @@ impl SessionBuilder {
         }
     }
 
-    /// add a globle r/w timeout for local ssh mode
-    ///
-    /// set 0 to disable
-    ///
-    pub fn timeout(mut self, timeout: u128) -> Self {
+    /// Read/Write timeout for local SSH mode. Use None to disable timeout.
+    pub fn timeout(mut self, timeout: Option<Duration>) -> Self {
         self.config.timeout = timeout;
         self
     }
@@ -246,7 +244,12 @@ impl SessionBuilder {
         A: ToSocketAddrs,
     {
         // connect tcp by default
-        let tcp = TcpStream::connect(addr)?;
+        let tcp = if let Some(ref to) = self.config.timeout {
+            TcpStream::connect_timeout(&addr.to_socket_addrs()?.next().unwrap(), *to)?
+        } else {
+            TcpStream::connect(addr)?
+        };
+
         // default nonblocking
         tcp.set_nonblocking(true).unwrap();
         self.connect_bio(tcp)
