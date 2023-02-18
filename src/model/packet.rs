@@ -146,7 +146,7 @@ impl<'a> SecPacket<'a> {
             } else {
                 pad += 5
             }
-            pad = (-pad) & (group_size as i32 - 1);
+            pad = (-pad) & (group_size - 1);
             if pad < group_size {
                 pad += group_size;
             }

@@ -16,7 +16,7 @@ impl Client {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            encryptor: Box::new(EncryptionNone::default()),
+            encryptor: Box::<EncryptionNone>::default(),
             negotiated: AlgList::new(),
             session_id: vec![],
             sequence: Sequence::new(),
