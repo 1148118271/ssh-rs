@@ -2,6 +2,7 @@ use std::{
     cell::RefCell,
     io::{Read, Write},
     rc::Rc,
+    time::Duration,
 };
 
 use crate::model::TerminalSize;
@@ -39,6 +40,13 @@ where
     pub fn close(self) {
         log::info!("Client close");
         drop(self)
+    }
+
+    /// Modify the timeout setting
+    /// in case the user wants to change the timeout during an ssh operation.
+    ///
+    pub fn set_timeout(&mut self, timeout: Option<Duration>) {
+        self.client.borrow_mut().set_timeout(timeout)
     }
 
     /// open a [LocalExec] channel which can excute commands

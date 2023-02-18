@@ -141,8 +141,6 @@ impl SessionBuilder {
 
     /// Read/Write timeout for local SSH mode.Use None to disable timeout.
     ///
-    /// This timeout is not used with `connect`.
-    /// Use `connect_timeout` do establish connection to a host with a timeout.
     pub fn timeout(mut self, timeout: Option<Duration>) -> Self {
         self.config.timeout = timeout;
         self
