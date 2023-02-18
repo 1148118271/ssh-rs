@@ -43,7 +43,7 @@ where
     }
 
     /// Modify the timeout setting
-    /// in case the user wants to change the timeout during an ssh operation.
+    /// in case the user wants to change the timeout during ssh operations.
     ///
     pub fn set_timeout(&mut self, timeout: Option<Duration>) {
         self.client.borrow_mut().set_timeout(timeout)
