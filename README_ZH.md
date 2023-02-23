@@ -57,16 +57,17 @@ fn main() {
 ### 设置超时时间：
 
 ```rust
-ssh::create_session().timeout(50);
+ssh::create_session().timeout(Some(std::time::Duration::from_secs(5)));
 ```
 
 ### 目前只支持 exec shell scp 三种使用方式： 
+
 1. [exec示例](examples/exec/src/main.rs) 
 2. [shell示例](examples/shell/src/main.rs) 
 3. [scp示例](examples/scp/src/main.rs)
 
-
 ### 自定义连接方式:
+
 [bio示例](examples/bio/src/main.rs)
 
 ### 算法支持：
@@ -87,6 +88,8 @@ ssh::create_session().timeout(50);
 
 * `chacha20-poly1305@openssh.com`
 * `aes128-ctr`
+* `aes192-ctr`
+* `aes256-ctr`
 
 #### 4. 加密算法（服务端到客户端）
 

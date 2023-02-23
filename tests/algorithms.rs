@@ -115,6 +115,38 @@ mod test {
     }
 
     #[test]
+    fn test_aes192() {
+        let session = ssh::create_session_without_default()
+            .username(&get_username())
+            .private_key_path(&get_pem_rsa())
+            .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
+            .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
+            .add_enc_algorithms(algorithm::Enc::Aes192Ctr)
+            .add_compress_algorithms(algorithm::Compress::None)
+            .add_mac_algortihms(algorithm::Mac::HmacSha1)
+            .connect(get_server())
+            .unwrap()
+            .run_local();
+        session.close();
+    }
+
+    #[test]
+    fn test_aes256() {
+        let session = ssh::create_session_without_default()
+            .username(&get_username())
+            .private_key_path(&get_pem_rsa())
+            .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
+            .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
+            .add_enc_algorithms(algorithm::Enc::Aes256Ctr)
+            .add_compress_algorithms(algorithm::Compress::None)
+            .add_mac_algortihms(algorithm::Mac::HmacSha1)
+            .connect(get_server())
+            .unwrap()
+            .run_local();
+        session.close();
+    }
+
+    #[test]
     fn test_chacha20_poly1305() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
