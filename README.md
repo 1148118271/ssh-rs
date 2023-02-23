@@ -132,7 +132,7 @@ match ssh::create_session()
     .username("ubuntu")
     .password("password")
     .private_key_path("./id_rsa")
-    .timeout(5 * 1000)
+    .timeout(Some(std::time::Duration::from_secs(5)))
     .connect("127.0.0.1:7777")
 {
     Err(e) => println!("Got error {}", e),
@@ -177,6 +177,8 @@ match ssh::create_session()
 
 * `chacha20-poly1305@openssh.com`
 * `aes128-ctr`
+* `aes192-ctr`
+* `aes256-ctr`
 
 ### 5. Mac algorithms (client to server)
 
