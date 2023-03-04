@@ -218,6 +218,22 @@ where
                 }
                 Ok(ChannelRead::Code(x))
             }
+            x @ ssh_msg_code::SSH_MSG_CHANNEL_EXTENDED_DATA => {
+                let cc = data.get_u32();
+                if cc == self.client_channel_no {
+                    let data_type_code = data.get_u32();
+                    let mut data = data.get_u8s();
+
+                    log::debug!("Recv extended data with type {data_type_code}");
+
+                    // flow_contrl
+                    self.flow_control.tune_on_recv(&mut data);
+                    self.send_window_adjust(data.len() as u32)?;
+
+                    return Ok(ChannelRead::Data(data));
+                }
+                Ok(ChannelRead::Code(x))
+            }
             x @ ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
                 let mut data = Data::new();
                 data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);

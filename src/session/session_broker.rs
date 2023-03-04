@@ -218,16 +218,16 @@ where
 
                     let err_msg = match code {
                         ssh_msg_code::SSH_OPEN_ADMINISTRATIVELY_PROHIBITED => {
-                            format!("SSH_OPEN_ADMINISTRATIVELY_PROHIBITED: {}", description)
+                            format!("SSH_OPEN_ADMINISTRATIVELY_PROHIBITED: {description}")
                         }
                         ssh_msg_code::SSH_OPEN_CONNECT_FAILED => {
-                            format!("SSH_OPEN_CONNECT_FAILED: {}", description)
+                            format!("SSH_OPEN_CONNECT_FAILED: {description}")
                         }
                         ssh_msg_code::SSH_OPEN_UNKNOWN_CHANNEL_TYPE => {
-                            format!("SSH_OPEN_UNKNOWN_CHANNEL_TYPE: {}", description)
+                            format!("SSH_OPEN_UNKNOWN_CHANNEL_TYPE: {description}")
                         }
                         ssh_msg_code::SSH_OPEN_RESOURCE_SHORTAGE => {
-                            format!("SSH_OPEN_RESOURCE_SHORTAGE: {}", description)
+                            format!("SSH_OPEN_RESOURCE_SHORTAGE: {description}")
                         }
                         _ => description,
                     };
@@ -242,7 +242,17 @@ where
                 }
                 ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                     let id = data.get_u32();
-                    log::trace!("Channel {} get {} data", id, data.len());
+                    log::trace!("Channel {id} get {} data", data.len());
+                    let channel = channels.get_mut(&id).unwrap();
+                    channel.recv(data, &mut client, &mut stream)?;
+                }
+                ssh_msg_code::SSH_MSG_CHANNEL_EXTENDED_DATA => {
+                    let id = data.get_u32();
+                    let data_type = data.get_u32();
+                    log::trace!(
+                        "Channel {id} get {} extended data, type {data_type}",
+                        data.len(),
+                    );
                     let channel = channels.get_mut(&id).unwrap();
                     channel.recv(data, &mut client, &mut stream)?;
                 }
