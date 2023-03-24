@@ -3,6 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
     str::FromStr,
 };
+use tracing::*;
 
 use crate::{
     algorithm::{Compress, Enc, Kex, Mac, PubKey},
@@ -140,7 +141,7 @@ impl AlgList {
         macro_rules! try_convert {
             ($hint: literal, $field: ident) => {
                 let alg_string = util::vec_u8_to_string(data.get_u8s(), ",")?;
-                log::info!("server {}: {:?}", $hint, alg_string);
+                info!("server {}: {:?}", $hint, alg_string);
                 server_algorithm.$field = alg_string.try_into()?;
             };
         }
@@ -152,7 +153,7 @@ impl AlgList {
         try_convert!("s2c mac", s_mac);
         try_convert!("c2s compression", c_compress);
         try_convert!("s2c compression", s_compress);
-        log::debug!("converted server algorithms: [{:?}]", server_algorithm);
+        debug!("converted server algorithms: [{:?}]", server_algorithm);
         Ok(server_algorithm)
     }
 
@@ -169,13 +170,11 @@ impl AlgList {
                         }
                     })
                     .ok_or_else(|| {
-                        log::error!(
+                        error!(
                             "Key_agreement: the {} fails to match, \
                     algorithms supported by the server: {},\
                     algorithms supported by the client: {}",
-                            $err_hint,
-                            $their.$field,
-                            $our.$field
+                            $err_hint, $their.$field, $our.$field
                         );
                         SshError::from("key exchange error.")
                     })
@@ -209,7 +208,7 @@ impl AlgList {
             s_compress: vec![*s_compress].into(),
         };
 
-        log::info!("matched algorithms [{:?}]", negotiated);
+        info!("matched algorithms [{:?}]", negotiated);
 
         Ok(negotiated)
     }
@@ -230,7 +229,7 @@ impl AlgList {
 
 impl<'a> Packet<'a> for AlgList {
     fn pack(self, client: &'a mut Client) -> crate::model::SecPacket<'a> {
-        log::info!("client algorithms: [{:?}]", self);
+        info!("client algorithms: [{:?}]", self);
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
         data.extend(util::cookie());

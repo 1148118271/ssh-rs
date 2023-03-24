@@ -1,4 +1,5 @@
 use std::io::{Read, Write};
+use tracing::*;
 
 use crate::{
     algorithm::Digest,
@@ -14,7 +15,7 @@ impl Client {
     where
         S: Read + Write,
     {
-        log::info!("Auth start");
+        info!("Auth start");
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
@@ -39,24 +40,24 @@ impl Client {
                 }
                 ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
                     if !tried_public_key {
-                        log::error!("user auth failure. (public key)");
-                        log::info!("fallback to password authentication");
+                        error!("user auth failure. (public key)");
+                        info!("fallback to password authentication");
                         tried_public_key = true;
                         // keep the same with openssh
                         // if the public key auth failed
                         // try with password again
                         self.password_authentication(stream)?
                     } else {
-                        log::error!("user auth failure. (password)");
+                        error!("user auth failure. (password)");
                         return Err(SshError::from("user auth failure."));
                     }
                 }
                 ssh_msg_code::SSH_MSG_USERAUTH_PK_OK => {
-                    log::info!("user auth support this algorithm.");
+                    info!("user auth support this algorithm.");
                     self.public_key_signature(stream, digest)?
                 }
                 ssh_msg_code::SSH_MSG_USERAUTH_SUCCESS => {
-                    log::info!("user auth successful.");
+                    info!("user auth successful.");
                     return Ok(());
                 }
                 ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
@@ -73,7 +74,7 @@ impl Client {
     where
         S: Write,
     {
-        log::info!("password authentication.");
+        info!("password authentication.");
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
             .put_str(self.config.auth.username.as_str())
@@ -91,7 +92,7 @@ impl Client {
     {
         let data = {
             let pubkey_alg = &self.negotiated.public_key[0];
-            log::info!(
+            info!(
                 "public key authentication. algorithm: {}",
                 pubkey_alg.as_ref()
             );

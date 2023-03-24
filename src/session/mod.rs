@@ -4,6 +4,7 @@ mod session_local;
 
 pub use session_broker::SessionBroker;
 pub use session_local::LocalSession;
+use tracing::*;
 
 use std::{
     io::{Read, Write},
@@ -48,7 +49,7 @@ where
             }
             .connect(),
             SessionState::Version(mut config, mut stream) => {
-                log::info!("start for version negotiation.");
+                info!("start for version negotiation.");
                 // Receive the server version
                 let version = SshVersion::from(&mut stream, config.timeout)?;
                 // Version validate
@@ -161,7 +162,7 @@ impl SessionBuilder {
     {
         match self.config.auth.private_key(private_key) {
             Ok(_) => (),
-            Err(e) => log::error!(
+            Err(e) => error!(
                 "Parse private key from string: {}, will fallback to password authentication",
                 e
             ),
@@ -175,7 +176,7 @@ impl SessionBuilder {
     {
         match self.config.auth.private_key_path(key_path) {
             Ok(_) => (),
-            Err(e) => log::error!(
+            Err(e) => error!(
                 "Parse private key from file: {}, will fallback to password authentication",
                 e
             ),

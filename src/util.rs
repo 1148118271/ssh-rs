@@ -1,7 +1,8 @@
 use crate::error::{SshError, SshResult};
-use crate::slog::log;
 use rand::rngs::OsRng;
 use rand::Rng;
+
+#[cfg(feature = "scp")]
 use std::{
     path::Path,
     str::FromStr,
@@ -13,12 +14,13 @@ pub(crate) fn from_utf8(v: Vec<u8>) -> SshResult<String> {
         Ok(v) => Ok(v),
         Err(e) => {
             let err_msg = format!("Byte to utf8 string error, error info: {:?}", e);
-            log::error!("{}", err_msg);
+            tracing::error!("{}", err_msg);
             Err(SshError::from(err_msg))
         }
     }
 }
 
+#[cfg(feature = "scp")]
 pub(crate) fn sys_time_to_secs(time: SystemTime) -> SshResult<u64> {
     match time.duration_since(UNIX_EPOCH) {
         Ok(t) => Ok(t.as_secs()),
@@ -45,6 +47,7 @@ pub(crate) fn vec_u8_to_string(v: Vec<u8>, pat: &str) -> SshResult<Vec<String>> 
     Ok(vec)
 }
 
+#[cfg(feature = "scp")]
 pub(crate) fn str_to_i64(v: &str) -> SshResult<i64> {
     match i64::from_str(v) {
         Ok(v) => Ok(v),
@@ -52,6 +55,7 @@ pub(crate) fn str_to_i64(v: &str) -> SshResult<i64> {
     }
 }
 
+#[cfg(feature = "scp")]
 pub(crate) fn check_path(path: &Path) -> SshResult<()> {
     if path.to_str().is_none() {
         return Err(SshError::from("invalid path."));
@@ -59,6 +63,7 @@ pub(crate) fn check_path(path: &Path) -> SshResult<()> {
     Ok(())
 }
 
+#[cfg(feature = "scp")]
 pub(crate) fn file_time(v: Vec<u8>) -> SshResult<(i64, i64)> {
     let mut t = vec![];
     for x in v {

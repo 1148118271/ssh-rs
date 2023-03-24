@@ -24,7 +24,7 @@ impl FlowControl {
             self.local_window -= recv_len;
         } else {
             let drop_len = recv_len - self.local_window;
-            log::debug!("Recv more than expected, drop len {}", drop_len);
+            tracing::debug!("Recv more than expected, drop len {}", drop_len);
             buf.truncate(self.local_window as usize);
             self.local_window = 0;
         }

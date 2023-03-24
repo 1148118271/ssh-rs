@@ -4,10 +4,13 @@ use std::{
     rc::Rc,
     time::Duration,
 };
+use tracing::*;
 
+#[cfg(feature = "scp")]
+use crate::channel::LocalScp;
 use crate::model::TerminalSize;
 use crate::{
-    channel::{LocalChannel, LocalExec, LocalScp, LocalShell},
+    channel::{LocalChannel, LocalExec, LocalShell},
     client::Client,
     constant::{size, ssh_msg_code, ssh_str},
     error::{SshError, SshResult},
@@ -38,7 +41,7 @@ where
     /// close the local session and consume it
     ///
     pub fn close(self) {
-        log::info!("Client close");
+        info!("Client close");
         drop(self)
     }
 
@@ -58,6 +61,7 @@ where
 
     /// open a [LocalScp] channel which can download/upload files/directories
     ///
+    #[cfg(feature = "scp")]
     pub fn open_scp(&mut self) -> SshResult<LocalScp<S>> {
         let channel = self.open_channel()?;
         channel.scp()
@@ -87,7 +91,7 @@ where
     /// need call `.exec()`, `.shell()`, `.scp()` and so on to convert it to a specific channel
     ///
     pub fn open_channel(&mut self) -> SshResult<LocalChannel<S>> {
-        log::info!("channel opened.");
+        info!("channel opened.");
 
         let client_channel_no = self.channel_num.next().unwrap();
         self.send_open_channel(client_channel_no)?;
@@ -179,7 +183,7 @@ where
                     continue;
                 }
                 x => {
-                    log::debug!("Ignore ssh msg {}", x);
+                    debug!("Ignore ssh msg {}", x);
                     continue;
                 }
             }

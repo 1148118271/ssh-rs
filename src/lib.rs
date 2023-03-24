@@ -7,9 +7,7 @@
 //!
 //! Basic usage
 //! ```no_run
-//! use ssh_rs::ssh;
-//!
-//! ssh::debug();
+//! use ssh;
 //!
 //! let mut session = ssh::create_session()
 //!     .username("ubuntu")
@@ -37,7 +35,6 @@ mod config;
 mod constant;
 mod model;
 mod session;
-mod slog;
 mod util;
 
 pub mod error;
@@ -48,31 +45,14 @@ pub use error::{SshErrorKind, SshResult};
 pub use model::{TerminalSize, TerminalSizeType};
 pub use session::{LocalSession, SessionBroker, SessionBuilder, SessionConnector};
 
-pub mod ssh {
-    use crate::{session::SessionBuilder, slog::Slog};
+/// create a session via session builder w/ default configuration
+///
+pub fn create_session() -> SessionBuilder {
+    SessionBuilder::new()
+}
 
-    /// create a session via session builder w/ default configuration
-    ///
-    pub fn create_session() -> SessionBuilder {
-        SessionBuilder::new()
-    }
-
-    /// create a session via session builder w/o default configuration
-    ///
-    pub fn create_session_without_default() -> SessionBuilder {
-        SessionBuilder::disable_default()
-    }
-
-    /// set the global log level to `INFO`
-    ///
-    pub fn enable_log() {
-        Slog::default()
-    }
-
-    /// set the global log level to `TRACE`
-    ///
-    /// for diagnostic purposes only
-    pub fn debug() {
-        Slog::debug()
-    }
+/// create a session via session builder w/o default configuration
+///
+pub fn create_session_without_default() -> SessionBuilder {
+    SessionBuilder::disable_default()
 }

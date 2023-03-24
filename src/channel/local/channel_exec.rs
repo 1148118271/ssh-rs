@@ -18,7 +18,7 @@ where
     }
 
     fn exec_command(&mut self, command: &str) -> SshResult<()> {
-        log::debug!("Send command {}", command);
+        tracing::debug!("Send command {}", command);
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
             .put_u32(self.server_channel_no)

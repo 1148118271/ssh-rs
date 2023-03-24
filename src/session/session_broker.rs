@@ -8,7 +8,7 @@ use std::{
     thread::spawn,
 };
 
-use log::info;
+use tracing::*;
 
 use crate::{
     algorithm::Digest,
@@ -18,8 +18,11 @@ use crate::{
     constant::{size, ssh_msg_code, ssh_str},
     error::{SshError, SshResult},
     model::{ArcMut, BackendResp, BackendRqst, Data, Packet, SecPacket, U32Iter},
-    ChannelBroker, ScpBroker, ShellBrocker, TerminalSize,
+    ChannelBroker, ShellBrocker, TerminalSize,
 };
+
+#[cfg(feature = "scp")]
+use crate::ScpBroker;
 
 pub struct SessionBroker {
     channel_num: ArcMut<U32Iter>,
@@ -34,7 +37,7 @@ impl SessionBroker {
         let (rqst_snd, rqst_rcv) = mpsc::channel();
         spawn(move || {
             if let Err(e) = client_loop(client, stream, rqst_rcv) {
-                log::error!("Error {} occurred when running backend task", e.to_string())
+                error!("Error {} occurred when running backend task", e.to_string())
             }
         });
         Self {
@@ -46,7 +49,7 @@ impl SessionBroker {
     /// close the backend session and consume the session broker itself
     ///
     pub fn close(self) {
-        log::info!("Client close");
+        info!("Client close");
         drop(self)
     }
 
@@ -59,6 +62,7 @@ impl SessionBroker {
 
     /// open a [ScpBroker] channel which can download/upload files/directories
     ///
+    #[cfg(feature = "scp")]
     pub fn open_scp(&mut self) -> SshResult<ScpBroker> {
         let channel = self.open_channel()?;
         channel.scp()
@@ -132,7 +136,7 @@ where
         } else if let Ok(rqst) = try_recv {
             match rqst {
                 BackendRqst::OpenChannel(id, data, sender) => {
-                    log::info!("try open channel {}.", id);
+                    info!("try open channel {}.", id);
 
                     data.pack(&mut client).write_stream(&mut stream)?;
 
@@ -142,17 +146,17 @@ where
                 BackendRqst::Data(id, data) => {
                     let channel = channels.get_mut(&id).unwrap();
 
-                    log::trace!("Channel {} send {} data", id, data.len());
+                    trace!("Channel {} send {} data", id, data.len());
                     channel.send_data(data, &mut client, &mut stream)?;
                 }
                 BackendRqst::Command(id, data) => {
                     let channel = channels.get_mut(&id).unwrap();
 
-                    log::trace!("Channel {} send control data", id);
+                    trace!("Channel {} send control data", id);
                     channel.send(data, &mut client, &mut stream)?;
                 }
                 BackendRqst::CloseChannel(id, data) => {
-                    log::info!("try close channel {}.", id);
+                    info!("try close channel {}.", id);
 
                     let channel = channels.get_mut(&id).unwrap();
                     channel.send(data, &mut client, &mut stream)?;
@@ -242,14 +246,14 @@ where
                 }
                 ssh_msg_code::SSH_MSG_CHANNEL_DATA => {
                     let id = data.get_u32();
-                    log::trace!("Channel {id} get {} data", data.len());
+                    trace!("Channel {id} get {} data", data.len());
                     let channel = channels.get_mut(&id).unwrap();
                     channel.recv(data, &mut client, &mut stream)?;
                 }
                 ssh_msg_code::SSH_MSG_CHANNEL_EXTENDED_DATA => {
                     let id = data.get_u32();
                     let data_type = data.get_u32();
-                    log::trace!(
+                    trace!(
                         "Channel {id} get {} extended data, type {data_type}",
                         data.len(),
                     );
@@ -267,7 +271,7 @@ where
                 }
                 ssh_msg_code::SSH_MSG_CHANNEL_CLOSE => {
                     let id = data.get_u32();
-                    log::info!("Channel {} recv close", id);
+                    info!("Channel {} recv close", id);
                     let channel = channels.get_mut(&id).unwrap();
                     channel.remote_close()?;
                     if channel.is_close() {
@@ -282,26 +286,26 @@ where
                 }
 
                 x @ ssh_msg_code::SSH_MSG_CHANNEL_EOF => {
-                    log::debug!("Currently ignore message {}", x);
+                    debug!("Currently ignore message {}", x);
                 }
                 x @ ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {
-                    log::debug!("Currently ignore message {}", x);
+                    debug!("Currently ignore message {}", x);
                 }
                 _x @ ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {
                     let id = data.get_u32();
-                    log::trace!("Channel {} control success", id);
+                    trace!("Channel {} control success", id);
                     let channel = channels.get_mut(&id).unwrap();
                     channel.success()?
                 }
                 ssh_msg_code::SSH_MSG_CHANNEL_FAILURE => {
                     let id = data.get_u32();
-                    log::trace!("Channel {} control failed", id);
+                    trace!("Channel {} control failed", id);
                     let channel = channels.get_mut(&id).unwrap();
                     channel.failed()?
                 }
 
                 x => {
-                    log::debug!("Currently ignore message {}", x);
+                    debug!("Currently ignore message {}", x);
                 }
             }
         }

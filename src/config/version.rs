@@ -1,5 +1,6 @@
 use std::io::{Read, Write};
 use std::time::Duration;
+use tracing::*;
 
 use crate::{
     constant::{self, CLIENT_VERSION},
@@ -52,7 +53,7 @@ impl SshVersion {
         let buf = read_version(stream, timeout)?;
         let from_utf8 = crate::util::from_utf8(buf)?;
         let version_str = from_utf8.trim();
-        log::info!("server version: [{}]", version_str);
+        info!("server version: [{}]", version_str);
 
         if version_str.contains("SSH-2.0") {
             Ok(SshVersion::V2(
@@ -70,7 +71,7 @@ impl SshVersion {
     where
         S: Write,
     {
-        log::info!("client version: [{}]", CLIENT_VERSION);
+        info!("client version: [{}]", CLIENT_VERSION);
         let ver_string = format!("{}\r\n", CLIENT_VERSION);
         let _ = stream.write(ver_string.as_bytes())?;
         Ok(())
@@ -78,11 +79,11 @@ impl SshVersion {
 
     pub fn validate(&self) -> SshResult<()> {
         if let SshVersion::V2(_, _) = self {
-            log::info!("version negotiation was successful.");
+            info!("version negotiation was successful.");
             Ok(())
         } else {
             let err_msg = "error in version negotiation, version mismatch.";
-            log::error!("{}", err_msg);
+            error!("{}", err_msg);
             Err(SshError::from(err_msg))
         }
     }

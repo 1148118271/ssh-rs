@@ -1,6 +1,6 @@
 mod test {
     use paste::paste;
-    use ssh_rs::{algorithm, ssh};
+    use ssh::algorithm;
     use std::env;
 
     macro_rules! env_getter {
@@ -54,7 +54,7 @@ mod test {
     fn test_curve25519_sha256() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(&get_pem_rsa())
+            .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::Curve25519Sha256)
             .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
             .add_enc_algorithms(algorithm::Enc::Aes128Ctr)
@@ -70,7 +70,7 @@ mod test {
     fn test_ecdh_sha2_nistp256() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(&get_pem_rsa())
+            .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::EcdhSha2Nistrp256)
             .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
             .add_enc_algorithms(algorithm::Enc::Aes128Ctr)
@@ -82,6 +82,7 @@ mod test {
         session.close();
     }
 
+    #[cfg(feature = "dangerous-algorithms")]
     #[test]
     fn test_dh_group14_sha1() {
         let session = ssh::create_session_without_default()
@@ -102,7 +103,7 @@ mod test {
     fn test_dh_group14_sha256() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(&get_pem_rsa())
+            .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
             .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
             .add_enc_algorithms(algorithm::Enc::Aes128Ctr)
@@ -118,7 +119,7 @@ mod test {
     fn test_aes192() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(&get_pem_rsa())
+            .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
             .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
             .add_enc_algorithms(algorithm::Enc::Aes192Ctr)
@@ -134,7 +135,7 @@ mod test {
     fn test_aes256() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(&get_pem_rsa())
+            .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
             .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
             .add_enc_algorithms(algorithm::Enc::Aes256Ctr)
@@ -150,7 +151,7 @@ mod test {
     fn test_chacha20_poly1305() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(&get_pem_rsa())
+            .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
             .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
             .add_enc_algorithms(algorithm::Enc::Chacha20Poly1305Openssh)
@@ -166,7 +167,7 @@ mod test {
     fn test_hmac_sha256() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(&get_pem_rsa())
+            .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
             .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
             .add_enc_algorithms(algorithm::Enc::Chacha20Poly1305Openssh)
@@ -182,7 +183,7 @@ mod test {
     fn test_hmac_sha512() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(&get_pem_rsa())
+            .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
             .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
             .add_enc_algorithms(algorithm::Enc::Chacha20Poly1305Openssh)

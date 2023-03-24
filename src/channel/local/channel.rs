@@ -9,8 +9,11 @@ use crate::{
     error::{SshError, SshResult},
     model::{Data, FlowControl, Packet, RcMut, SecPacket},
 };
+use tracing::*;
 
-use super::{ChannelExec, ChannelScp, ChannelShell};
+#[cfg(feature = "scp")]
+use super::ChannelScp;
+use super::{ChannelExec, ChannelShell};
 
 pub(super) enum ChannelRead {
     Data(Vec<u8>),
@@ -55,14 +58,15 @@ where
     /// convert the raw channel to an [self::ChannelExec]
     ///
     pub fn exec(self) -> SshResult<ChannelExec<S>> {
-        log::info!("exec opened.");
+        info!("exec opened.");
         Ok(ChannelExec::open(self))
     }
 
     /// convert the raw channel to an [self::ChannelScp]
     ///
+    #[cfg(feature = "scp")]
     pub fn scp(self) -> SshResult<ChannelScp<S>> {
-        log::info!("scp opened.");
+        info!("scp opened.");
         Ok(ChannelScp::open(self))
     }
 
@@ -71,14 +75,14 @@ where
     /// with `row` lines & `column` characters per one line
     ///
     pub fn shell(self, tv: TerminalSize) -> SshResult<ChannelShell<S>> {
-        log::info!("shell opened.");
+        info!("shell opened.");
         ChannelShell::open(self, tv)
     }
 
     /// close the channel gracefully, but donnot consume it
     ///
     pub fn close(&mut self) -> SshResult<()> {
-        log::info!("channel close.");
+        info!("channel close.");
         self.send_close()?;
         self.receive_close()
     }
@@ -224,7 +228,7 @@ where
                     let data_type_code = data.get_u32();
                     let mut data = data.get_u8s();
 
-                    log::debug!("Recv extended data with type {data_type_code}");
+                    debug!("Recv extended data with type {data_type_code}");
 
                     // flow_contrl
                     self.flow_control.tune_on_recv(&mut data);
@@ -248,15 +252,15 @@ where
                 Ok(ChannelRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_EOF => {
-                log::debug!("Currently ignore message {}", x);
+                debug!("Currently ignore message {}", x);
                 Ok(ChannelRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_REQUEST => {
-                log::debug!("Currently ignore message {}", x);
+                debug!("Currently ignore message {}", x);
                 Ok(ChannelRead::Code(x))
             }
             x @ ssh_msg_code::SSH_MSG_CHANNEL_SUCCESS => {
-                log::debug!("Currently ignore message {}", x);
+                debug!("Currently ignore message {}", x);
                 Ok(ChannelRead::Code(x))
             }
             ssh_msg_code::SSH_MSG_CHANNEL_FAILURE => Err(SshError::from("channel failure.")),
@@ -269,7 +273,7 @@ where
                 Ok(ChannelRead::Code(x))
             }
             x => {
-                log::debug!("Currently ignore message {}", x);
+                debug!("Currently ignore message {}", x);
                 Ok(ChannelRead::Code(x))
             }
         }

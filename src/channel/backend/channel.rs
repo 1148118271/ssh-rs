@@ -11,8 +11,11 @@ use crate::{
     model::{BackendResp, BackendRqst, Data, FlowControl, Packet},
     TerminalSize,
 };
+use tracing::*;
 
-use super::{channel_exec::ExecBroker, channel_scp::ScpBroker, channel_shell::ShellBrocker};
+#[cfg(feature = "scp")]
+use super::channel_scp::ScpBroker;
+use super::{channel_exec::ExecBroker, channel_shell::ShellBrocker};
 
 pub(crate) struct Channel {
     snd: Sender<BackendResp>,
@@ -136,13 +139,13 @@ impl Channel {
     }
 
     pub fn local_close(&mut self) -> SshResult<()> {
-        log::trace!("Channel {} send local close", self.client_channel_no);
+        trace!("Channel {} send local close", self.client_channel_no);
         self.local_close = true;
         Ok(())
     }
 
     pub fn remote_close(&mut self) -> SshResult<()> {
-        log::trace!("Channel {} recv remote close", self.client_channel_no);
+        trace!("Channel {} recv remote close", self.client_channel_no);
         self.remote_close = true;
         if !self.local_close {
             self.snd.send(BackendResp::Close)?;
@@ -167,7 +170,7 @@ impl Channel {
 
 impl Drop for Channel {
     fn drop(&mut self) {
-        log::info!("Channel {} closed", self.client_channel_no);
+        info!("Channel {} closed", self.client_channel_no);
     }
 }
 
@@ -203,6 +206,7 @@ impl ChannelBroker {
 
     /// open a [ScpBroker] channel which can download/upload files/directories
     ///
+    #[cfg(feature = "scp")]
     pub fn scp(self) -> SshResult<ScpBroker> {
         Ok(ScpBroker::open(self))
     }
@@ -242,11 +246,10 @@ impl ChannelBroker {
             .send(BackendRqst::Command(self.client_channel_no, data))?;
         if !self.close {
             match self.rcv.recv().unwrap() {
-                BackendResp::Ok(_) => log::trace!("{}: control command ok", self.client_channel_no),
-                BackendResp::Fail(msg) => log::error!(
+                BackendResp::Ok(_) => trace!("{}: control command ok", self.client_channel_no),
+                BackendResp::Fail(msg) => error!(
                     "{}: channel error with reason {}",
-                    self.client_channel_no,
-                    msg
+                    self.client_channel_no, msg
                 ),
                 _ => unreachable!(),
             }

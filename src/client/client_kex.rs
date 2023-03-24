@@ -14,6 +14,7 @@ use crate::{
     model::{Data, Packet, SecPacket},
 };
 use std::io::{Read, Write};
+use tracing::*;
 
 impl Client {
     pub fn key_agreement<S>(
@@ -31,8 +32,8 @@ impl Client {
             digest.hash_ctx.set_v_s(their);
         }
 
-        log::info!("start for key negotiation.");
-        log::info!("send client algorithm list.");
+        info!("start for key negotiation.");
+        info!("send client algorithm list.");
 
         let algs = self.config.algs.clone();
         let client_algs = algs.pack(self);
@@ -81,7 +82,7 @@ impl Client {
         self.encryptor = encryption;
         digest.key_exchange = Some(key_exchange);
 
-        log::info!("key negotiation successful.");
+        info!("key negotiation successful.");
 
         Ok(())
     }
@@ -119,10 +120,10 @@ impl Client {
                     session_id = hash::digest(&h.as_bytes(), key_exchange.get_hash_type());
                     let flag = public_key.verify_signature(&h.k_s, &session_id, &sig)?;
                     if !flag {
-                        log::error!("signature verification failure.");
+                        error!("signature verification failure.");
                         return Err(SshError::from("signature verification failure."));
                     }
-                    log::info!("signature verification success.");
+                    info!("signature verification success.");
                 }
                 ssh_msg_code::SSH_MSG_NEWKEYS => {
                     self.new_keys(stream)?;
@@ -162,7 +163,7 @@ impl Client {
     {
         let mut data = Data::new();
         data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
-        log::info!("send new keys");
+        info!("send new keys");
         data.pack(self).write_stream(stream)
     }
 }
