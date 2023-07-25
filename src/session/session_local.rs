@@ -2,8 +2,11 @@ use std::{
     cell::RefCell,
     io::{Read, Write},
     rc::Rc,
-    time::Duration,
 };
+#[cfg(not(target_family="wasm"))]
+use std::time::{Duration, Instant};
+#[cfg(target_family="wasm")]
+use crate::model::time_wasm::{Duration};
 
 use crate::model::TerminalSize;
 use crate::{

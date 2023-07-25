@@ -2,7 +2,10 @@ pub(crate) mod algorithm;
 pub(crate) mod auth;
 pub(crate) mod version;
 use crate::algorithm::PubKey as PubKeyAlgs;
-use std::time::Duration;
+#[cfg(not(target_family="wasm"))]
+use std::time::{Duration, Instant};
+#[cfg(target_family="wasm")]
+use crate::model::time_wasm::Duration;
 
 fn insert_or_move_first(v: &mut Vec<PubKeyAlgs>, alg: PubKeyAlgs) {
     if let Some(i) = v.iter().position(|each| *each == alg) {

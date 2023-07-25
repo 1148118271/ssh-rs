@@ -1,5 +1,8 @@
 use std::io::{Read, Write};
-use std::time::Duration;
+#[cfg(not(target_family="wasm"))]
+use std::time::{Duration, Instant};
+#[cfg(target_family="wasm")]
+use crate::model::time_wasm::{Duration};
 
 use crate::{
     constant::{self, CLIENT_VERSION},

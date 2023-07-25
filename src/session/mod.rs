@@ -9,8 +9,12 @@ use std::{
     io::{Read, Write},
     net::{TcpStream, ToSocketAddrs},
     path::Path,
-    time::Duration,
 };
+
+#[cfg(not(target_family="wasm"))]
+use std::time::{Duration, Instant};
+#[cfg(target_family="wasm")]
+use crate::model::time_wasm::Duration;
 
 use crate::{
     algorithm::{Compress, Digest, Enc, Kex, Mac, PubKey},
@@ -245,7 +249,7 @@ impl SessionBuilder {
     {
         // connect tcp by default
         let tcp = if let Some(ref to) = self.config.timeout {
-            TcpStream::connect_timeout(&addr.to_socket_addrs()?.next().unwrap(), *to)?
+            TcpStream::connect_timeout(&addr.to_socket_addrs()?.next().unwrap(), to.to_sys_duration())?
         } else {
             TcpStream::connect(addr)?
         };

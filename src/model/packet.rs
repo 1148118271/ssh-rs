@@ -1,5 +1,8 @@
 use std::io::{Read, Write};
+#[cfg(not(target_family="wasm"))]
 use std::time::Duration;
+#[cfg(target_family="wasm")]
+use crate::model::time_wasm::Duration;
 
 use crate::error::SshResult;
 use crate::{client::Client, model::Data};

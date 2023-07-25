@@ -1,6 +1,10 @@
 use crate::error::SshErrorKind;
 use crate::{slog::log, SshError, SshResult};
+#[cfg(not(target_family="wasm"))]
 use std::time::{Duration, Instant};
+#[cfg(target_family="wasm")]
+use crate::model::time_wasm::{Duration,Instant};
+
 
 pub(crate) struct Timeout {
     instant: Instant,

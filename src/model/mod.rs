@@ -7,6 +7,8 @@ mod sequence;
 mod terminal;
 mod timeout;
 mod u32iter;
+#[cfg(target_family="wasm")]
+pub(crate) mod time_wasm;
 
 use std::{
     cell::RefCell,

@@ -31,15 +31,24 @@ rsa = "^0.7"
 aes = { version = "0.7", features = ["ctr"] }
 ssh-key = { version = "0.5.1", features = ["rsa", "ed25519"]}
 signature = "1.6.4"
-ring = "0.16.20"
 filetime = "0.2"
+ring = "0.16.20"
+instant = "0.1.12"
 
 # async
 # [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # tokio = { version = "^1", features = ["full"] }
 
+[lib]
+crate-type = ["cdylib"]
+
+[patch.crates-io.ring]
+path="C:/Users/jou/code/ring-xous"
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
+wasm-bindgen = "0.2.87"
+js-sys = "0.3"
 # tokio = { version = "^1", features = [
 #     "sync",
 #     "macros",
