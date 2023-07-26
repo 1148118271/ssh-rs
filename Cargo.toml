@@ -34,6 +34,8 @@ signature = "1.6.4"
 filetime = "0.2"
 ring = "0.16.20"
 instant = "0.1.12"
+async-std = "1.12.0"
+async-recursion = "1.0.4"
 
 # [lib]
 # crate-type = ["cdylib"]

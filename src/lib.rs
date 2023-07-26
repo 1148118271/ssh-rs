@@ -46,7 +46,7 @@ pub use channel::*;
 pub(crate) use error::SshError;
 pub use error::{SshErrorKind, SshResult};
 pub use model::{TerminalSize, TerminalSizeType};
-pub use session::{LocalSession, SessionBroker, SessionBuilder, SessionConnector};
+pub use session::{LocalSession, SessionBroker, SessionBuilder};
 
 pub mod ssh {
     use crate::{session::SessionBuilder, slog::Slog};

@@ -97,6 +97,16 @@ impl Client {
         data.pack(self).write_stream(stream)
     }
 
+    async fn send_qc_async<S>(&mut self, stream: &mut S, public_key: &[u8]) -> SshResult<()>
+    where
+        S: Unpin + async_std::io::Write + async_std::io::Read,
+    {
+        let mut data = Data::new();
+        data.put_u8(ssh_msg_code::SSH_MSG_KEXDH_INIT)
+            .put_u8s(public_key);
+        data.pack(self).write_stream_async(stream).await
+    }
+
     fn verify_signature_and_new_keys<S>(
         &mut self,
         stream: &mut S,
@@ -109,7 +119,7 @@ impl Client {
     {
         let mut session_id = vec![];
         loop {
-            let mut data = Data::unpack(SecPacket::from_stream(stream, self)?)?;
+            let mut data: Data = Data::unpack(SecPacket::from_stream(stream, self)?)?;
             let message_code = data.get_u8();
             match message_code {
                 ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
@@ -126,6 +136,42 @@ impl Client {
                 }
                 ssh_msg_code::SSH_MSG_NEWKEYS => {
                     self.new_keys(stream)?;
+                    return Ok(session_id);
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    async fn verify_signature_and_new_keys_async<S>(
+        &mut self,
+        stream: &mut S,
+        public_key: &mut Box<dyn PublicKey>,
+        key_exchange: &mut Box<dyn KeyExchange>,
+        h: &mut HashCtx,
+    ) -> SshResult<Vec<u8>>
+    where
+        S: async_std::io::Read + Unpin + async_std::io::Write,
+    {
+        let mut session_id = vec![];
+        loop {
+            let mut data: Data = Data::unpack(SecPacket::from_stream_async(stream, self).await?)?;
+            let message_code = data.get_u8();
+            match message_code {
+                ssh_msg_code::SSH_MSG_KEXDH_REPLY => {
+                    // 生成session_id并且获取signature
+                    let sig = self.generate_signature(data, h, key_exchange)?;
+                    // 验签
+                    session_id = hash::digest(&h.as_bytes(), key_exchange.get_hash_type());
+                    let flag = public_key.verify_signature(&h.k_s, &session_id, &sig)?;
+                    if !flag {
+                        log::error!("signature verification failure.");
+                        return Err(SshError::from("signature verification failure."));
+                    }
+                    log::info!("signature verification success.");
+                }
+                ssh_msg_code::SSH_MSG_NEWKEYS => {
+                    self.new_keys_async(stream).await?;
                     return Ok(session_id);
                 }
                 _ => unreachable!(),
@@ -164,5 +210,89 @@ impl Client {
         data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
         log::info!("send new keys");
         data.pack(self).write_stream(stream)
+    }
+
+    async fn new_keys_async<S>(&mut self, stream: &mut S) -> SshResult<()>
+    where
+        S: async_std::io::Write + Unpin,
+    {
+        let mut data = Data::new();
+        data.put_u8(ssh_msg_code::SSH_MSG_NEWKEYS);
+        log::info!("send new keys");
+        data.pack(self).write_stream_async(stream).await
+    }
+}
+
+impl Client {
+    pub async fn key_agreement_async<S>(
+        &mut self,
+        stream: &mut S,
+        server_algs: AlgList,
+        digest: &mut Digest,
+    ) -> SshResult<()>
+    where
+        S: async_std::io::Read + async_std::io::Write + Unpin,
+    {
+        // initialize the hash context
+        if let SshVersion::V2(ref our, ref their) = self.config.ver {
+            digest.hash_ctx.set_v_c(our);
+            digest.hash_ctx.set_v_s(their);
+        }
+
+        log::info!("start for key negotiation.");
+        log::info!("send client algorithm list.");
+
+        let algs = self.config.algs.clone();
+        let client_algs = algs.pack(self);
+        digest.hash_ctx.set_i_c(client_algs.get_inner());
+        client_algs.write_stream_async(stream).await?;
+
+        let negotiated = self.config.algs.match_with(&server_algs)?;
+
+        // key exchange algorithm
+        let mut key_exchange = key_exchange::from(&negotiated.key_exchange[0])?;
+        self.send_qc_async(stream, key_exchange.get_public_key()).await?;
+
+        // host key algorithm
+        let mut public_key = public_key::from(&negotiated.public_key[0]);
+
+        // generate session id
+        let session_id = {
+            let session_id = self
+                .verify_signature_and_new_keys_async(
+                    stream,
+                    &mut public_key,
+                    &mut key_exchange,
+                    &mut digest.hash_ctx,
+                )
+                .await?;
+
+            if self.session_id.is_empty() {
+                session_id
+            } else {
+                self.session_id.clone()
+            }
+        };
+
+        let hash = hash::Hash::new(
+            digest.hash_ctx.clone(),
+            &session_id,
+            key_exchange.get_hash_type(),
+        );
+
+        // mac algorithm
+        let mac = mac::from(&negotiated.c_mac[0]);
+
+        // encryption algorithm
+        let encryption = encryption::from(&negotiated.c_encryption[0], hash, mac);
+
+        self.session_id = session_id;
+        self.negotiated = negotiated;
+        self.encryptor = encryption;
+        digest.key_exchange = Some(key_exchange);
+
+        log::info!("key negotiation successful.");
+
+        Ok(())
     }
 }

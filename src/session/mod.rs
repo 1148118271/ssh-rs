@@ -1,7 +1,8 @@
 // pub(crate) use session_inner::SessionInner;
+mod session_async;
 mod session_broker;
 mod session_local;
-
+mod session_connector;
 pub use session_broker::SessionBroker;
 pub use session_local::LocalSession;
 
@@ -11,119 +12,23 @@ use std::{
     path::Path,
 };
 
-#[cfg(not(target_family="wasm"))]
-use std::time::{Duration, Instant};
-#[cfg(target_family="wasm")]
+#[cfg(target_family = "wasm")]
 use crate::model::time_wasm::Duration;
+#[cfg(not(target_family = "wasm"))]
+use std::time::{Duration, Instant};
 
 use crate::{
-    algorithm::{Compress, Digest, Enc, Kex, Mac, PubKey},
-    client::Client,
-    config::{algorithm::AlgList, version::SshVersion, Config},
+    algorithm::{Compress, Enc, Kex, Mac, PubKey},
+    config::Config,
     error::SshResult,
-    model::{Packet, SecPacket},
 };
 
-enum SessionState<S>
-where
-    S: Read + Write,
-{
-    Init(Config, S),
-    Version(Config, S),
-    Auth(Client, S),
-    Connected(Client, S),
-}
+use self::session_connector::{SessionConnector, SessionAsyncConnector, SessionState, AsyncSessionState};
 
-pub struct SessionConnector<S>
-where
-    S: Read + Write,
-{
-    inner: SessionState<S>,
-}
 
-impl<S> SessionConnector<S>
-where
-    S: Read + Write,
-{
-    fn connect(self) -> SshResult<Self> {
-        match self.inner {
-            SessionState::Init(config, stream) => Self {
-                inner: SessionState::Version(config, stream),
-            }
-            .connect(),
-            SessionState::Version(mut config, mut stream) => {
-                log::info!("start for version negotiation.");
-                // Receive the server version
-                let version = SshVersion::from(&mut stream, config.timeout)?;
-                // Version validate
-                version.validate()?;
-                // Send Client version
-                SshVersion::write(&mut stream)?;
-                // Store the version info
-                config.ver = version;
 
-                // from now on
-                // each step of the interaction is subject to the ssh constraints on the packet
-                // so we create a client to hide the underlay details
-                let client = Client::new(config);
 
-                Self {
-                    inner: SessionState::Auth(client, stream),
-                }
-                .connect()
-            }
-            SessionState::Auth(mut client, mut stream) => {
-                // before auth,
-                // we should have a key exchange at first
-                let mut digest = Digest::new();
-                let server_algs = SecPacket::from_stream(&mut stream, &mut client)?;
-                digest.hash_ctx.set_i_s(server_algs.get_inner());
-                let server_algs = AlgList::unpack(server_algs)?;
-                client.key_agreement(&mut stream, server_algs, &mut digest)?;
-                client.do_auth(&mut stream, &mut digest)?;
-                Ok(Self {
-                    inner: SessionState::Connected(client, stream),
-                })
-            }
-            _ => unreachable!(),
-        }
-    }
 
-    /// To run this ssh session on the local thread
-    ///
-    /// It will return a [LocalSession] which doesn't support multithread concurrency
-    ///
-    pub fn run_local(self) -> LocalSession<S> {
-        if let SessionState::Connected(client, stream) = self.inner {
-            LocalSession::new(client, stream)
-        } else {
-            unreachable!("Why you here?")
-        }
-    }
-
-    /// close the session and consume it
-    ///
-    pub fn close(self) {
-        drop(self)
-    }
-}
-
-impl<S> SessionConnector<S>
-where
-    S: Read + Write + Send + 'static,
-{
-    /// To spwan a new thread to run this ssh session
-    ///
-    /// It will return a [SessionBroker] which supports multithread concurrency
-    ///
-    pub fn run_backend(self) -> SessionBroker {
-        if let SessionState::Connected(client, stream) = self.inner {
-            SessionBroker::new(client, stream)
-        } else {
-            unreachable!("Why you here?")
-        }
-    }
-}
 
 #[derive(Default)]
 pub struct SessionBuilder {
@@ -249,7 +154,10 @@ impl SessionBuilder {
     {
         // connect tcp by default
         let tcp = if let Some(ref to) = self.config.timeout {
-            TcpStream::connect_timeout(&addr.to_socket_addrs()?.next().unwrap(), to.to_sys_duration())?
+            TcpStream::connect_timeout(
+                &addr.to_socket_addrs()?.next().unwrap(),
+                to.to_sys_duration(),
+            )?
         } else {
             TcpStream::connect(addr)?
         };
@@ -272,5 +180,18 @@ impl SessionBuilder {
             inner: SessionState::Init(self.config, stream),
         }
         .connect()
+    }
+
+    pub async fn connect_async<AsyncStream>(
+        mut self,
+        async_stream: AsyncStream,
+    ) -> SshResult<SessionAsyncConnector<AsyncStream>>
+    where
+        AsyncStream: async_std::io::Read + async_std::io::Write + std::marker::Send + Unpin+'static,
+    {
+        self.config.tune_alglist_on_private_key();
+        SessionAsyncConnector {
+            inner: AsyncSessionState::Init(self.config, async_stream),
+        }.connect().await
     }
 }

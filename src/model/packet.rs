@@ -1,7 +1,9 @@
+use async_std::io::{ReadExt, WriteExt};
 use std::io::{Read, Write};
-#[cfg(not(target_family="wasm"))]
+#[cfg(not(target_family = "wasm"))]
 use std::time::Duration;
-#[cfg(target_family="wasm")]
+
+#[cfg(target_family = "wasm")]
 use crate::model::time_wasm::Duration;
 
 use crate::error::SshResult;
@@ -166,46 +168,9 @@ impl<'a> SecPacket<'a> {
         write_with_timeout(stream, tm, &buf)
     }
 
-    pub fn from_stream<S>(stream: &mut S, client: &'a mut Client) -> SshResult<Self>
-    where
-        S: Read,
-    {
-        let tm = client.get_timeout();
-        let bsize = {
-            let bsize = client.get_encryptor().bsize();
-            if bsize > 8 {
-                bsize
-            } else {
-                8
-            }
-        };
+}
 
-        // read the first block
-        let mut first_block = vec![0; bsize];
-        read_with_timeout(stream, tm, &mut first_block)?;
-
-        // detect the total len
-        let seq = client.get_seq().get_server();
-        let data_len = client.get_encryptor().data_len(seq, &first_block);
-
-        // read remain
-        let mut data = Data::uninit_new(data_len);
-        data[0..bsize].clone_from_slice(&first_block);
-        read_with_timeout(stream, tm, &mut data[bsize..])?;
-
-        // decrypt all
-        let data = client.get_encryptor().decrypt(seq, &mut data)?;
-
-        // unpacking
-        let pkt_len = u32::from_be_bytes(data[0..4].try_into().unwrap());
-        let pad_len = data[4];
-        let payload_len = pkt_len - pad_len as u32 - 1;
-
-        let payload = data[5..payload_len as usize + 5].into();
-
-        Ok(Self { payload, client })
-    }
-
+impl<'a> SecPacket<'a> {
     pub fn try_from_stream<S>(stream: &mut S, client: &'a mut Client) -> SshResult<Option<Self>>
     where
         S: Read,
@@ -258,11 +223,129 @@ impl<'a> SecPacket<'a> {
     }
 }
 
+impl<'a> SecPacket<'a> {
+    pub fn from_stream<S>(stream: &mut S, client: &'a mut Client) -> SshResult<Self>
+    where
+        S: Read,
+    {
+        let tm = client.get_timeout();
+        let bsize = {
+            let bsize = client.get_encryptor().bsize();
+            if bsize > 8 {
+                bsize
+            } else {
+                8
+            }
+        };
+
+        // read the first block
+        let mut first_block = vec![0; bsize];
+        read_with_timeout(stream, tm, &mut first_block)?;
+
+        // detect the total len
+        let seq = client.get_seq().get_server();
+        let data_len = client.get_encryptor().data_len(seq, &first_block);
+
+        // read remain
+        let mut data = Data::uninit_new(data_len);
+        data[0..bsize].clone_from_slice(&first_block);
+        read_with_timeout(stream, tm, &mut data[bsize..])?;
+
+        // decrypt all
+        let data = client.get_encryptor().decrypt(seq, &mut data)?;
+
+        // unpacking
+        let pkt_len = u32::from_be_bytes(data[0..4].try_into().unwrap());
+        let pad_len = data[4];
+        let payload_len = pkt_len - pad_len as u32 - 1;
+
+        let payload = data[5..payload_len as usize + 5].into();
+
+        Ok(Self { payload, client })
+    }
+}
+
 impl<'a> From<(Data, &'a mut Client)> for SecPacket<'a> {
     fn from((d, c): (Data, &'a mut Client)) -> Self {
         Self {
             payload: d,
             client: c,
         }
+    }
+}
+
+impl<'a> SecPacket<'a> {
+    pub async fn from_stream_async<S>(
+        stream: &mut S,
+        client: &'a mut Client,
+    ) -> SshResult<SecPacket<'a>>
+    where
+        S: async_std::io::Read + Unpin,
+    {
+        let bsize = {
+            let bsize = client.get_encryptor().bsize();
+            if bsize > 8 {
+                bsize
+            } else {
+                8
+            }
+        };
+
+        // read the first block
+        let mut first_block = vec![0; bsize];
+        // read_with_timeout(stream, tm, &mut first_block)?;
+        stream.read_exact(&mut first_block).await?;
+
+        // detect the total len
+        let seq = client.get_seq().get_server();
+        let data_len = client.get_encryptor().data_len(seq, &first_block);
+
+        // read remain
+        let mut data = Data::uninit_new(data_len);
+        data[0..bsize].clone_from_slice(&first_block);
+        stream.read_exact(&mut data[bsize..]).await?;
+
+        // decrypt all
+        let data = client.get_encryptor().decrypt(seq, &mut data)?;
+
+        // unpacking
+        let pkt_len = u32::from_be_bytes(data[0..4].try_into().unwrap());
+        let pad_len = data[4];
+        let payload_len = pkt_len - pad_len as u32 - 1;
+
+        let payload = data[5..payload_len as usize + 5].into();
+
+        Ok(Self { payload, client })
+    }
+
+    pub async fn write_stream_async<S>(self, stream: &mut S) -> SshResult<()>
+    where
+        S: Unpin + async_std::io::Write,
+    {
+        let payload_len = self.payload.len() as u32;
+        let group_size = self.client.get_encryptor().group_size() as i32;
+        let pad_len = {
+            let mut pad = payload_len as i32;
+            if self.client.get_encryptor().is_cp() {
+                pad += 1;
+            } else {
+                pad += 5
+            }
+            pad = (-pad) & (group_size - 1);
+            if pad < group_size {
+                pad += group_size;
+            }
+            pad as u32
+        } as u8;
+        let packet_len = 1 + pad_len as u32 + payload_len;
+        let mut buf = vec![];
+        buf.extend(packet_len.to_be_bytes());
+        buf.extend([pad_len]);
+        buf.extend(self.payload.iter());
+        buf.extend(vec![0; pad_len as usize]);
+        let seq = self.client.get_seq().get_client();
+        self.client.get_encryptor().encrypt(seq, &mut buf);
+        stream.write_all(&buf).await?;
+        Ok(())
     }
 }

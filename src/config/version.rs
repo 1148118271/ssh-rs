@@ -1,8 +1,10 @@
-use std::io::{Read, Write};
-#[cfg(not(target_family="wasm"))]
-use std::time::{Duration, Instant};
-#[cfg(target_family="wasm")]
+use async_std::io::{ReadExt, WriteExt};
+
+#[cfg(target_family = "wasm")]
 use crate::model::time_wasm::Duration;
+use std::io::{Read, Write};
+#[cfg(not(target_family = "wasm"))]
+use std::time::{Duration, Instant};
 
 use crate::{
     constant::{self, CLIENT_VERSION},
@@ -24,6 +26,16 @@ impl Default for SshVersion {
     fn default() -> Self {
         SshVersion::Unknown
     }
+}
+
+async fn read_version_async<S>(stream: &mut S) -> SshResult<Vec<u8>>
+where
+    S: async_std::io::Read + Unpin,
+{
+    let mut buf = vec![0; 128];
+    stream.read(&mut buf).await?;
+
+    return Ok(buf);
 }
 
 fn read_version<S>(stream: &mut S, tm: Option<Duration>) -> SshResult<Vec<u8>>
@@ -74,6 +86,27 @@ impl SshVersion {
         }
     }
 
+    pub async fn from_async<S>(stream: &mut S) -> SshResult<Self>
+    where
+        S: async_std::io::Read + Unpin,
+    {
+        let buf = read_version_async(stream).await?;
+        let from_utf8 = crate::util::from_utf8(buf)?;
+        let version_str = from_utf8.trim();
+        log::info!("server version: [{}]", version_str);
+
+        if version_str.contains("SSH-2.0") {
+            Ok(SshVersion::V2(
+                CLIENT_VERSION.to_string(),
+                version_str.to_string(),
+            ))
+        } else if version_str.contains("SSH-1.0") {
+            Ok(SshVersion::V1)
+        } else {
+            Ok(SshVersion::Unknown)
+        }
+    }
+
     pub fn write<S>(stream: &mut S) -> SshResult<()>
     where
         S: Write,
@@ -81,6 +114,15 @@ impl SshVersion {
         log::info!("client version: [{}]", CLIENT_VERSION);
         let ver_string = format!("{}\r\n", CLIENT_VERSION);
         let _ = stream.write(ver_string.as_bytes())?;
+        Ok(())
+    }
+
+    pub async fn async_write<S>(stream: &mut S) -> SshResult<()>
+    where
+        S: async_std::io::Write + Unpin,
+    {
+        let ver_string = format!("{}\r\n", CLIENT_VERSION);
+        let _ = stream.write(ver_string.as_bytes()).await?;
         Ok(())
     }
 

@@ -1,10 +1,10 @@
 use crate::config::algorithm::AlgList;
+#[cfg(target_family = "wasm")]
+use crate::model::time_wasm::Duration;
 use crate::{algorithm::encryption::Encryption, config::Config};
 use crate::{algorithm::encryption::EncryptionNone, model::Sequence};
-#[cfg(not(target_family="wasm"))]
+#[cfg(not(target_family = "wasm"))]
 use std::time::{Duration, Instant};
-#[cfg(target_family="wasm")]
-use crate::model::time_wasm::Duration;
 
 // the underlay connection
 pub(crate) struct Client {
@@ -41,4 +41,5 @@ impl Client {
     pub fn set_timeout(&mut self, tm: Option<Duration>) {
         self.config.timeout = tm
     }
+
 }
