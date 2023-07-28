@@ -37,12 +37,14 @@ instant = "0.1.12"
 async-std = "1.12.0"
 async-recursion = "1.0.4"
 
+
 # [lib]
 # crate-type = ["cdylib"]
 # don't include this
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
+web-sys = "0.3.64"
 wasm-bindgen = "0.2.87"
 js-sys = "0.3"
 

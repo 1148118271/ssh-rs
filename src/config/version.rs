@@ -4,7 +4,7 @@ use async_std::io::{ReadExt, WriteExt};
 use crate::model::time_wasm::Duration;
 use std::io::{Read, Write};
 #[cfg(not(target_family = "wasm"))]
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use crate::{
     constant::{self, CLIENT_VERSION},

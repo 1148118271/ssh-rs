@@ -3,7 +3,7 @@ pub(crate) mod auth;
 pub(crate) mod version;
 use crate::algorithm::PubKey as PubKeyAlgs;
 #[cfg(not(target_family="wasm"))]
-use std::time::{Duration, Instant};
+use std::time::Duration;
 #[cfg(target_family="wasm")]
 use crate::model::time_wasm::Duration;
 

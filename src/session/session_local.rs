@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 #[cfg(not(target_family="wasm"))]
-use std::time::{Duration, Instant};
+use std::time::Duration;
 #[cfg(target_family="wasm")]
 use crate::model::time_wasm::Duration;
 

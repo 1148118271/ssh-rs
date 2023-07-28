@@ -15,7 +15,7 @@ use std::{
 #[cfg(target_family = "wasm")]
 use crate::model::time_wasm::Duration;
 #[cfg(not(target_family = "wasm"))]
-use std::time::{Duration, Instant};
+use std::time::{Duration};
 
 use crate::{
     algorithm::{Compress, Enc, Kex, Mac, PubKey},
@@ -156,7 +156,10 @@ impl SessionBuilder {
         let tcp = if let Some(ref to) = self.config.timeout {
             TcpStream::connect_timeout(
                 &addr.to_socket_addrs()?.next().unwrap(),
+                #[cfg(target_family="wasm")]
                 to.to_sys_duration(),
+                #[cfg(not(target_family="wasm"))]
+                *to,
             )?
         } else {
             TcpStream::connect(addr)?
@@ -182,12 +185,12 @@ impl SessionBuilder {
         .connect()
     }
 
-    pub async fn connect_async<AsyncStream>(
+    pub async fn connect_async<S>(
         mut self,
-        async_stream: AsyncStream,
-    ) -> SshResult<SessionAsyncConnector<AsyncStream>>
+        async_stream: S,
+    ) -> SshResult<SessionAsyncConnector<S>>
     where
-        AsyncStream: async_std::io::Read + async_std::io::Write + std::marker::Send + Unpin+'static,
+        S: async_std::io::Read + async_std::io::Write + std::marker::Send + Unpin+ 'static,
     {
         self.config.tune_alglist_on_private_key();
         SessionAsyncConnector {

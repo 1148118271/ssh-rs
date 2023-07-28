@@ -13,6 +13,8 @@ use crate::{
 use async_recursion::async_recursion;
 use std::io::{Read, Write};
 
+use super::session_async::AsyncSession;
+
 pub(crate) enum SessionState<S>
 where
     S: Read + Write,
@@ -172,5 +174,19 @@ where
             },
             _ => unreachable!(),
         }
+    }
+
+    pub async fn run_async(self) -> AsyncSession<S> {
+        if let AsyncSessionState::Connected(client, stream) = self.inner {
+            AsyncSession::new(client, stream)
+        } else {
+            unreachable!("Why you here?")
+        }
+    }
+
+    /// close the session and consume it
+    ///
+    pub fn close(self) {
+        drop(self)
     }
 }

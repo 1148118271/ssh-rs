@@ -4,7 +4,7 @@ use crate::model::time_wasm::Duration;
 use crate::{algorithm::encryption::Encryption, config::Config};
 use crate::{algorithm::encryption::EncryptionNone, model::Sequence};
 #[cfg(not(target_family = "wasm"))]
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 // the underlay connection
 pub(crate) struct Client {
