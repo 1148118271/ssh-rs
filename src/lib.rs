@@ -39,6 +39,7 @@ mod model;
 mod session;
 mod slog;
 mod util;
+mod async_stream;
 
 pub mod error;
 
