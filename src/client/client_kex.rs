@@ -46,13 +46,13 @@ impl Client {
         self.send_qc(stream, key_exchange.get_public_key())?;
 
         // host key algorithm
-        let mut public_key = public_key::from(&negotiated.public_key[0]);
+        let public_key = public_key::from(&negotiated.public_key[0]);
 
         // generate session id
         let session_id = {
             let session_id = self.verify_signature_and_new_keys(
                 stream,
-                &mut public_key,
+                &public_key,
                 &mut key_exchange,
                 &mut digest.hash_ctx,
             )?;
@@ -100,7 +100,7 @@ impl Client {
     fn verify_signature_and_new_keys<S>(
         &mut self,
         stream: &mut S,
-        public_key: &mut Box<dyn PublicKey>,
+        public_key: &Box<dyn PublicKey>,
         key_exchange: &mut Box<dyn KeyExchange>,
         h: &mut HashCtx,
     ) -> SshResult<Vec<u8>>
@@ -138,7 +138,7 @@ impl Client {
         &mut self,
         mut data: Data,
         h: &mut HashCtx,
-        key_exchange: &mut Box<dyn KeyExchange>,
+        key_exchange: &Box<dyn KeyExchange>,
     ) -> SshResult<Vec<u8>> {
         let ks = data.get_u8s();
         h.set_k_s(&ks);

@@ -156,7 +156,7 @@ where
         Ok(())
     }
 
-    fn send_file(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
+    fn send_file(&mut self, scp_file: &ScpFile) -> SshResult<()> {
         let mut file = match File::open(scp_file.local_path.as_path()) {
             Ok(f) => f,
             // 文件打开异常，不影响后续操作
@@ -388,7 +388,7 @@ where
         self.save_file(scp_file)
     }
 
-    fn save_file(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
+    fn save_file(&mut self, scp_file: &ScpFile) -> SshResult<()> {
         log::debug!(
             "name: [{}] size: [{}] type: [file] start download.",
             scp_file.name,
@@ -460,7 +460,7 @@ where
     }
 
     #[cfg(any(target_os = "linux", target_os = "macos"))]
-    fn sync_permissions(&self, scp_file: &mut ScpFile, file: fs::File) {
+    fn sync_permissions(&self, scp_file: &ScpFile, file: fs::File) {
         let modify_time = filetime::FileTime::from_unix_time(scp_file.modify_time, 0);
         let access_time = filetime::FileTime::from_unix_time(scp_file.access_time, 0);
         if let Err(e) =

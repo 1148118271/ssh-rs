@@ -5,7 +5,8 @@ use crate::algorithm::{
 use crate::model::Data;
 use crate::{SshError, SshResult};
 use rsa::pkcs1::DecodeRsaPrivateKey;
-use rsa::PublicKeyParts;
+use rsa::pkcs1v15::Pkcs1v15Sign;
+use rsa::traits::PublicKeyParts;
 use std::fmt::Debug;
 use std::fs::File;
 use std::io::Read;
@@ -93,16 +94,16 @@ impl KeyPair {
             KeyType::PemRsa | KeyType::SshRsa => {
                 let (scheme, digest) = match alg {
                     PubKey::RsaSha2_512 => (
-                        rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha512>(),
+                        Pkcs1v15Sign::new::<sha2::Sha512>(),
                         ring::digest::digest(&ring::digest::SHA512, sd),
                     ),
                     PubKey::RsaSha2_256 => (
-                        rsa::PaddingScheme::new_pkcs1v15_sign::<sha2::Sha256>(),
+                        Pkcs1v15Sign::new::<sha2::Sha512>(),
                         ring::digest::digest(&ring::digest::SHA256, sd),
                     ),
                     #[cfg(feature = "dangerous-rsa-sha1")]
                     PubKey::SshRsa => (
-                        rsa::PaddingScheme::new_pkcs1v15_sign::<sha1::Sha1>(),
+                        Pkcs1v15Sign::new::<sha1::Sha1>(),
                         ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, sd),
                     ),
                     _ => unreachable!(),

@@ -76,7 +76,7 @@ where
                 digest.hash_ctx.set_i_s(server_algs.get_inner());
                 let server_algs = AlgList::unpack(server_algs)?;
                 client.key_agreement(&mut stream, server_algs, &mut digest)?;
-                client.do_auth(&mut stream, &mut digest)?;
+                client.do_auth(&mut stream, &digest)?;
                 Ok(Self {
                     inner: SessionState::Connected(client, stream),
                 })

@@ -22,16 +22,16 @@ dangerous-dh-group1-sha1 = []
 log = "0.4"
 rand = "0.8"
 num-bigint = { version = "0.4", features = ["rand"] }
-strum = "0.24"
-strum_macros = "0.24"
+strum = "0.25"
+strum_macros = "0.25"
 # the crate rsa has removed the internal hash implement from 0.7.0
 sha1  = { version = "0.10.5", default-features = false, features = ["oid"], optional = true }
 sha2  = { version = "0.10.6", default-features = false, features = ["oid"]}
-rsa = "^0.7"
+rsa = "0.9"
 aes = { version = "0.7", features = ["ctr"] }
-ssh-key = { version = "0.5.1", features = ["rsa", "ed25519"]}
-signature = "1.6.4"
-ring = "0.16.20"
+ssh-key = { version = "0.6", features = ["rsa", "ed25519", "alloc"]}
+signature = "2.1"
+ring = "0.16"
 filetime = "0.2"
 
 # async

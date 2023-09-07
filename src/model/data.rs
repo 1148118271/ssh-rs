@@ -122,14 +122,14 @@ impl Data {
 
     // 获取32位无符号整型
     pub fn get_u32(&mut self) -> u32 {
-        let u32_buf = self.0.drain(..4).into_iter().collect::<Vec<u8>>();
+        let u32_buf = self.0.drain(..4).collect::<Vec<u8>>();
         u32::from_be_bytes(u32_buf.try_into().unwrap())
     }
 
     // 获取字节数组
     pub fn get_u8s(&mut self) -> Vec<u8> {
         let len = self.get_u32() as usize;
-        let bytes = self.0.drain(..len).into_iter().collect::<Vec<u8>>();
+        let bytes = self.0.drain(..len).collect::<Vec<u8>>();
         bytes
     }
 
