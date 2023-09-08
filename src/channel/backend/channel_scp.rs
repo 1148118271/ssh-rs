@@ -449,7 +449,7 @@ impl ScpBroker {
     }
 
     #[cfg(windows)]
-    fn sync_permissions(&self, scp_file: &mut ScpFile) {
+    fn sync_permissions(&self, scp_file: &ScpFile) {
         let modify_time = filetime::FileTime::from_unix_time(scp_file.modify_time, 0);
         let access_time = filetime::FileTime::from_unix_time(scp_file.access_time, 0);
         if let Err(e) =
