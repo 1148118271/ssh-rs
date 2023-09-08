@@ -154,16 +154,13 @@ impl KeyPair {
     }
 }
 
-#[derive(Clone)]
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) enum KeyType {
     #[default]
     PemRsa,
     SshRsa,
     SshEd25519,
 }
-
-
 
 #[derive(Clone, Default)]
 pub(crate) struct AuthInfo {

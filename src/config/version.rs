@@ -10,16 +10,13 @@ use crate::{
 type OurVer = String;
 type ServerVer = String;
 
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub(crate) enum SshVersion {
     V1,
     V2(OurVer, ServerVer),
     #[default]
     Unknown,
 }
-
-
 
 fn read_version<S>(stream: &mut S, tm: Option<Duration>) -> SshResult<Vec<u8>>
 where
