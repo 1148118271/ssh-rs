@@ -98,7 +98,7 @@ impl KeyPair {
                         ring::digest::digest(&ring::digest::SHA512, sd),
                     ),
                     PubKey::RsaSha2_256 => (
-                        Pkcs1v15Sign::new::<sha2::Sha512>(),
+                        Pkcs1v15Sign::new::<sha2::Sha256>(),
                         ring::digest::digest(&ring::digest::SHA256, sd),
                     ),
                     #[cfg(feature = "dangerous-rsa-sha1")]

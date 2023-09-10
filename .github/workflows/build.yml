@@ -98,6 +98,6 @@ jobs:
       - name: run ssh
         run: mkdir /run/sshd && /usr/sbin/sshd -T &&/usr/sbin/sshd -D -p 8888 &
       - name: Test
-        run: cargo test --all-features
+        run: cargo test --all-features -- --test-threads 1
       - name: Doc test
         run: cargo test --doc --all-features
