@@ -1,9 +1,10 @@
-v0.3.3 (TBD)
+v0.3.3 (2023-09-10)
     1. fix hang when tcp connects to a non-existent host
     2. refactor aes_ctr file
     3. translate the changelogs
     4. use std::time::Duration as timeout rather than u128
     5. add the support for ssh message `SSH_MSG_CHANNEL_EXTENDED_DATA`
+    6. bump dependencies except aes for ctr feature
 
 v0.3.2 (2023-01-10)
     1. fix some error with hmac2

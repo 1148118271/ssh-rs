@@ -47,7 +47,7 @@ impl PubK for RsaSha512 {
         let e = rsa::BigUint::from_bytes_be(data.get_u8s().as_slice());
         let n = rsa::BigUint::from_bytes_be(data.get_u8s().as_slice());
         let public_key = rsa::RsaPublicKey::new(n, e).unwrap();
-        let scheme = Pkcs1v15Sign::new::<sha2::Sha256>();
+        let scheme = Pkcs1v15Sign::new::<sha2::Sha512>();
 
         let digest = ring::digest::digest(&ring::digest::SHA512, message);
         let msg = digest.as_ref();

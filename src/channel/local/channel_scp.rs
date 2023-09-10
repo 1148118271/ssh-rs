@@ -388,7 +388,7 @@ where
         self.save_file(scp_file)
     }
 
-    fn save_file(&mut self, scp_file: &ScpFile) -> SshResult<()> {
+    fn save_file(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
         log::debug!(
             "name: [{}] size: [{}] type: [file] start download.",
             scp_file.name,
