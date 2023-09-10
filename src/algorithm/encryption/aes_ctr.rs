@@ -3,8 +3,12 @@ use crate::algorithm::hash::Hash;
 use crate::algorithm::mac::Mac;
 use crate::error::SshError;
 use crate::SshResult;
-use aes::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
-use aes::{Aes128Ctr, Aes192Ctr, Aes256Ctr};
+use aes::cipher::{KeyIvInit, StreamCipher, StreamCipherSeek};
+use ctr;
+
+type Aes128Ctr64BE = ctr::Ctr64BE<aes::Aes128>;
+type Aes192Ctr64BE = ctr::Ctr64BE<aes::Aes192>;
+type Aes256Ctr64BE = ctr::Ctr64BE<aes::Aes256>;
 
 const CTR128_BLOCK_SIZE: usize = 16;
 const CTR192_BLOCK_SIZE: usize = 24;
@@ -65,8 +69,8 @@ macro_rules! crate_aes {
                 siv.clone_from_slice(&hash.iv_s_c[..$iv_size]);
 
                 // TODO unwrap
-                let c = $alg::new_from_slices(&ckey, &civ).unwrap();
-                let r = $alg::new_from_slices(&skey, &siv).unwrap();
+                let c = $alg::new(&ckey.into(), &civ.into());
+                let r = $alg::new(&skey.into(), &siv.into());
                 // hmac
                 let (ik_c_s, ik_s_c) = hash.mix_ik(mac.bsize());
                 $name {
@@ -133,8 +137,8 @@ macro_rules! crate_aes {
 }
 
 // aes-128-ctr
-crate_aes!(Ctr128, Aes128Ctr, CTR128_BLOCK_SIZE, IV_SIZE);
+crate_aes!(Ctr128, Aes128Ctr64BE, CTR128_BLOCK_SIZE, IV_SIZE);
 // aes-192-ctr
-crate_aes!(Ctr192, Aes192Ctr, CTR192_BLOCK_SIZE, IV_SIZE);
+crate_aes!(Ctr192, Aes192Ctr64BE, CTR192_BLOCK_SIZE, IV_SIZE);
 // aes-256-ctr
-crate_aes!(Ctr256, Aes256Ctr, CTR256_BLOCK_SIZE, IV_SIZE);
+crate_aes!(Ctr256, Aes256Ctr64BE, CTR256_BLOCK_SIZE, IV_SIZE);
