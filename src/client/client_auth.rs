@@ -10,7 +10,7 @@ use crate::{
 use super::Client;
 
 impl Client {
-    pub fn do_auth<S>(&mut self, stream: &mut S, digest: &mut Digest) -> SshResult<()>
+    pub fn do_auth<S>(&mut self, stream: &mut S, digest: &Digest) -> SshResult<()>
     where
         S: Read + Write,
     {
