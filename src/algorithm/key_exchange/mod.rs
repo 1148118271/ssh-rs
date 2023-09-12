@@ -3,10 +3,9 @@ use crate::{SshError, SshResult};
 use ring::agreement;
 use ring::agreement::{EphemeralPrivateKey, UnparsedPublicKey};
 
-/// # 密钥交换方法
+/// # Algorithms that used for key exchange
 ///
-/// 密钥交换方法规定如何生成用于加密和验证的一次性会话密钥，以及如何进行服务器验证。
-///
+/// https://www.rfc-editor.org/rfc/rfc4253#section-7
 mod curve25519;
 mod dh;
 mod ecdh_sha2_nistp256;

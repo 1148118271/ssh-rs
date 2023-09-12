@@ -1,147 +1,162 @@
-/// 客户端版本
+/// The client version
 pub(crate) const CLIENT_VERSION: &str = "SSH-2.0-SSH_RS-0.3.3";
 pub(crate) const SSH_MAGIC: &[u8] = b"SSH-";
 
-/// ssh通讯时用到的常量字符串
+/// The constant strings that used for ssh communication
 #[allow(dead_code)]
 pub(crate) mod ssh_str {
-    /// 准备认证
+    /// Pre-auth msg
     pub const SSH_USERAUTH: &str = "ssh-userauth";
-    /// 开始认证
+    /// Authenticate msg
     pub const SSH_CONNECTION: &str = "ssh-connection";
-    /// 公钥验证方式
+    /// Authenticate with public key
     pub const PUBLIC_KEY: &str = "publickey";
-    /// 密码认证方式
+    /// Authenticate with password
     pub const PASSWORD: &str = "password";
-    /// 打开一个会话
+    /// Session level msg
     pub const SESSION: &str = "session";
-    /// 启动一个命令解释程序
+    /// Open a Shell
     pub const SHELL: &str = "shell";
-    /// 执行一个命令
+    /// Execute a command
     pub const EXEC: &str = "exec";
-    /// 执行文件传输
+    /// SCP
     pub const SCP: &str = "scp";
-    /// 请求一个伪终端
+    /// Request a pesudo-terminal
     pub const PTY_REQ: &str = "pty-req";
-    /// 伪终端的样式
+    /// The xterm style that used for the pty
     pub const XTERM_VAR: &str = "xterm-256color";
 }
 
 #[allow(dead_code)]
 pub(crate) mod permission {
-    /// 文件夹默认权限
+    /// The default permission for directories
     pub const DIR: &str = "775";
-    /// 文件默认权限
+    /// The default permission for files
     pub const FILE: &str = "664";
 }
 
-/// scp 操作时用到的常量
+/// Some constants that used when scp
+#[cfg(feature = "scp")]
 #[allow(dead_code)]
 pub(crate) mod scp {
-    // scp 参数常量
-    /// 意味着当前机器上的scp，将本地文件传输到另一个scp上
+    /// Scp from our to the remote
     pub const SOURCE: &str = "-f";
-    /// 意味着当前机器上的scp，即将收到另一个scp传输过来的文件
+    /// Scp from the remote to our
     pub const SINK: &str = "-t";
-    /// 递归复制整个目录
+    /// Recursive scp for a dir
     pub const RECURSIVE: &str = "-r";
-    /// 详细方式显示输出
+    /// Show details
     pub const VERBOSE: &str = "-v";
-    /// 保留原文件的修改时间，访问时间和访问权限
+    /// Keep the modification, access time and permission the same with the origin
     pub const PRESERVE_TIMES: &str = "-p";
-    /// 不显示传输进度条
+    /// Show not progress bar
     pub const QUIET: &str = "-q";
-    /// 限定用户所能使用的带宽
+    /// Limit the bandwidth usage
     pub const LIMIT: &str = "-l";
 
-    // scp传输时的状态常量
-    /// 代表当前接收的数据是文件的最后修改时间和最后访问时间
+    /// Indicate the modification, access time of the file we recieve
     /// "T1647767946 0 1647767946 0\n";
     pub const T: u8 = b'T';
-    /// 代表当前接收的数据是文件夹
+    /// Indicate that we are recieving a directory
     /// "D0775 0 dirName\n"
     pub const D: u8 = b'D';
-    /// 代表当前接收的数据是文件
+    /// Indicate that we are recieving a file
     /// "C0664 200 fileName.js\n"
     pub const C: u8 = b'C';
-    /// 代表当前文件夹传输结束，需要返回上层文件夹
+    /// Indicate that current directory is done
     /// "D\n"
     pub const E: u8 = b'E';
 
-    /// 代表结束当前操作
+    /// The end flag of current operation
     // '\0'
     pub const END: u8 = 0;
-    /// scp操作异常
+    /// Exceptions occur
     pub const ERR: u8 = 1;
-    /// scp操作比较严重的异常
+    /// Exceptions that cannot recover
     pub const FATAL_ERR: u8 = 2;
 }
 
-/// 一些默认大小
 #[allow(dead_code)]
 pub(crate) mod size {
     pub const FILE_CHUNK: usize = 30000;
-    /// 最大数据包大小
+    /// The max size of one packet
     pub const BUF_SIZE: usize = 32768;
-    /// 默认客户端的窗口大小
+    /// The default window size of the flow-control
     pub const LOCAL_WINDOW_SIZE: u32 = 2097152;
 }
 
-/// ssh 消息码
+/// https://www.rfc-editor.org/rfc/rfc4254#section-9
 #[allow(dead_code)]
-pub(crate) mod ssh_msg_code {
-    pub const SSH_MSG_DISCONNECT: u8 = 1;
-    pub const SSH_MSG_IGNORE: u8 = 2;
-    pub const SSH_MSG_UNIMPLEMENTED: u8 = 3;
-    pub const SSH_MSG_DEBUG: u8 = 4;
-    pub const SSH_MSG_SERVICE_REQUEST: u8 = 5;
-    pub const SSH_MSG_SERVICE_ACCEPT: u8 = 6;
-    pub const SSH_MSG_KEXINIT: u8 = 20;
-    pub const SSH_MSG_NEWKEYS: u8 = 21;
-    pub const SSH_MSG_KEXDH_INIT: u8 = 30;
-    pub const SSH_MSG_KEXDH_REPLY: u8 = 31;
-    pub const SSH_MSG_USERAUTH_REQUEST: u8 = 50;
-    pub const SSH_MSG_USERAUTH_FAILURE: u8 = 51;
-    pub const SSH_MSG_USERAUTH_SUCCESS: u8 = 52;
-    pub const SSH_MSG_USERAUTH_PK_OK: u8 = 60;
-    pub const SSH_MSG_GLOBAL_REQUEST: u8 = 80;
-    pub const SSH_MSG_REQUEST_SUCCESS: u8 = 81;
-    pub const SSH_MSG_REQUEST_FAILURE: u8 = 82;
-    pub const SSH_MSG_CHANNEL_OPEN: u8 = 90;
-    pub const SSH_MSG_CHANNEL_OPEN_CONFIRMATION: u8 = 91;
-    pub const SSH_MSG_CHANNEL_OPEN_FAILURE: u8 = 92;
-    pub const SSH_MSG_CHANNEL_WINDOW_ADJUST: u8 = 93;
-    pub const SSH_MSG_CHANNEL_DATA: u8 = 94;
-    pub const SSH_MSG_CHANNEL_EXTENDED_DATA: u8 = 95;
-    pub const SSH_MSG_CHANNEL_EOF: u8 = 96;
-    pub const SSH_MSG_CHANNEL_CLOSE: u8 = 97;
-    pub const SSH_MSG_CHANNEL_REQUEST: u8 = 98;
-    pub const SSH_MSG_CHANNEL_SUCCESS: u8 = 99;
-    pub const SSH_MSG_CHANNEL_FAILURE: u8 = 100;
-
-    // 异常消息码
-    pub const SSH_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT: u8 = 1;
-    pub const SSH_DISCONNECT_PROTOCOL_ERROR: u8 = 2;
-    pub const SSH_DISCONNECT_KEY_EXCHANGE_FAILED: u8 = 3;
-    pub const SSH_DISCONNECT_RESERVED: u8 = 4;
-    pub const SSH_DISCONNECT_MAC_ERROR: u8 = 5;
-    pub const SSH_DISCONNECT_COMPRESSION_ERROR: u8 = 6;
-    pub const SSH_DISCONNECT_SERVICE_NOT_AVAILABLE: u8 = 7;
-    pub const SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED: u8 = 8;
-    pub const SSH_DISCONNECT_HOST_KEY_NOT_VERIFIABLE: u8 = 9;
-    pub const SSH_DISCONNECT_CONNECTION_LOST: u8 = 10;
-    pub const SSH_DISCONNECT_BY_APPLICATION: u8 = 11;
-    pub const SSH_DISCONNECT_TOO_MANY_CONNECTIONS: u8 = 12;
-    pub const SSH_DISCONNECT_AUTH_CANCELLED_BY_USER: u8 = 13;
-    pub const SSH_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE: u8 = 14;
-    pub const SSH_DISCONNECT_ILLEGAL_USER_NAME: u8 = 15;
-
-    // 通道连接失败码 SSH_MSG_CHANNEL_OPEN_FAILURE
-    pub const SSH_OPEN_ADMINISTRATIVELY_PROHIBITED: u32 = 1;
-    pub const SSH_OPEN_CONNECT_FAILED: u32 = 2;
-    pub const SSH_OPEN_UNKNOWN_CHANNEL_TYPE: u32 = 3;
-    pub const SSH_OPEN_RESOURCE_SHORTAGE: u32 = 4;
+pub(crate) mod ssh_connection_code {
+    pub const GLOBAL_REQUEST: u8 = 80;
+    pub const REQUEST_SUCCESS: u8 = 81;
+    pub const REQUEST_FAILURE: u8 = 82;
+    pub const CHANNEL_OPEN: u8 = 90;
+    pub const CHANNEL_OPEN_CONFIRMATION: u8 = 91;
+    pub const CHANNEL_OPEN_FAILURE: u8 = 92;
+    pub const CHANNEL_WINDOW_ADJUST: u8 = 93;
+    pub const CHANNEL_DATA: u8 = 94;
+    pub const CHANNEL_EXTENDED_DATA: u8 = 95;
+    pub const CHANNEL_EOF: u8 = 96;
+    pub const CHANNEL_CLOSE: u8 = 97;
+    pub const CHANNEL_REQUEST: u8 = 98;
+    pub const CHANNEL_SUCCESS: u8 = 99;
+    pub const CHANNEL_FAILURE: u8 = 100;
 }
 
-/// 密钥交换后进行HASH时候需要的常量值
+/// https://www.rfc-editor.org/rfc/rfc4254#section-5.1
+#[allow(dead_code)]
+pub(crate) mod ssh_channel_fail_code {
+    pub const ADMINISTRATIVELY_PROHIBITED: u32 = 1;
+    pub const CONNECT_FAILED: u32 = 2;
+    pub const UNKNOWN_CHANNEL_TYPE: u32 = 3;
+    pub const RESOURCE_SHORTAGE: u32 = 4;
+}
+
+/// https://www.rfc-editor.org/rfc/rfc4253#section-12
+#[allow(dead_code)]
+pub(crate) mod ssh_transport_code {
+    pub const DISCONNECT: u8 = 1;
+    pub const IGNORE: u8 = 2;
+    pub const UNIMPLEMENTED: u8 = 3;
+    pub const DEBUG: u8 = 4;
+    pub const SERVICE_REQUEST: u8 = 5;
+    pub const SERVICE_ACCEPT: u8 = 6;
+    pub const KEXINIT: u8 = 20;
+    pub const NEWKEYS: u8 = 21;
+    pub const KEXDH_INIT: u8 = 30;
+    pub const KEXDH_REPLY: u8 = 31;
+}
+
+/// https://www.rfc-editor.org/rfc/rfc4253#section-11.1
+#[allow(dead_code)]
+pub(crate) mod ssh_disconnection_code {
+    pub const HOST_NOT_ALLOWED_TO_CONNECT: u8 = 1;
+    pub const PROTOCOL_ERROR: u8 = 2;
+    pub const KEY_EXCHANGE_FAILED: u8 = 3;
+    pub const RESERVED: u8 = 4;
+    pub const MAC_ERROR: u8 = 5;
+    pub const COMPRESSION_ERROR: u8 = 6;
+    pub const SERVICE_NOT_AVAILABLE: u8 = 7;
+    pub const PROTOCOL_VERSION_NOT_SUPPORTED: u8 = 8;
+    pub const HOST_KEY_NOT_VERIFIABLE: u8 = 9;
+    pub const CONNECTION_LOST: u8 = 10;
+    pub const BY_APPLICATION: u8 = 11;
+    pub const TOO_MANY_CONNECTIONS: u8 = 12;
+    pub const AUTH_CANCELLED_BY_USER: u8 = 13;
+    pub const NO_MORE_AUTH_METHODS_AVAILABLE: u8 = 14;
+    pub const ILLEGAL_USER_NAME: u8 = 15;
+}
+
+/// https://www.rfc-editor.org/rfc/rfc4252#section-6
+#[allow(dead_code)]
+pub(crate) mod ssh_user_auth_code {
+    pub const REQUEST: u8 = 50;
+    pub const FAILURE: u8 = 51;
+    pub const SUCCESS: u8 = 52;
+    pub const BANNER: u8 = 53;
+    pub const PK_OK: u8 = 60;
+}
+
+/// The magic that used when doing hash after kex
 pub(crate) const ALPHABET: [u8; 6] = [b'A', b'B', b'C', b'D', b'E', b'F'];

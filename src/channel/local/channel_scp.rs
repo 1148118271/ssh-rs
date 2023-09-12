@@ -6,7 +6,7 @@ use crate::{
     util::{check_path, file_time},
 };
 use crate::{
-    constant::{ssh_msg_code, ssh_str},
+    constant::{ssh_connection_code, ssh_str},
     error::SshError,
 };
 use crate::{model::Data, util};
@@ -32,7 +32,7 @@ where
 
     fn exec_scp(&mut self, command: &str) -> SshResult<()> {
         let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
+        data.put_u8(ssh_connection_code::CHANNEL_REQUEST)
             .put_u32(self.server_channel_no)
             .put_str(ssh_str::EXEC)
             .put_u8(true as u8)
@@ -116,8 +116,7 @@ where
     }
 
     fn file_all(&mut self, scp_file: &mut ScpFile) -> SshResult<()> {
-        // 如果获取不到文件或者目录名的话，就不处理该数据
-        // 如果文件不是有效的Unicode数据的话，也不处理
+        // test if input file path valid
         scp_file.name = match scp_file.local_path.file_name() {
             None => return Ok(()),
             Some(name) => match name.to_str() {
@@ -127,8 +126,7 @@ where
         };
         self.send_time(scp_file)?;
         if scp_file.local_path.is_dir() {
-            // 文件夹如果读取异常的话。就略过该文件夹
-            // 详细的错误信息请查看 [std::fs::read_dir] 方法介绍
+            // skip the read_dir errs
             if let Err(e) = fs::read_dir(scp_file.local_path.as_path()) {
                 error!("read dir error, error info: {}", e);
                 return Ok(());
@@ -141,7 +139,7 @@ where
                         self.file_all(scp_file)?
                     }
                     Err(e) => {
-                        // 暂不处理
+                        // TODO
                         error!("dir entry error, error info: {}", e);
                     }
                 }
@@ -159,7 +157,6 @@ where
     fn send_file(&mut self, scp_file: &ScpFile) -> SshResult<()> {
         let mut file = match File::open(scp_file.local_path.as_path()) {
             Ok(f) => f,
-            // 文件打开异常，不影响后续操作
             Err(e) => {
                 error!(
                     "failed to open the folder, \
@@ -228,14 +225,12 @@ where
 
     fn get_time(&self, scp_file: &mut ScpFile) -> SshResult<()> {
         let metadata = scp_file.local_path.as_path().metadata()?;
-        // 最后修改时间
         let modified_time = match metadata.modified() {
             Ok(t) => t,
             Err(_) => SystemTime::now(),
         };
         let modified_time = util::sys_time_to_secs(modified_time)?;
 
-        // 最后访问时间
         let accessed_time = match metadata.accessed() {
             Ok(t) => t,
             Err(_) => SystemTime::now(),
@@ -300,7 +295,6 @@ where
             let code = &data[0];
             match *code {
                 scp::T => {
-                    // 处理时间
                     let (modify_time, access_time) = file_time(data)?;
                     scp_file.modify_time = modify_time;
                     scp_file.access_time = access_time;

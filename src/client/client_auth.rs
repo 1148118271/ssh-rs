@@ -3,7 +3,7 @@ use tracing::*;
 
 use crate::{
     algorithm::Digest,
-    constant::{ssh_msg_code, ssh_str},
+    constant::{ssh_connection_code, ssh_str, ssh_transport_code, ssh_user_auth_code},
     error::{SshError, SshResult},
     model::{Data, Packet, SecPacket},
 };
@@ -17,7 +17,7 @@ impl Client {
     {
         info!("Auth start");
         let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_SERVICE_REQUEST)
+        data.put_u8(ssh_transport_code::SERVICE_REQUEST)
             .put_str(ssh_str::SSH_USERAUTH);
         data.pack(self).write_stream(stream)?;
 
@@ -26,7 +26,7 @@ impl Client {
             let mut data = Data::unpack(SecPacket::from_stream(stream, self)?)?;
             let message_code = data.get_u8();
             match message_code {
-                ssh_msg_code::SSH_MSG_SERVICE_ACCEPT => {
+                ssh_transport_code::SERVICE_ACCEPT => {
                     if self.config.auth.key_pair.is_none() {
                         tried_public_key = true;
                         // if no private key specified
@@ -38,7 +38,7 @@ impl Client {
                         self.public_key_authentication(stream)?
                     }
                 }
-                ssh_msg_code::SSH_MSG_USERAUTH_FAILURE => {
+                ssh_user_auth_code::FAILURE => {
                     if !tried_public_key {
                         error!("user auth failure. (public key)");
                         info!("fallback to password authentication");
@@ -52,17 +52,17 @@ impl Client {
                         return Err(SshError::from("user auth failure."));
                     }
                 }
-                ssh_msg_code::SSH_MSG_USERAUTH_PK_OK => {
+                ssh_user_auth_code::PK_OK => {
                     info!("user auth support this algorithm.");
                     self.public_key_signature(stream, digest)?
                 }
-                ssh_msg_code::SSH_MSG_USERAUTH_SUCCESS => {
+                ssh_user_auth_code::SUCCESS => {
                     info!("user auth successful.");
                     return Ok(());
                 }
-                ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
+                ssh_connection_code::GLOBAL_REQUEST => {
                     let mut data = Data::new();
-                    data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
+                    data.put_u8(ssh_connection_code::REQUEST_FAILURE);
                     data.pack(self).write_stream(stream)?;
                 }
                 _ => {}
@@ -76,7 +76,7 @@ impl Client {
     {
         info!("password authentication.");
         let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
+        data.put_u8(ssh_user_auth_code::REQUEST)
             .put_str(self.config.auth.username.as_str())
             .put_str(ssh_str::SSH_CONNECTION)
             .put_str(ssh_str::PASSWORD)
@@ -97,7 +97,7 @@ impl Client {
                 pubkey_alg.as_ref()
             );
             let mut data = Data::new();
-            data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
+            data.put_u8(ssh_user_auth_code::REQUEST)
                 .put_str(self.config.auth.username.as_str())
                 .put_str(ssh_str::SSH_CONNECTION)
                 .put_str(ssh_str::PUBLIC_KEY)
@@ -129,7 +129,7 @@ impl Client {
             let pubkey_alg = &self.negotiated.public_key[0];
 
             let mut data = Data::new();
-            data.put_u8(ssh_msg_code::SSH_MSG_USERAUTH_REQUEST)
+            data.put_u8(ssh_user_auth_code::REQUEST)
                 .put_str(self.config.auth.username.as_str())
                 .put_str(ssh_str::SSH_CONNECTION)
                 .put_str(ssh_str::PUBLIC_KEY)

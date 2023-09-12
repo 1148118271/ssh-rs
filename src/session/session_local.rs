@@ -8,12 +8,12 @@ use tracing::*;
 
 #[cfg(feature = "scp")]
 use crate::channel::LocalScp;
-use crate::model::TerminalSize;
 use crate::{
     channel::{LocalChannel, LocalExec, LocalShell},
     client::Client,
-    constant::{size, ssh_msg_code, ssh_str},
+    constant::{size, ssh_channel_fail_code, ssh_connection_code, ssh_str},
     error::{SshError, SshResult},
+    model::TerminalSize,
     model::{Data, Packet, RcMut, SecPacket, U32Iter},
 };
 
@@ -106,10 +106,10 @@ where
         ))
     }
 
-    // 本地请求远程打开通道
+    // open channel request
     fn send_open_channel(&mut self, client_channel_no: u32) -> SshResult<()> {
         let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_OPEN)
+        data.put_u8(ssh_connection_code::CHANNEL_OPEN)
             .put_str(ssh_str::SESSION)
             .put_u32(client_channel_no)
             .put_u32(size::LOCAL_WINDOW_SIZE)
@@ -118,7 +118,7 @@ where
             .write_stream(&mut *self.stream.borrow_mut())
     }
 
-    // 远程回应是否可以打开通道
+    // get the response of the channel request
     fn receive_open_channel(&mut self) -> SshResult<(u32, u32)> {
         loop {
             let mut data = Data::unpack(SecPacket::from_stream(
@@ -128,56 +128,53 @@ where
 
             let message_code = data.get_u8();
             match message_code {
-                // 打开请求通过
-                ssh_msg_code::SSH_MSG_CHANNEL_OPEN_CONFIRMATION => {
-                    // 接收方通道号
+                // Successfully open a channel
+                ssh_connection_code::CHANNEL_OPEN_CONFIRMATION => {
                     data.get_u32();
-                    // 发送方通道号
                     let server_channel_no = data.get_u32();
-                    // 远程初始窗口大小
                     let remote_window_size = data.get_u32();
-                    // 远程的最大数据包大小， 暂时不需要
+                    // remote packet size, currently don't need it
                     data.get_u32();
                     return Ok((server_channel_no, remote_window_size));
                 }
                 /*
-                    byte SSH_MSG_CHANNEL_OPEN_FAILURE
+                    byte CHANNEL_OPEN_FAILURE
                     uint32 recipient channel
                     uint32 reason code
-                    string description，ISO-10646 UTF-8 编码[RFC3629]
+                    string description，ISO-10646 UTF-8 [RFC3629]
                     string language tag，[RFC3066]
                 */
-                // 打开请求拒绝
-                ssh_msg_code::SSH_MSG_CHANNEL_OPEN_FAILURE => {
+                // Fail to open a channel
+                ssh_connection_code::CHANNEL_OPEN_FAILURE => {
                     data.get_u32();
-                    // 失败原因码
+                    // error code
                     let code = data.get_u32();
-                    // 消息详情 默认utf-8编码
+                    // error detail: By default is utf-8
                     let description =
                         String::from_utf8(data.get_u8s()).unwrap_or_else(|_| String::from("error"));
-                    // language tag 暂不处理， 应该是 en-US
+                    // language tag, assume to be en-US
                     data.get_u8s();
 
                     let err_msg = match code {
-                        ssh_msg_code::SSH_OPEN_ADMINISTRATIVELY_PROHIBITED => {
-                            format!("SSH_OPEN_ADMINISTRATIVELY_PROHIBITED: {}", description)
+                        ssh_channel_fail_code::ADMINISTRATIVELY_PROHIBITED => {
+                            format!("ADMINISTRATIVELY_PROHIBITED: {}", description)
                         }
-                        ssh_msg_code::SSH_OPEN_CONNECT_FAILED => {
-                            format!("SSH_OPEN_CONNECT_FAILED: {}", description)
+                        ssh_channel_fail_code::CONNECT_FAILED => {
+                            format!("CONNECT_FAILED: {}", description)
                         }
-                        ssh_msg_code::SSH_OPEN_UNKNOWN_CHANNEL_TYPE => {
-                            format!("SSH_OPEN_UNKNOWN_CHANNEL_TYPE: {}", description)
+                        ssh_channel_fail_code::UNKNOWN_CHANNEL_TYPE => {
+                            format!("UNKNOWN_CHANNEL_TYPE: {}", description)
                         }
-                        ssh_msg_code::SSH_OPEN_RESOURCE_SHORTAGE => {
-                            format!("SSH_OPEN_RESOURCE_SHORTAGE: {}", description)
+                        ssh_channel_fail_code::RESOURCE_SHORTAGE => {
+                            format!("RESOURCE_SHORTAGE: {}", description)
                         }
                         _ => description,
                     };
                     return Err(SshError::from(err_msg));
                 }
-                ssh_msg_code::SSH_MSG_GLOBAL_REQUEST => {
+                ssh_connection_code::GLOBAL_REQUEST => {
                     let mut data = Data::new();
-                    data.put_u8(ssh_msg_code::SSH_MSG_REQUEST_FAILURE);
+                    data.put_u8(ssh_connection_code::REQUEST_FAILURE);
                     data.pack(&mut self.client.borrow_mut())
                         .write_stream(&mut *self.stream.borrow_mut())?;
                     continue;

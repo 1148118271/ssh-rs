@@ -6,7 +6,7 @@ use std::{
 
 use crate::{
     client::Client,
-    constant::ssh_msg_code,
+    constant::ssh_connection_code,
     error::{SshError, SshResult},
     model::{BackendResp, BackendRqst, Data, FlowControl, Packet},
     TerminalSize,
@@ -66,7 +66,7 @@ impl Channel {
 
                 // send it
                 let mut data = Data::new();
-                data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_DATA)
+                data.put_u8(ssh_connection_code::CHANNEL_DATA)
                     .put_u32(self.server_channel_no)
                     .put_u8s(&self.pending_send);
 
@@ -114,7 +114,7 @@ impl Channel {
         S: Read + Write,
     {
         let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_WINDOW_ADJUST)
+        data.put_u8(ssh_connection_code::CHANNEL_WINDOW_ADJUST)
             .put_u32(self.server_channel_no)
             .put_u32(to_add);
         self.flow_control.on_send(to_add);
@@ -226,7 +226,7 @@ impl ChannelBroker {
     fn close_no_consue(&mut self) -> SshResult<()> {
         if !self.close {
             let mut data = Data::new();
-            data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_CLOSE)
+            data.put_u8(ssh_connection_code::CHANNEL_CLOSE)
                 .put_u32(self.server_channel_no);
             self.close = true;
             self.snd

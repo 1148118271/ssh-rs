@@ -3,9 +3,7 @@ use crate::constant::size::LOCAL_WINDOW_SIZE;
 use crate::constant::size;
 
 pub(crate) struct FlowControl {
-    /// 本地窗口大小
     local_window: u32,
-    /// 远程窗口大小
     remote_window: u32,
 }
 

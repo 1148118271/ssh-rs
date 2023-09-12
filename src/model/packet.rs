@@ -6,40 +6,48 @@ use crate::{client::Client, model::Data};
 
 use super::timeout::Timeout;
 
-/// ## 数据包整体结构
+/// ## Binary Packet Protocol
 ///
-/// ### uint32 `packet_length`
+/// https://www.rfc-editor.org/rfc/rfc4253#section-6
 ///
-/// ### byte `padding_length`
+/// uint32 `packet_length`
 ///
-/// ### byte[[n1]] `payload`; n1 = packet_length - padding_length - 1
+/// byte `padding_length`
 ///
-/// ### byte[[n2]] `random padding`; n2 = padding_length
+/// byte[[n1]] `payload`; n1 = packet_length - padding_length - 1
 ///
-/// ### byte[[m]] `mac` (Message Authentication Code - MAC); m = mac_length
+/// byte[[n2]] `random padding`; n2 = padding_length
+///
+/// byte[[m]] `mac` (Message Authentication Code - MAC); m = mac_length
 ///
 /// ---
 ///
 /// **packet_length**
-/// 以字节为单位的`数据包长度`，不包括`mac`或`packet_length`域自身。
+/// The length of the packet in bytes, not including 'mac' or the 'packet_length' field itself.
 ///
 ///
 /// **padding_length**
-/// `random padding`的长度（字节）。
+/// Length of 'random padding' (bytes).
 ///
 ///
 /// **payload**
-/// 数据包中有用的内容。如果已经协商了压缩，该域是压缩的。初始时，压缩必须为"none"。
+///  The useful contents of the packet.  If compression has been negotiated, this field is compressed.
+/// Initially, compression MUST be "none".
 ///
 ///
 /// **random padding**
-/// 任意长度的填充，使(packet_length || padding_length || payload || random padding)的总长度是加密分组长度或 8 中较大者的倍数。
-/// 最少必须有 4 字节的填充。
-/// 填充应包含随机字节。填充的最大长度为 255 字节。
-///
+/// Arbitrary-length padding, such that the total length of
+/// (packet_length || padding_length || payload || random padding)
+/// is a multiple of the cipher block size or 8, whichever is
+/// larger.  There MUST be at least four bytes of padding.  The
+/// padding SHOULD consist of random bytes.  The maximum amount of
+/// padding is 255 bytes.
+
 ///
 /// **mac**
-/// 消息验证码。如果已经协商了消息验证，该域包含 MAC。初始时，MAC 算法必须是"none"。
+/// Message Authentication Code.  If message authentication has
+/// been negotiated, this field contains the MAC bytes.  Initially,
+/// the MAC algorithm MUST be "none".。
 
 fn read_with_timeout<S>(stream: &mut S, tm: Option<Duration>, buf: &mut [u8]) -> SshResult<()>
 where

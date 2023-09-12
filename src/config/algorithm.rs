@@ -8,7 +8,7 @@ use tracing::*;
 use crate::{
     algorithm::{Compress, Enc, Kex, Mac, PubKey},
     client::Client,
-    constant::ssh_msg_code,
+    constant::ssh_transport_code,
     error::{SshError, SshResult},
     model::{Data, Packet, SecPacket},
     util,
@@ -134,7 +134,7 @@ impl AlgList {
 
     fn from(mut data: Data) -> SshResult<Self> {
         data.get_u8();
-        // 跳过16位cookie
+        // skip the 16-bit cookie
         data.skip(16);
         let mut server_algorithm = Self::new();
 
@@ -231,7 +231,7 @@ impl<'a> Packet<'a> for AlgList {
     fn pack(self, client: &'a mut Client) -> crate::model::SecPacket<'a> {
         info!("client algorithms: [{:?}]", self);
         let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_KEXINIT);
+        data.put_u8(ssh_transport_code::KEXINIT);
         data.extend(util::cookie());
         data.extend(self.as_i());
         data.put_str("")
@@ -247,7 +247,7 @@ impl<'a> Packet<'a> for AlgList {
         Self: Sized,
     {
         let data = pkt.into_inner();
-        assert_eq!(data[0], ssh_msg_code::SSH_MSG_KEXINIT);
+        assert_eq!(data[0], ssh_transport_code::KEXINIT);
         AlgList::from(data)
     }
 }

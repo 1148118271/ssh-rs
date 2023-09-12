@@ -1,5 +1,5 @@
 use super::channel::ChannelBroker;
-use crate::constant::{ssh_msg_code, ssh_str};
+use crate::constant::{ssh_connection_code, ssh_str};
 use crate::error::SshResult;
 use crate::model::Data;
 use std::ops::{Deref, DerefMut};
@@ -18,7 +18,7 @@ impl ExecBroker {
     pub fn send_command(&self, command: &str) -> SshResult<()> {
         tracing::debug!("Send command {}", command);
         let mut data = Data::new();
-        data.put_u8(ssh_msg_code::SSH_MSG_CHANNEL_REQUEST)
+        data.put_u8(ssh_connection_code::CHANNEL_REQUEST)
             .put_u32(self.server_channel_no)
             .put_str(ssh_str::EXEC)
             .put_u8(true as u8)
