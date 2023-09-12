@@ -21,7 +21,7 @@ mod test {
     fn test_ssh_rsa() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(&get_pem_rsa())
+            .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::EcdhSha2Nistrp256)
             .add_pubkey_algorithms(algorithm::PubKey::SshRsa)
             .add_enc_algorithms(algorithm::Enc::Chacha20Poly1305Openssh)
@@ -38,7 +38,7 @@ mod test {
     fn test_dh_group1() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(&get_pem_rsa())
+            .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup1Sha1)
             .add_pubkey_algorithms(algorithm::PubKey::SshRsa)
             .add_enc_algorithms(algorithm::Enc::Aes128Ctr)
@@ -87,7 +87,7 @@ mod test {
     fn test_dh_group14_sha1() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(&get_pem_rsa())
+            .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha1)
             .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
             .add_enc_algorithms(algorithm::Enc::Aes128Ctr)

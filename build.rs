@@ -15,15 +15,15 @@ fn main() {
 
     println!("cargo:warning= current version: {current_version} last version: {last_version}");
 
-    // 替换lib.rs
+    // lib.rs
     if replace_lib(&current_version, &last_version).is_err() {
         return;
     }
-    // 替换constant.rs
+    // constant.rs
     if replace_constant(&current_version, &last_version).is_err() {
         return;
     }
-    // 替换Cargo.toml
+    // Cargo.toml
     let _ = replace_cargo(&current_version, &last_version);
 }
 
