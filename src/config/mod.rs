@@ -37,11 +37,12 @@ impl Config {
     // use an empty client algorithm list
     pub fn disable_default() -> Self {
         Self {
-            algs: algorithm::AlgList::default(),
-            auth: auth::AuthInfo::default(),
-            ver: version::SshVersion::default(),
+            // algs: algorithm::AlgList::default(),
+            // auth: auth::AuthInfo::default(),
+            // ver: version::SshVersion::default(),
             timeout: Some(Duration::from_secs(30)),
             auto_tune: false,
+            ..Default::default()
         }
     }
 

@@ -16,6 +16,7 @@ use std::{
     io::{Read, Write},
     ops::{Deref, DerefMut},
     path::Path,
+    str::FromStr,
     time::SystemTime,
 };
 use tracing::*;
@@ -56,13 +57,13 @@ impl ScpBroker {
     fn get_end(&mut self) -> SshResult<()> {
         let vec = self.recv()?;
         if vec.is_empty() {
-            Err(SshError::from("read a closed channel"))
+            Err(SshError::ScpError("read a closed channel".to_owned()))
         } else {
             match vec[0] {
                 scp::END => Ok(()),
                 // error
-                scp::ERR | scp::FATAL_ERR => Err(SshError::from(util::from_utf8(vec)?)),
-                _ => Err(SshError::from("unknown error.")),
+                scp::ERR | scp::FATAL_ERR => Err(SshError::ScpError(String::from_utf8(vec)?)),
+                _ => Err(SshError::ScpError("unknown error.".to_owned())),
             }
         }
     }
@@ -119,7 +120,7 @@ impl ScpBroker {
             None => return Ok(()),
             Some(name) => match name.to_str() {
                 None => return Ok(()),
-                Some(name) => name.to_string(),
+                Some(name) => name.to_owned(),
             },
         };
         self.send_time(scp_file)?;
@@ -317,15 +318,17 @@ impl ScpBroker {
                     }
                 },
                 // error
-                scp::ERR | scp::FATAL_ERR => return Err(SshError::from(util::from_utf8(data)?)),
-                _ => return Err(SshError::from("unknown error.")),
+                scp::ERR | scp::FATAL_ERR => {
+                    return Err(SshError::ScpError(String::from_utf8(data)?))
+                }
+                _ => return Err(SshError::ScpError("unknown error.".to_owned())),
             }
         }
         Ok(())
     }
 
     fn process_dir_d(&mut self, data: Vec<u8>, scp_file: &mut ScpFile) -> SshResult<()> {
-        let string = util::from_utf8(data)?;
+        let string = String::from_utf8(data)?;
         let dir_info = string.trim();
         let split = dir_info.split(' ').collect::<Vec<&str>>();
         match split.get(2) {
@@ -354,15 +357,9 @@ impl ScpBroker {
                     self.sync_permissions(scp_file, file);
                 }
                 Err(e) => {
-                    error!(
-                        "failed to open the folder, \
-            it is possible that the path does not exist, \
-            which does not affect subsequent operations. \
-            error info: {:?}, path: {:?}",
-                        e,
-                        scp_file.local_path.to_str()
-                    );
-                    return Err(SshError::from(format!("file open error: {}", e)));
+                    let err_msg = format!("file open error: {}", e);
+                    error!(err_msg);
+                    return Err(SshError::ScpError(err_msg));
                 }
             };
         }
@@ -372,11 +369,11 @@ impl ScpBroker {
     }
 
     fn process_file_d(&mut self, data: Vec<u8>, scp_file: &mut ScpFile) -> SshResult<()> {
-        let string = util::from_utf8(data)?;
+        let string = String::from_utf8(data)?;
         let file_info = string.trim();
         let split = file_info.split(' ').collect::<Vec<&str>>();
         let size_str = *split.get(1).unwrap_or(&"0");
-        let size = util::str_to_i64(size_str)?;
+        let size = i64::from_str(size_str)?;
         scp_file.size = size as u64;
         match split.get(2) {
             None => return Ok(()),
@@ -403,11 +400,9 @@ impl ScpBroker {
         {
             Ok(v) => v,
             Err(e) => {
-                error!("file processing error, error info: {}", e);
-                return Err(SshError::from(format!(
-                    "{:?} file processing exception",
-                    path
-                )));
+                let err_msg = format!("file processing error, error info: {}", e);
+                error!(err_msg);
+                return Err(SshError::ScpError(err_msg));
             }
         };
         self.send_end()?;

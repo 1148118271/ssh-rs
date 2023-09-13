@@ -88,7 +88,9 @@ impl Channel {
         if !self.is_close() {
             data.pack(client).write_stream(stream)
         } else {
-            Err(SshError::from("Send data on a closed channel"))
+            Err(SshError::GeneralError(
+                "Send data on a closed channel".to_owned(),
+            ))
         }
     }
 
@@ -293,7 +295,9 @@ impl ChannelBroker {
                 Ok(None)
             }
         } else {
-            Err(SshError::from("Read data on a closed channel"))
+            Err(SshError::GeneralError(
+                "Read data on a closed channel".to_owned(),
+            ))
         }
     }
 

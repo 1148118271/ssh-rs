@@ -263,7 +263,9 @@ where
                 debug!("Currently ignore message {}", x);
                 Ok(ChannelRead::Code(x))
             }
-            ssh_connection_code::CHANNEL_FAILURE => Err(SshError::from("channel failure.")),
+            ssh_connection_code::CHANNEL_FAILURE => {
+                Err(SshError::GeneralError("channel failure.".to_owned()))
+            }
             x @ ssh_connection_code::CHANNEL_CLOSE => {
                 let cc = data.get_u32();
                 if cc == self.client_channel_no {

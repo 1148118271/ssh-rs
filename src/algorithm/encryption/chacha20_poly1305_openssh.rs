@@ -57,7 +57,9 @@ impl Encryption for ChaCha20Poly1305 {
         tag.copy_from_slice(tag_);
         match self.server_key.open_in_place(sequence_number, buf, &tag) {
             Ok(result) => Ok([&packet_len_slice[..], result].concat()),
-            Err(_) => Err(SshError::from("encryption error.")),
+            Err(_) => Err(SshError::EncryptionError(
+                "Failed to decrypt the server traffic".to_owned(),
+            )),
         }
     }
 

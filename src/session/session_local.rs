@@ -170,7 +170,7 @@ where
                         }
                         _ => description,
                     };
-                    return Err(SshError::from(err_msg));
+                    return Err(SshError::GeneralError(err_msg));
                 }
                 ssh_connection_code::GLOBAL_REQUEST => {
                     let mut data = Data::new();

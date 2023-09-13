@@ -33,16 +33,18 @@ impl KeyPair {
                     ssh_key::Algorithm::Rsa { hash: _hash } => (KeyType::SshRsa, key_str),
                     ssh_key::Algorithm::Ed25519 => (KeyType::SshEd25519, key_str),
                     x => {
-                        return Err(SshError::from(format!(
+                        return Err(SshError::SshPubKeyError(format!(
                             "Currently don't support the key file type {}",
                             x
                         )))
                     }
                 },
-                Err(e) => return Err(SshError::from(e.to_string())),
+                Err(e) => return Err(SshError::SshPubKeyError(e.to_string())),
             }
         } else {
-            return Err(SshError::from("Unable to detect the pulic key type"));
+            return Err(SshError::SshPubKeyError(
+                "Unable to detect the pulic key type".to_owned(),
+            ));
         };
 
         // then store it
@@ -205,10 +207,7 @@ impl AuthInfo {
     where
         P: AsRef<Path>,
     {
-        let mut file = match File::open(p) {
-            Ok(file) => file,
-            Err(e) => return Err(SshError::from(e.to_string())),
-        };
+        let mut file = File::open(p)?;
         let mut prks = String::new();
         file.read_to_string(&mut prks)?;
 

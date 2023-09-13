@@ -105,7 +105,9 @@ macro_rules! crate_aes {
                     .sign(&self.extend.ik_s_c, server_sequence_number, d);
                 let t = tag.as_ref();
                 if m != t {
-                    return Err(SshError::from("encryption error."));
+                    return Err(SshError::EncryptionError(
+                        "Failed to decrypt the server traffic".to_owned(),
+                    ));
                 }
                 Ok(d.to_vec())
             }

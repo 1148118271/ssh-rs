@@ -1,4 +1,3 @@
-use crate::error::SshErrorKind;
 use crate::{SshError, SshResult};
 use std::time::{Duration, Instant};
 
@@ -19,7 +18,7 @@ impl Timeout {
         if let Some(t) = self.timeout {
             if self.instant.elapsed() > t {
                 tracing::error!("time out.");
-                Err(SshError::from(SshErrorKind::Timeout))
+                Err(SshError::TimeoutError)
             } else {
                 Ok(())
             }

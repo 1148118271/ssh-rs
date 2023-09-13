@@ -37,7 +37,7 @@ impl SessionBroker {
         let (rqst_snd, rqst_rcv) = mpsc::channel();
         spawn(move || {
             if let Err(e) = client_loop(client, stream, rqst_rcv) {
-                error!("Error {} occurred when running backend task", e.to_string())
+                error!("Error {:?} occurred when running backend task", e)
             }
         });
         Self {
@@ -111,7 +111,7 @@ impl SessionBroker {
                     resp_recv,
                     self.snd.clone(),
                 )),
-                BackendResp::Fail(msg) => Err(SshError::from(msg)),
+                BackendResp::Fail(msg) => Err(SshError::GeneralError(msg)),
                 _ => unreachable!(),
             },
             Err(e) => Err(e.into()),

@@ -8,7 +8,7 @@ use crate::{
         Digest,
     },
     client::Client,
-    config::{algorithm::AlgList, version::SshVersion},
+    config::algorithm::AlgList,
     constant::ssh_transport_code,
     error::{SshError, SshResult},
     model::{Data, Packet, SecPacket},
@@ -27,10 +27,8 @@ impl Client {
         S: Read + Write,
     {
         // initialize the hash context
-        if let SshVersion::V2(ref our, ref their) = self.config.ver {
-            digest.hash_ctx.set_v_c(our);
-            digest.hash_ctx.set_v_s(their);
-        }
+        digest.hash_ctx.set_v_c(&self.config.ver.client_ver);
+        digest.hash_ctx.set_v_s(&self.config.ver.server_ver);
 
         info!("start for key negotiation.");
         info!("send client algorithm list.");
@@ -120,8 +118,9 @@ impl Client {
                     session_id = hash::digest(&h.as_bytes(), key_exchange.get_hash_type());
                     let flag = public_key.verify_signature(&h.k_s, &session_id, &sig)?;
                     if !flag {
-                        error!("signature verification failure.");
-                        return Err(SshError::from("signature verification failure."));
+                        let err_msg = "signature verification failure.".to_owned();
+                        error!(err_msg);
+                        return Err(SshError::KexError(err_msg));
                     }
                     info!("signature verification success.");
                 }

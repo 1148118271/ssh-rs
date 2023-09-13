@@ -37,7 +37,7 @@ pub(crate) fn agree_ephemeral<B: AsRef<[u8]>>(
         |key_material| Ok(key_material.to_vec()),
     ) {
         Ok(o) => Ok(o),
-        Err(_) => Err(SshError::from("encryption error.")),
+        Err(e) => Err(SshError::KexError(e.to_string())),
     }
 }
 

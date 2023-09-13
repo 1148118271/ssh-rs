@@ -170,13 +170,14 @@ impl AlgList {
                         }
                     })
                     .ok_or_else(|| {
-                        error!(
+                        let err_msg = format!(
                             "Key_agreement: the {} fails to match, \
-                    algorithms supported by the server: {},\
-                    algorithms supported by the client: {}",
+                        algorithms supported by the server: {},\
+                        algorithms supported by the client: {}",
                             $err_hint, $their.$field, $our.$field
                         );
-                        SshError::from("key exchange error.")
+                        error!(err_msg);
+                        SshError::KexError(err_msg)
                     })
             };
         }

@@ -16,7 +16,7 @@ use std::{
 use crate::{
     algorithm::{Compress, Digest, Enc, Kex, Mac, PubKey},
     client::Client,
-    config::{algorithm::AlgList, version::SshVersion, Config},
+    config::{algorithm::AlgList, Config},
     error::SshResult,
     model::{Packet, SecPacket},
 };
@@ -51,13 +51,13 @@ where
             SessionState::Version(mut config, mut stream) => {
                 info!("start for version negotiation.");
                 // Receive the server version
-                let version = SshVersion::from(&mut stream, config.timeout)?;
+                config
+                    .ver
+                    .read_server_version(&mut stream, config.timeout)?;
                 // Version validate
-                version.validate()?;
+                config.ver.validate()?;
                 // Send Client version
-                SshVersion::write(&mut stream)?;
-                // Store the version info
-                config.ver = version;
+                config.ver.send_our_version(&mut stream)?;
 
                 // from now on
                 // each step of the interaction is subject to the ssh constraints on the packet

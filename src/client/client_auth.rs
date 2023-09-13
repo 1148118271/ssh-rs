@@ -49,7 +49,7 @@ impl Client {
                         self.password_authentication(stream)?
                     } else {
                         error!("user auth failure. (password)");
-                        return Err(SshError::from("user auth failure."));
+                        return Err(SshError::AuthError);
                     }
                 }
                 ssh_user_auth_code::PK_OK => {

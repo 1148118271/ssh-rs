@@ -1,6 +1,6 @@
 //! Dependencies
 //! ```toml
-//! ssh-rs = "0.4.0"
+//! ssh-rs = "0.3.3"
 //! ```
 //!
 //!Rust implementation of ssh2.0 client.
@@ -41,7 +41,7 @@ pub mod error;
 
 pub use channel::*;
 pub(crate) use error::SshError;
-pub use error::{SshErrorKind, SshResult};
+pub use error::SshResult;
 pub use model::{TerminalSize, TerminalSizeType};
 pub use session::{LocalSession, SessionBroker, SessionBuilder, SessionConnector};
 
