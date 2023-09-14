@@ -1,3 +1,10 @@
+v0.4.0 (TBD)
+    1. remove chinese comments
+    2. add RFC links
+    3. remove the self-implemented log, using tracing instead
+    4. move scp related function behind feature `scp'
+    5. re-implement the ssh-error to derive thiserror crate
+
 v0.3.3 (2023-09-10)
     1. fix hang when tcp connects to a non-existent host
     2. refactor aes_ctr file
