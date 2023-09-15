@@ -1,3 +1,5 @@
+#[cfg(feature = "deprecated-cbc")]
+mod aes_cbc;
 mod aes_ctr;
 mod chacha20_poly1305_openssh;
 
@@ -11,7 +13,6 @@ use super::{hash::HashCtx, mac::MacNone, Enc};
 pub(crate) trait Encryption: Send + Sync {
     fn bsize(&self) -> usize;
     fn iv_size(&self) -> usize;
-    fn group_size(&self) -> usize;
     fn new(hash: Hash, mac: Box<dyn Mac>) -> Self
     where
         Self: Sized;
@@ -19,7 +20,7 @@ pub(crate) trait Encryption: Send + Sync {
     fn decrypt(&mut self, sequence_number: u32, buf: &mut [u8]) -> SshResult<Vec<u8>>;
     fn packet_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize;
     fn data_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize;
-    fn is_cp(&self) -> bool;
+    fn no_pad(&self) -> bool;
 }
 
 pub(crate) fn from(s: &Enc, hash: Hash, mac: Box<dyn Mac>) -> Box<dyn Encryption> {
@@ -30,6 +31,12 @@ pub(crate) fn from(s: &Enc, hash: Hash, mac: Box<dyn Mac>) -> Box<dyn Encryption
         Enc::Aes128Ctr => Box::new(aes_ctr::Ctr128::new(hash, mac)),
         Enc::Aes192Ctr => Box::new(aes_ctr::Ctr192::new(hash, mac)),
         Enc::Aes256Ctr => Box::new(aes_ctr::Ctr256::new(hash, mac)),
+        #[cfg(feature = "deprecated-cbc")]
+        Enc::Aes128Cbc => Box::new(aes_cbc::Cbc128::new(hash, mac)),
+        #[cfg(feature = "deprecated-cbc")]
+        Enc::Aes192Cbc => Box::new(aes_cbc::Cbc192::new(hash, mac)),
+        #[cfg(feature = "deprecated-cbc")]
+        Enc::Aes256Cbc => Box::new(aes_cbc::Cbc256::new(hash, mac)),
     }
 }
 
@@ -40,10 +47,6 @@ impl Encryption for EncryptionNone {
         8
     }
     fn iv_size(&self) -> usize {
-        8
-    }
-
-    fn group_size(&self) -> usize {
         8
     }
 
@@ -65,7 +68,7 @@ impl Encryption for EncryptionNone {
     fn data_len(&mut self, sequence_number: u32, buf: &[u8]) -> usize {
         self.packet_len(sequence_number, buf) + 4
     }
-    fn is_cp(&self) -> bool {
+    fn no_pad(&self) -> bool {
         false
     }
 }

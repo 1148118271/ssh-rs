@@ -14,9 +14,14 @@ repository = "https://github.com/1148118271/ssh-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
-dangerous-algorithms = ["dangerous-rsa-sha1", "dangerous-dh-group1-sha1"]
-dangerous-rsa-sha1 = ["dep:sha1"]
-dangerous-dh-group1-sha1 = ["dep:sha1"]
+deprecated-algorithms = [
+    "deprecated-rsa-sha1",
+    "deprecated-dh-group1-sha1",
+    "deprecated-cbc",
+    ]
+deprecated-rsa-sha1 = ["dep:sha1"]
+deprecated-dh-group1-sha1 = ["dep:sha1"]
+deprecated-cbc = ["dep:cbc", "dep:cipher"]
 scp = ["dep:filetime"]
 
 [lib]
@@ -43,6 +48,8 @@ sha2  = { version = "0.10.6", default-features = false, features = ["oid"]}
 rsa = "0.9"
 aes = "0.8"
 ctr = "0.9"
+cbc = { version = "0.1", optional = true }
+cipher = { version = "0.4", optional = true }
 ssh-key = { version = "0.6", features = ["rsa", "ed25519", "alloc"]}
 signature = "2.1"
 ring = "0.16"

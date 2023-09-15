@@ -16,7 +16,7 @@ mod test {
     env_getter!(server, "127.0.0.1:22");
     env_getter!(pem_rsa, "./rsa_old");
 
-    #[cfg(feature = "dangerous-rsa-sha1")]
+    #[cfg(feature = "deprecated-rsa-sha1")]
     #[test]
     fn test_ssh_rsa() {
         let session = ssh::create_session_without_default()
@@ -33,7 +33,7 @@ mod test {
         session.close();
     }
 
-    #[cfg(feature = "dangerous-algorithms")]
+    #[cfg(feature = "deprecated-algorithms")]
     #[test]
     fn test_dh_group1() {
         let session = ssh::create_session_without_default()
@@ -82,7 +82,7 @@ mod test {
         session.close();
     }
 
-    #[cfg(feature = "dangerous-algorithms")]
+    #[cfg(feature = "deprecated-algorithms")]
     #[test]
     fn test_dh_group14_sha1() {
         let session = ssh::create_session_without_default()
@@ -116,7 +116,7 @@ mod test {
     }
 
     #[test]
-    fn test_aes192() {
+    fn test_aes192_ctr() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
             .private_key_path(get_pem_rsa())
@@ -132,13 +132,64 @@ mod test {
     }
 
     #[test]
-    fn test_aes256() {
+    fn test_aes256_ctr() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
             .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
             .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
             .add_enc_algorithms(algorithm::Enc::Aes256Ctr)
+            .add_compress_algorithms(algorithm::Compress::None)
+            .add_mac_algortihms(algorithm::Mac::HmacSha1)
+            .connect(get_server())
+            .unwrap()
+            .run_local();
+        session.close();
+    }
+
+    #[cfg(feature = "deprecated-algorithms")]
+    #[test]
+    fn test_aes128_cbc() {
+        let session = ssh::create_session_without_default()
+            .username(&get_username())
+            .private_key_path(get_pem_rsa())
+            .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
+            .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
+            .add_enc_algorithms(algorithm::Enc::Aes128Cbc)
+            .add_compress_algorithms(algorithm::Compress::None)
+            .add_mac_algortihms(algorithm::Mac::HmacSha1)
+            .connect(get_server())
+            .unwrap()
+            .run_local();
+        session.close();
+    }
+
+    #[cfg(feature = "deprecated-algorithms")]
+    #[test]
+    fn test_aes192_cbc() {
+        let session = ssh::create_session_without_default()
+            .username(&get_username())
+            .private_key_path(get_pem_rsa())
+            .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
+            .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
+            .add_enc_algorithms(algorithm::Enc::Aes192Cbc)
+            .add_compress_algorithms(algorithm::Compress::None)
+            .add_mac_algortihms(algorithm::Mac::HmacSha1)
+            .connect(get_server())
+            .unwrap()
+            .run_local();
+        session.close();
+    }
+
+    #[cfg(feature = "deprecated-algorithms")]
+    #[test]
+    fn test_aes256_cbc() {
+        let session = ssh::create_session_without_default()
+            .username(&get_username())
+            .private_key_path(get_pem_rsa())
+            .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha256)
+            .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
+            .add_enc_algorithms(algorithm::Enc::Aes256Cbc)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha1)
             .connect(get_server())

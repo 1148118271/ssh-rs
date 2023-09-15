@@ -140,25 +140,28 @@ pub(crate) struct SecPacket<'a> {
 }
 
 impl<'a> SecPacket<'a> {
+    fn get_align(bsize: usize) -> i32 {
+        let bsize = bsize as i32;
+        if bsize > 8 {
+            bsize
+        } else {
+            8
+        }
+    }
+
     pub fn write_stream<S>(self, stream: &mut S) -> SshResult<()>
     where
         S: Write,
     {
         let tm = self.client.get_timeout();
         let payload_len = self.payload.len() as u32;
-        let group_size = self.client.get_encryptor().group_size() as i32;
         let pad_len = {
-            let mut pad = payload_len as i32;
-            if self.client.get_encryptor().is_cp() {
-                pad += 1;
-            } else {
-                pad += 5
+            let mut pad = payload_len as i32 + 1;
+            let block_size = Self::get_align(self.client.get_encryptor().bsize());
+            if !self.client.get_encryptor().no_pad() {
+                pad += 4
             }
-            pad = (-pad) & (group_size - 1);
-            if pad < group_size {
-                pad += group_size;
-            }
-            pad as u32
+            (((-pad) & (block_size - 1)) + block_size) as u32
         } as u8;
         let packet_len = 1 + pad_len as u32 + payload_len;
         let mut buf = vec![];
@@ -176,14 +179,7 @@ impl<'a> SecPacket<'a> {
         S: Read,
     {
         let tm = client.get_timeout();
-        let bsize = {
-            let bsize = client.get_encryptor().bsize();
-            if bsize > 8 {
-                bsize
-            } else {
-                8
-            }
-        };
+        let bsize = Self::get_align(client.get_encryptor().bsize()) as usize;
 
         // read the first block
         let mut first_block = vec![0; bsize];
@@ -216,14 +212,7 @@ impl<'a> SecPacket<'a> {
         S: Read,
     {
         let tm = client.get_timeout();
-        let bsize = {
-            let bsize = client.get_encryptor().bsize();
-            if bsize > 8 {
-                bsize
-            } else {
-                8
-            }
-        };
+        let bsize = Self::get_align(client.get_encryptor().bsize()) as usize;
 
         // read the first block
         let mut first_block = vec![0; bsize];

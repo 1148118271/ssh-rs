@@ -12,7 +12,7 @@ mod ecdh_sha2_nistp256;
 
 use super::Kex;
 use curve25519::CURVE25519;
-#[cfg(feature = "dangerous-dh-group1-sha1")]
+#[cfg(feature = "deprecated-dh-group1-sha1")]
 use dh::DiffieHellmanGroup1Sha1;
 use dh::{DiffieHellmanGroup14Sha1, DiffieHellmanGroup14Sha256};
 use ecdh_sha2_nistp256::EcdhP256;
@@ -45,7 +45,7 @@ pub(crate) fn from(s: &Kex) -> SshResult<Box<dyn KeyExchange>> {
     match s {
         Kex::Curve25519Sha256 => Ok(Box::new(CURVE25519::new()?)),
         Kex::EcdhSha2Nistrp256 => Ok(Box::new(EcdhP256::new()?)),
-        #[cfg(feature = "dangerous-dh-group1-sha1")]
+        #[cfg(feature = "deprecated-dh-group1-sha1")]
         Kex::DiffieHellmanGroup1Sha1 => Ok(Box::new(DiffieHellmanGroup1Sha1::new()?)),
         Kex::DiffieHellmanGroup14Sha1 => Ok(Box::new(DiffieHellmanGroup14Sha1::new()?)),
         Kex::DiffieHellmanGroup14Sha256 => Ok(Box::new(DiffieHellmanGroup14Sha256::new()?)),

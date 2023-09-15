@@ -19,6 +19,15 @@ pub enum Enc {
     Aes192Ctr,
     #[strum(serialize = "aes256-ctr")]
     Aes256Ctr,
+    #[cfg(feature = "deprecated-cbc")]
+    #[strum(serialize = "aes128-cbc")]
+    Aes128Cbc,
+    #[cfg(feature = "deprecated-cbc")]
+    #[strum(serialize = "aes192-cbc")]
+    Aes192Cbc,
+    #[cfg(feature = "deprecated-cbc")]
+    #[strum(serialize = "aes256-cbc")]
+    Aes256Cbc,
 }
 
 /// key exchange algorithm
@@ -28,7 +37,7 @@ pub enum Kex {
     Curve25519Sha256,
     #[strum(serialize = "ecdh-sha2-nistp256")]
     EcdhSha2Nistrp256,
-    #[cfg(feature = "dangerous-dh-group1-sha1")]
+    #[cfg(feature = "deprecated-dh-group1-sha1")]
     #[strum(serialize = "diffie-hellman-group1-sha1")]
     DiffieHellmanGroup1Sha1,
     #[strum(serialize = "diffie-hellman-group14-sha1")]
@@ -42,7 +51,7 @@ pub enum Kex {
 pub enum PubKey {
     #[strum(serialize = "ssh-ed25519")]
     SshEd25519,
-    #[cfg(feature = "dangerous-rsa-sha1")]
+    #[cfg(feature = "deprecated-rsa-sha1")]
     #[strum(serialize = "ssh-rsa")]
     SshRsa,
     #[strum(serialize = "rsa-sha2-256")]

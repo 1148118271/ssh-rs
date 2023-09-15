@@ -56,9 +56,9 @@ impl PubK for RsaSha512 {
     }
 }
 
-#[cfg(feature = "dangerous-rsa-sha1")]
+#[cfg(feature = "deprecated-rsa-sha1")]
 pub(super) struct RsaSha1;
-#[cfg(feature = "dangerous-rsa-sha1")]
+#[cfg(feature = "deprecated-rsa-sha1")]
 impl PubK for RsaSha1 {
     fn new() -> Self
     where
