@@ -3,7 +3,7 @@ use crate::algorithm::hash;
 use crate::algorithm::hash::HashType;
 use crate::constant;
 
-/// https://www.rfc-editor.org/rfc/rfc4253#section-7.2
+/// <https://www.rfc-editor.org/rfc/rfc4253#section-7.2>
 ///
 /// The key exchange produces two values: a shared secret K, and an
 /// exchange hash H.  Encryption and authentication keys are derived from

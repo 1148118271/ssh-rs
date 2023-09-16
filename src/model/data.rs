@@ -5,7 +5,7 @@ use crate::error::SshResult;
 use super::Packet;
 
 /// Data Type Representations Used in the SSH Protocols
-/// https://www.rfc-editor.org/rfc/rfc4251#section-5
+/// <https://www.rfc-editor.org/rfc/rfc4251#section-5>
 
 /// byte
 ///

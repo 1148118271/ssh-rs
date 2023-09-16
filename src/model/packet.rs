@@ -8,7 +8,7 @@ use super::timeout::Timeout;
 
 /// ## Binary Packet Protocol
 ///
-/// https://www.rfc-editor.org/rfc/rfc4253#section-6
+/// <https://www.rfc-editor.org/rfc/rfc4253#section-6>
 ///
 /// uint32 `packet_length`
 ///

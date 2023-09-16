@@ -11,7 +11,7 @@ use crate::SshResult;
 
 use super::{hash::HashCtx, mac::MacNone, Enc};
 
-/// https://www.rfc-editor.org/rfc/rfc4253#section-6.3
+/// <https://www.rfc-editor.org/rfc/rfc4253#section-6.3>
 pub(crate) trait Encryption: Send + Sync {
     fn bsize(&self) -> usize;
     fn iv_size(&self) -> usize;

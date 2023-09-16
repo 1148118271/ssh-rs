@@ -12,7 +12,7 @@ use ed25519::Ed25519;
 
 /// # Public Key Algorithms
 ///
-/// https://www.rfc-editor.org/rfc/rfc4253#section-6.6
+/// <https://www.rfc-editor.org/rfc/rfc4253#section-6.6>
 
 pub(crate) trait PublicKey: Send + Sync {
     fn new() -> Self

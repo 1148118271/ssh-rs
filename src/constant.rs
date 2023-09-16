@@ -85,7 +85,7 @@ pub(crate) mod size {
     pub const LOCAL_WINDOW_SIZE: u32 = 2097152;
 }
 
-/// https://www.rfc-editor.org/rfc/rfc4254#section-9
+/// <https://www.rfc-editor.org/rfc/rfc4254#section-9>
 #[allow(dead_code)]
 pub(crate) mod ssh_connection_code {
     pub const GLOBAL_REQUEST: u8 = 80;
@@ -104,7 +104,7 @@ pub(crate) mod ssh_connection_code {
     pub const CHANNEL_FAILURE: u8 = 100;
 }
 
-/// https://www.rfc-editor.org/rfc/rfc4254#section-5.1
+/// <https://www.rfc-editor.org/rfc/rfc4254#section-5.1>
 #[allow(dead_code)]
 pub(crate) mod ssh_channel_fail_code {
     pub const ADMINISTRATIVELY_PROHIBITED: u32 = 1;
@@ -113,7 +113,7 @@ pub(crate) mod ssh_channel_fail_code {
     pub const RESOURCE_SHORTAGE: u32 = 4;
 }
 
-/// https://www.rfc-editor.org/rfc/rfc4253#section-12
+/// <https://www.rfc-editor.org/rfc/rfc4253#section-12>
 #[allow(dead_code)]
 pub(crate) mod ssh_transport_code {
     pub const DISCONNECT: u8 = 1;
@@ -128,7 +128,7 @@ pub(crate) mod ssh_transport_code {
     pub const KEXDH_REPLY: u8 = 31;
 }
 
-/// https://www.rfc-editor.org/rfc/rfc4253#section-11.1
+/// <https://www.rfc-editor.org/rfc/rfc4253#section-11.1>
 #[allow(dead_code)]
 pub(crate) mod ssh_disconnection_code {
     pub const HOST_NOT_ALLOWED_TO_CONNECT: u8 = 1;
@@ -148,7 +148,7 @@ pub(crate) mod ssh_disconnection_code {
     pub const ILLEGAL_USER_NAME: u8 = 15;
 }
 
-/// https://www.rfc-editor.org/rfc/rfc4252#section-6
+/// <https://www.rfc-editor.org/rfc/rfc4252#section-6>
 #[allow(dead_code)]
 pub(crate) mod ssh_user_auth_code {
     pub const REQUEST: u8 = 50;

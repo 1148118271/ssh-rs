@@ -74,7 +74,7 @@ impl SessionBroker {
         self.open_shell_terminal(TerminalSize::from(80, 24))
     }
 
-    /// open a [LocalShell] channel
+    /// open a [ShellBrocker] channel
     ///
     /// custom terminal dimensions
     ///

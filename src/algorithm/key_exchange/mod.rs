@@ -5,7 +5,7 @@ use ring::agreement::{EphemeralPrivateKey, UnparsedPublicKey};
 
 /// # Algorithms that used for key exchange
 ///
-/// https://www.rfc-editor.org/rfc/rfc4253#section-7
+/// <https://www.rfc-editor.org/rfc/rfc4253#section-7>
 mod curve25519;
 mod dh;
 mod ecdh_sha2_nistp256;
