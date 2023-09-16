@@ -49,9 +49,9 @@ fn main() {
 ```
 
 ### 启用全局日志：
-
+本crate现在使用兼容`log`的`tracing` crate记录log
+使用下面的代码片段启用log
 ```rust
-use ssh;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 // this will generate some basic event logs
@@ -66,21 +66,22 @@ let subscriber = FmtSubscriber::builder()
 tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 ```
 
-### 设置超时时间：
+### 设置全局超时时间：
 
 ```rust
 ssh::create_session().timeout(Some(std::time::Duration::from_secs(5)));
 ```
 
-### 目前只支持 exec shell scp 三种使用方式： 
+### 使用样例
+* 更多使用样例请参考[examples](examples)目录
 
-1. [exec示例](examples/exec/src/main.rs) 
-2. [shell示例](examples/shell/src/main.rs) 
-3. [scp示例](examples/scp/src/main.rs)
+1. [执行单个命令](examples/exec/src/main.rs)
+2. [通过scp传输文件](examples/scp/src/main.rs)
+3. [启动一个pty](examples/shell/src/main.rs)
+4. [运行一个交互式的shell](examples/shell_interactive/src/main.rs)
+5. [使用非tcp连接](examples/bio/src/main.rs)
+6. [自行配置密码组](examples/customized_algorithms/src/main.rs)
 
-### 自定义连接方式:
-
-[bio示例](examples/bio/src/main.rs)
 
 ### 算法支持：
 
@@ -96,7 +97,7 @@ ssh::create_session().timeout(Some(std::time::Duration::from_secs(5)));
 * `rsa-sha2-256`
 * `rsa-sha` (features = ["deprecated-rsa-sha1"])
 
-#### 3. 加密算法（客户端到服务端）
+#### 3. 加密算法
 
 * `chacha20-poly1305@openssh.com`
 * `aes128-ctr`
@@ -107,25 +108,13 @@ ssh::create_session().timeout(Some(std::time::Duration::from_secs(5)));
 * `aes256-cbc` (features = ["deprecated-aes-cbc"])
 * `3des-cbc` (features = ["deprecated-des-cbc"])
 
+#### 4. MAC算法
 
-#### 4. 加密算法（服务端到客户端）
-
-* `chacha20-poly1305@openssh.com`
-* `aes128-ctr`
-
-#### 5. MAC算法（客户端到服务端）
-
+* `hmac-sha2-256`
+* `hmac-sha2-512`
 * `hmac-sha1`
 
-#### 6. MAC算法（服务端到客户端）
-
-* `hmac-sha1`
-
-#### 7. 压缩算法（客户端到服务端）
-
-* `none`
-
-#### 8. 压缩算法（服务端到客户端）
+#### 5. 压缩算法
 
 * `none`
 
