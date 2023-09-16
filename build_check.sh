@@ -29,5 +29,5 @@ echo done
 echo
 echo
 echo cargo test
-cargo test > /dev/null
+cargo test --all-features -- --test-threads 1 > /dev/null
 echo done

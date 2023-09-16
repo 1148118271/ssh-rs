@@ -1,3 +1,13 @@
+v0.4.0 (2023-09-16)
+    1. remove chinese comments
+    2. add RFC links
+    3. remove the self-implemented log, using tracing instead
+    4. move scp related function behind feature `scp'
+    5. re-implement the ssh-error to derive thiserror crate
+    6. rename the dangerous-related features to deprecated-*
+    7. add aes-128/192/256-cbc encryption modes (behind feature deprecated-aes-cbc)
+    7. add 3des-cbc encryption modes (behind feature deprecated-des-cbc)
+
 v0.3.3 (2023-09-10)
     1. fix hang when tcp connects to a non-existent host
     2. refactor aes_ctr file
@@ -8,7 +18,7 @@ v0.3.3 (2023-09-10)
 
 v0.3.2 (2023-01-10)
     1. fix some error with hmac2
-    2. add aes-192-crt，aes-256-ctr
+    2. add aes-192-crt, aes-256-ctr
 
 v0.3.1 (2022-12-07)
     fix some issues

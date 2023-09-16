@@ -1,5 +1,6 @@
 use std::io::{Read, Write};
 use std::time::Duration;
+use tracing::*;
 
 use crate::{
     constant::{self, CLIENT_VERSION},
@@ -7,15 +8,19 @@ use crate::{
     model::Timeout,
 };
 
-type OurVer = String;
-type ServerVer = String;
+#[derive(Debug, Clone)]
+pub(crate) struct SshVersion {
+    pub client_ver: String,
+    pub server_ver: String,
+}
 
-#[derive(Debug, Clone, Default)]
-pub(crate) enum SshVersion {
-    V1,
-    V2(OurVer, ServerVer),
-    #[default]
-    Unknown,
+impl Default for SshVersion {
+    fn default() -> Self {
+        Self {
+            client_ver: CLIENT_VERSION.to_owned(),
+            server_ver: String::new(),
+        }
+    }
 }
 
 fn read_version<S>(stream: &mut S, tm: Option<Duration>) -> SshResult<Vec<u8>>
@@ -45,45 +50,42 @@ where
 }
 
 impl SshVersion {
-    pub fn from<S>(stream: &mut S, timeout: Option<Duration>) -> SshResult<Self>
+    pub fn read_server_version<S>(
+        &mut self,
+        stream: &mut S,
+        timeout: Option<Duration>,
+    ) -> SshResult<()>
     where
         S: Read,
     {
         let buf = read_version(stream, timeout)?;
-        let from_utf8 = crate::util::from_utf8(buf)?;
+        let from_utf8 = String::from_utf8(buf)?;
         let version_str = from_utf8.trim();
-        log::info!("server version: [{}]", version_str);
+        info!("server version: [{}]", version_str);
 
-        if version_str.contains("SSH-2.0") {
-            Ok(SshVersion::V2(
-                CLIENT_VERSION.to_string(),
-                version_str.to_string(),
-            ))
-        } else if version_str.contains("SSH-1.0") {
-            Ok(SshVersion::V1)
-        } else {
-            Ok(SshVersion::Unknown)
-        }
+        self.server_ver = version_str.to_owned();
+        Ok(())
     }
 
-    pub fn write<S>(stream: &mut S) -> SshResult<()>
+    pub fn send_our_version<S>(&self, stream: &mut S) -> SshResult<()>
     where
         S: Write,
     {
-        log::info!("client version: [{}]", CLIENT_VERSION);
-        let ver_string = format!("{}\r\n", CLIENT_VERSION);
+        info!("client version: [{}]", self.client_ver);
+        let ver_string = format!("{}\r\n", self.client_ver);
         let _ = stream.write(ver_string.as_bytes())?;
         Ok(())
     }
 
     pub fn validate(&self) -> SshResult<()> {
-        if let SshVersion::V2(_, _) = self {
-            log::info!("version negotiation was successful.");
+        if self.server_ver.contains("SSH-2.0") {
             Ok(())
         } else {
-            let err_msg = "error in version negotiation, version mismatch.";
-            log::error!("{}", err_msg);
-            Err(SshError::from(err_msg))
+            error!("error in version negotiation, version mismatch.");
+            Err(SshError::VersionDismatchError {
+                our: constant::CLIENT_VERSION.to_owned(),
+                their: self.server_ver.clone(),
+            })
         }
     }
 }

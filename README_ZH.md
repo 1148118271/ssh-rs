@@ -51,7 +51,19 @@ fn main() {
 ### 启用全局日志：
 
 ```rust
- ssh::debug();
+use ssh;
+use tracing::Level;
+use tracing_subscriber::FmtSubscriber;
+// this will generate some basic event logs
+// a builder for `FmtSubscriber`.
+let subscriber = FmtSubscriber::builder()
+    // all spans/events with a level higher than INFO (e.g, info, warn, etc.)
+    // will be written to stdout.
+    .with_max_level(Level::INFO)
+    // completes the builder.
+    .finish();
+
+tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 ```
 
 ### 设置超时时间：
@@ -82,7 +94,7 @@ ssh::create_session().timeout(Some(std::time::Duration::from_secs(5)));
 * `ssh-ed25519`
 * `rsa-sha2-512`
 * `rsa-sha2-256`
-* `rsa-sha` (features = ["dangerous-rsa-sha1"])
+* `rsa-sha` (features = ["deprecated-rsa-sha1"])
 
 #### 3. 加密算法（客户端到服务端）
 
@@ -90,6 +102,11 @@ ssh::create_session().timeout(Some(std::time::Duration::from_secs(5)));
 * `aes128-ctr`
 * `aes192-ctr`
 * `aes256-ctr`
+* `aes128-cbc` (features = ["deprecated-aes-cbc"])
+* `aes192-cbc` (features = ["deprecated-aes-cbc"])
+* `aes256-cbc` (features = ["deprecated-aes-cbc"])
+* `3des-cbc` (features = ["deprecated-des-cbc"])
+
 
 #### 4. 加密算法（服务端到客户端）
 
