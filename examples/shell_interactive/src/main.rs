@@ -1,11 +1,13 @@
 #[cfg(unix)]
 use mio::unix::SourceFd;
-use ssh_rs::ssh;
+
 use std::fs::File;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
-use std::{cell::RefCell, rc::Rc};
 use std::time::Duration;
+use std::{cell::RefCell, rc::Rc};
+use tracing::Level;
+use tracing_subscriber::FmtSubscriber;
 
 use mio::net::TcpStream;
 use mio::{event::Source, Events, Interest, Poll, Token};
@@ -22,7 +24,15 @@ fn main() {
 fn main() {
     use std::{io::Read, os::unix::prelude::AsRawFd};
 
-    ssh::enable_log();
+    // a builder for `FmtSubscriber`.
+    let subscriber = FmtSubscriber::builder()
+        // all spans/events with a level higher than INFO (e.g, info, warn, etc.)
+        // will be written to stdout.
+        .with_max_level(Level::INFO)
+        // completes the builder.
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
     let tcp = TcpStream::connect("127.0.0.1:22".parse().unwrap()).unwrap();
     let mut session = ssh::create_session()
         .username("ubuntu")
