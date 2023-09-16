@@ -17,11 +17,13 @@ repository = "https://github.com/1148118271/ssh-rs"
 deprecated-algorithms = [
     "deprecated-rsa-sha1",
     "deprecated-dh-group1-sha1",
-    "deprecated-cbc",
+    "deprecated-aes-cbc",
+    "deprecated-des-cbc",
     ]
 deprecated-rsa-sha1 = ["dep:sha1"]
 deprecated-dh-group1-sha1 = ["dep:sha1"]
-deprecated-cbc = ["dep:cbc", "dep:cipher"]
+deprecated-aes-cbc = ["dep:cbc", "dep:cipher"]
+deprecated-des-cbc = ["dep:cbc", "dep:cipher", "dep:des"]
 scp = ["dep:filetime"]
 
 [lib]
@@ -48,6 +50,7 @@ sha2  = { version = "0.10.6", default-features = false, features = ["oid"]}
 rsa = "0.9"
 aes = "0.8"
 ctr = "0.9"
+des = { version = "0.8", optional = true }
 cbc = { version = "0.1", optional = true }
 cipher = { version = "0.4", optional = true }
 ssh-key = { version = "0.6", features = ["rsa", "ed25519", "alloc"]}

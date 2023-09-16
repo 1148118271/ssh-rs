@@ -77,10 +77,10 @@ macro_rules! crate_aes_ctr {
             }
 
             fn encrypt(&mut self, client_sequence_num: u32, buf: &mut Vec<u8>) {
-                let tag =
-                    self.extend
-                        .mac
-                        .sign(&self.extend.ik_c_s, client_sequence_num, buf.as_slice());
+                let tag = self
+                    .extend
+                    .mac
+                    .sign(&self.extend.ik_c_s, client_sequence_num, buf);
                 self.client_key.apply_keystream(buf);
                 buf.extend(tag.as_ref())
             }

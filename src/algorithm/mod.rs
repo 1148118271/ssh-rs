@@ -19,15 +19,18 @@ pub enum Enc {
     Aes192Ctr,
     #[strum(serialize = "aes256-ctr")]
     Aes256Ctr,
-    #[cfg(feature = "deprecated-cbc")]
+    #[cfg(feature = "deprecated-aes-cbc")]
     #[strum(serialize = "aes128-cbc")]
     Aes128Cbc,
-    #[cfg(feature = "deprecated-cbc")]
+    #[cfg(feature = "deprecated-aes-cbc")]
     #[strum(serialize = "aes192-cbc")]
     Aes192Cbc,
-    #[cfg(feature = "deprecated-cbc")]
+    #[cfg(feature = "deprecated-aes-cbc")]
     #[strum(serialize = "aes256-cbc")]
     Aes256Cbc,
+    #[cfg(feature = "deprecated-des-cbc")]
+    #[strum(serialize = "3des-cbc")]
+    TripleDesCbc,
 }
 
 /// key exchange algorithm

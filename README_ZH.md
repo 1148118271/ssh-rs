@@ -102,9 +102,11 @@ ssh::create_session().timeout(Some(std::time::Duration::from_secs(5)));
 * `aes128-ctr`
 * `aes192-ctr`
 * `aes256-ctr`
-* `aes128-cbc` (features = ["deprecated-cbc"])
-* `aes192-cbc` (features = ["deprecated-cbc"])
-* `aes256-cbc` (features = ["deprecated-cbc"])
+* `aes128-cbc` (features = ["deprecated-aes-cbc"])
+* `aes192-cbc` (features = ["deprecated-aes-cbc"])
+* `aes256-cbc` (features = ["deprecated-aes-cbc"])
+* `3des-cbc` (features = ["deprecated-des-cbc"])
+
 
 #### 4. 加密算法（服务端到客户端）
 

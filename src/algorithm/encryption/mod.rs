@@ -1,7 +1,9 @@
-#[cfg(feature = "deprecated-cbc")]
+#[cfg(feature = "deprecated-aes-cbc")]
 mod aes_cbc;
 mod aes_ctr;
 mod chacha20_poly1305_openssh;
+#[cfg(feature = "deprecated-des-cbc")]
+mod des_cbc;
 
 use crate::algorithm::hash::Hash;
 use crate::algorithm::mac::Mac;
@@ -31,12 +33,14 @@ pub(crate) fn from(s: &Enc, hash: Hash, mac: Box<dyn Mac>) -> Box<dyn Encryption
         Enc::Aes128Ctr => Box::new(aes_ctr::Ctr128::new(hash, mac)),
         Enc::Aes192Ctr => Box::new(aes_ctr::Ctr192::new(hash, mac)),
         Enc::Aes256Ctr => Box::new(aes_ctr::Ctr256::new(hash, mac)),
-        #[cfg(feature = "deprecated-cbc")]
+        #[cfg(feature = "deprecated-aes-cbc")]
         Enc::Aes128Cbc => Box::new(aes_cbc::Cbc128::new(hash, mac)),
-        #[cfg(feature = "deprecated-cbc")]
+        #[cfg(feature = "deprecated-aes-cbc")]
         Enc::Aes192Cbc => Box::new(aes_cbc::Cbc192::new(hash, mac)),
-        #[cfg(feature = "deprecated-cbc")]
+        #[cfg(feature = "deprecated-aes-cbc")]
         Enc::Aes256Cbc => Box::new(aes_cbc::Cbc256::new(hash, mac)),
+        #[cfg(feature = "deprecated-des-cbc")]
+        Enc::TripleDesCbc => Box::new(des_cbc::Cbc::new(hash, mac)),
     }
 }
 

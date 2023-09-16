@@ -195,9 +195,10 @@ match ssh::create_session()
 * `aes128-ctr`
 * `aes192-ctr`
 * `aes256-ctr`
-* `aes128-cbc` (behind feature "deprecated-cbc")
-* `aes192-cbc` (behind feature "deprecated-cbc")
-* `aes256-cbc` (behind feature "deprecated-cbc")
+* `aes128-cbc` (behind feature "deprecated-aes-cbc")
+* `aes192-cbc` (behind feature "deprecated-aes-cbc")
+* `aes256-cbc` (behind feature "deprecated-aes-cbc")
+* `3des-cbc` (behind feature "deprecated-des-cbc")
 
 ### 5. Mac algorithms (client to server)
 

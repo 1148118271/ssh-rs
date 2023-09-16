@@ -81,7 +81,7 @@ macro_rules! crate_aes_cbc {
                 let tag = self
                     .extend
                     .mac
-                    .sign(&self.extend.ik_c_s, client_sequence_num, &buf);
+                    .sign(&self.extend.ik_c_s, client_sequence_num, buf);
                 let mut idx = 0;
                 while idx < len {
                     let mut block = GenericArray::clone_from_slice(&buf[idx..idx + BLOCK_SIZE]);
