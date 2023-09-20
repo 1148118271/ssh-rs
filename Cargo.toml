@@ -1,6 +1,6 @@
 [package]
 name = "ssh-rs"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 authors = [
     "Gao Xiang Kang <1148118271@qq.com>",
@@ -24,6 +24,7 @@ deprecated-rsa-sha1 = ["dep:sha1"]
 deprecated-dh-group1-sha1 = ["dep:sha1"]
 deprecated-aes-cbc = ["dep:cbc", "dep:cipher"]
 deprecated-des-cbc = ["dep:cbc", "dep:cipher", "dep:des"]
+deprecated-zlib = []
 scp = ["dep:filetime"]
 
 [lib]
@@ -56,6 +57,9 @@ cipher = { version = "0.4", optional = true }
 ssh-key = { version = "0.6", features = ["rsa", "ed25519", "alloc"]}
 signature = "2.1"
 ring = "0.16"
+
+## compression
+flate2 = "^1.0"
 
 ## utils
 filetime = { version = "0.2", optional = true }

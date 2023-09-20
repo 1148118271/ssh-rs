@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 use tracing::*;
 
 use crate::{
-    algorithm::Digest,
+    algorithm::{compression, Digest},
     constant::{ssh_connection_code, ssh_str, ssh_transport_code, ssh_user_auth_code},
     error::{SshError, SshResult},
     model::{Data, Packet, SecPacket},
@@ -58,6 +58,9 @@ impl Client {
                 }
                 ssh_user_auth_code::SUCCESS => {
                     info!("user auth successful.");
+                    // <https://www.openssh.com/txt/draft-miller-secsh-compression-delayed-00.txt>
+                    // Now we need turn on the compressor if any
+                    self.compressor = compression::from(&self.negotiated.c_compress[0]);
                     return Ok(());
                 }
                 ssh_connection_code::GLOBAL_REQUEST => {

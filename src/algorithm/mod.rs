@@ -1,3 +1,4 @@
+pub(crate) mod compression;
 pub(crate) mod encryption;
 pub(crate) mod hash;
 pub(crate) mod key_exchange;
@@ -79,6 +80,11 @@ pub enum Mac {
 pub enum Compress {
     #[strum(serialize = "none")]
     None,
+    #[cfg(feature = "deprecated-zlib")]
+    #[strum(serialize = "zlib")]
+    Zlib,
+    #[strum(serialize = "zlib@openssh.com")]
+    ZlibOpenSsh,
 }
 
 #[derive(Default)]

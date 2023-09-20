@@ -127,8 +127,8 @@ impl AlgList {
             .into(),
             c_mac: vec![Mac::HmacSha2_256, Mac::HmacSha2_512, Mac::HmacSha1].into(),
             s_mac: vec![Mac::HmacSha2_256, Mac::HmacSha2_512, Mac::HmacSha1].into(),
-            c_compress: vec![Compress::None].into(),
-            s_compress: vec![Compress::None].into(),
+            c_compress: vec![Compress::None, Compress::ZlibOpenSsh].into(),
+            s_compress: vec![Compress::None, Compress::ZlibOpenSsh].into(),
         }
     }
 

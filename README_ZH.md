@@ -117,6 +117,7 @@ ssh::create_session().timeout(Some(std::time::Duration::from_secs(5)));
 #### 5. 压缩算法
 
 * `none`
+* `zlib` (behind feature "zlib")
 
 ---
 

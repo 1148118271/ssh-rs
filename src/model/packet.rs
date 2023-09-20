@@ -154,7 +154,8 @@ impl<'a> SecPacket<'a> {
         S: Write,
     {
         let tm = self.client.get_timeout();
-        let payload_len = self.payload.len() as u32;
+        let payload = self.client.get_compressor().compress(&self.payload)?;
+        let payload_len = payload.len() as u32;
         let pad_len = {
             let mut pad = payload_len as i32 + 1;
             let block_size = Self::get_align(self.client.get_encryptor().bsize());
@@ -167,7 +168,7 @@ impl<'a> SecPacket<'a> {
         let mut buf = vec![];
         buf.extend(packet_len.to_be_bytes());
         buf.extend([pad_len]);
-        buf.extend(self.payload.iter());
+        buf.extend(payload);
         buf.extend(vec![0; pad_len as usize]);
         let seq = self.client.get_seq().get_client();
         self.client.get_encryptor().encrypt(seq, &mut buf);
@@ -203,6 +204,7 @@ impl<'a> SecPacket<'a> {
         let payload_len = pkt_len - pad_len as u32 - 1;
 
         let payload = data[5..payload_len as usize + 5].into();
+        let payload = client.get_compressor().decompress(payload)?.into();
 
         Ok(Self { payload, client })
     }
