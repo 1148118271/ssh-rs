@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 use tracing::*;
 
 use crate::{
-    algorithm::{compression, Digest},
+    algorithm::{compression, Compress, Digest},
     constant::{ssh_connection_code, ssh_str, ssh_transport_code, ssh_user_auth_code},
     error::{SshError, SshResult},
     model::{Data, Packet, SecPacket},
@@ -60,7 +60,10 @@ impl Client {
                     info!("user auth successful.");
                     // <https://www.openssh.com/txt/draft-miller-secsh-compression-delayed-00.txt>
                     // Now we need turn on the compressor if any
-                    self.compressor = compression::from(&self.negotiated.c_compress[0]);
+                    if let Compress::ZlibOpenSsh = self.negotiated.c_compress[0] {
+                        let comp = compression::from(&Compress::ZlibOpenSsh);
+                        self.compressor = comp;
+                    }
                     return Ok(());
                 }
                 ssh_connection_code::GLOBAL_REQUEST => {
