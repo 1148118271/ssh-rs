@@ -198,6 +198,8 @@ match ssh::create_session()
 ### 5. Compression algorithms
 
 * `none`
+* `zlib@openssh.com`
+* `zlib` (behind feature "zlib")
 
 ---
 

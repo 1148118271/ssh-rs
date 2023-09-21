@@ -1,3 +1,6 @@
+v0.4.1 (2023-09-20)
+    1. Add zlib, zlib@openssh.com support
+
 v0.4.0 (2023-09-16)
     1. remove chinese comments
     2. add RFC links

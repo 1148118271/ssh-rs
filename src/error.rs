@@ -21,6 +21,8 @@ pub enum SshError {
     DataFormatError(#[from] std::string::FromUtf8Error),
     #[error("Encryption error: {0}")]
     EncryptionError(String),
+    #[error("Compression error: {0}")]
+    CompressionError(String),
     #[cfg(feature = "scp")]
     #[error(transparent)]
     SystemTimeError(#[from] std::time::SystemTimeError),

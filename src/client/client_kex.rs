@@ -1,3 +1,5 @@
+#[cfg(feature = "deprecated-zlib")]
+use crate::algorithm::{compression, Compress};
 use crate::{
     algorithm::{
         encryption,
@@ -78,6 +80,15 @@ impl Client {
         self.session_id = session_id;
         self.negotiated = negotiated;
         self.encryptor = encryption;
+
+        #[cfg(feature = "deprecated-zlib")]
+        {
+            if let Compress::Zlib = self.negotiated.c_compress[0] {
+                let comp = compression::from(&Compress::Zlib);
+                self.compressor = comp;
+            }
+        }
+
         digest.key_exchange = Some(key_exchange);
 
         info!("key negotiation successful.");
