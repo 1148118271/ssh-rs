@@ -36,7 +36,7 @@ path = "src/lib.rs"
 thiserror = "^1.0"
 
 ## log
-tracing = { version = "^0.1", features = ["log"] }
+tracing = { version = "0.1.36", features = ["log"] }
 
 ## string enum
 strum = "0.25"
