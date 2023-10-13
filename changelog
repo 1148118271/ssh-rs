@@ -1,3 +1,8 @@
+v0.4.2 (2023-10-13)
+    1. Bump trace version, see #75 for more details
+    2. Bugfix: Do not panic at non-ssh server connections, see #77 for more
+    details
+
 v0.4.1 (2023-09-20)
     1. Add zlib, zlib@openssh.com support
 
