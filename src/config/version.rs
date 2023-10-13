@@ -3,7 +3,7 @@ use std::time::Duration;
 use tracing::*;
 
 use crate::{
-    constant::{self, CLIENT_VERSION},
+    constant::{self, CLIENT_VERSION, SSH_MAGIC},
     error::{SshError, SshResult},
     model::Timeout,
 };
@@ -33,7 +33,6 @@ where
         match stream.read(&mut buf) {
             Ok(i) => {
                 // MY TO DO: To Skip the other lines
-                assert_eq!(&buf[0..4], constant::SSH_MAGIC);
                 buf.truncate(i);
                 return Ok(buf);
             }
@@ -59,6 +58,10 @@ impl SshVersion {
         S: Read,
     {
         let buf = read_version(stream, timeout)?;
+        if &buf[0..4] != SSH_MAGIC {
+            error!("SSH version magic doesn't match");
+            error!("Probably not an ssh server");
+        }
         let from_utf8 = String::from_utf8(buf)?;
         let version_str = from_utf8.trim();
         info!("server version: [{}]", version_str);
