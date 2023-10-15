@@ -62,6 +62,9 @@ pub enum PubKey {
     RsaSha2_256,
     #[strum(serialize = "rsa-sha2-512")]
     RsaSha2_512,
+    #[cfg(feature = "deprecated-dss-sha1")]
+    #[strum(serialize = "ssh-dss")]
+    SshDss
 }
 
 /// MAC(message authentication code) algorithm

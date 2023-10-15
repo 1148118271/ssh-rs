@@ -32,6 +32,23 @@ mod test {
             .run_local();
         session.close();
     }
+    
+    #[cfg(feature = "deprecated-algorithms")]
+    #[test]
+    fn test_ssh_dss() {
+        let session = ssh::create_session_without_default()
+            .username(&get_username())
+            .private_key_path(get_pem_rsa())
+            .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup1Sha1)
+            .add_pubkey_algorithms(algorithm::PubKey::SshDss)
+            .add_enc_algorithms(algorithm::Enc::Aes256Cbc)
+            .add_compress_algorithms(algorithm::Compress::None)
+            .add_mac_algortihms(algorithm::Mac::HmacSha1)
+            .connect(get_server())
+            .unwrap()
+            .run_local();
+        session.close();
+    }
 
     #[cfg(feature = "deprecated-algorithms")]
     #[test]

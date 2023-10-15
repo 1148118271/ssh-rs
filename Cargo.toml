@@ -19,8 +19,10 @@ deprecated-algorithms = [
     "deprecated-dh-group1-sha1",
     "deprecated-aes-cbc",
     "deprecated-des-cbc",
+    "deprecated-dss-sha1"
     ]
 deprecated-rsa-sha1 = ["dep:sha1"]
+deprecated-dss-sha1 = ["dep:sha1", "dep:dsa"]
 deprecated-dh-group1-sha1 = ["dep:sha1"]
 deprecated-aes-cbc = ["dep:cbc", "dep:cipher"]
 deprecated-des-cbc = ["dep:cbc", "dep:cipher", "dep:des"]
@@ -48,6 +50,7 @@ num-bigint = { version = "0.4", features = ["rand"] }
 # the crate rsa has removed the internal hash implement from 0.7.0
 sha1  = { version = "0.10.5", default-features = false, features = ["oid"], optional = true }
 sha2  = { version = "0.10.6", default-features = false, features = ["oid"]}
+dsa = { version = "0.6.1", optional = true }
 rsa = "0.9"
 aes = "0.8"
 ctr = "0.9"
