@@ -1,17 +1,18 @@
 use crate::SshError;
 
+#[cfg(feature = "deprecated-rsa-sha1")]
+mod dss;
 mod ed25519;
 mod rsa;
-mod dss;
 
+#[cfg(feature = "deprecated-dss-sha1")]
+use self::dss::DssSha1;
 #[cfg(feature = "deprecated-rsa-sha1")]
 use self::rsa::RsaSha1;
 use self::rsa::RsaSha256;
 use self::rsa::RsaSha512;
 use super::PubKey;
 use ed25519::Ed25519;
-#[cfg(feature = "deprecated-dss-sha1")]
-use self::dss::DssSha1;
 
 /// # Public Key Algorithms
 ///

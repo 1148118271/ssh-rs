@@ -32,7 +32,7 @@ mod test {
             .run_local();
         session.close();
     }
-    
+
     #[cfg(feature = "deprecated-algorithms")]
     #[test]
     fn test_ssh_dss() {

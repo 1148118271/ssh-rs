@@ -1,6 +1,6 @@
 #[cfg(feature = "deprecated-dss-sha1")]
-use sha1::{Sha1, Digest};
-use signature::DigestVerifier;     
+use sha1::{Digest, Sha1};
+use signature::DigestVerifier;
 
 use crate::algorithm::public_key::PublicKey as PubK;
 use crate::model::Data;
@@ -28,12 +28,14 @@ impl PubK for DssSha1 {
         let g = dsa::BigUint::from_bytes_be(data.get_u8s().as_slice());
         let y = dsa::BigUint::from_bytes_be(data.get_u8s().as_slice());
 
-        let components = dsa::Components::from_components(p, q, g)            
-            .map_err(|_| SshError::SshPubKeyError("SSH Public Key components were not valid".to_string()))?;
-        
+        let components = dsa::Components::from_components(p, q, g).map_err(|_| {
+            SshError::SshPubKeyError("SSH Public Key components were not valid".to_string())
+        })?;
+
         // Build the public key for verification of the message
-        let public_key = dsa::VerifyingKey::from_components(components, y)
-            .map_err(|_| SshError::SshPubKeyError("SSH Public Key components were not valid".to_string()))?;
+        let public_key = dsa::VerifyingKey::from_components(components, y).map_err(|_| {
+            SshError::SshPubKeyError("SSH Public Key components were not valid".to_string())
+        })?;
 
         // Perform an SHA1 hash on the message
         let digest = Sha1::new().chain_update(message);
