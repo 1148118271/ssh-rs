@@ -15,6 +15,8 @@ mod test {
     env_getter!(username, "ubuntu");
     env_getter!(server, "127.0.0.1:22");
     env_getter!(pem_rsa, "./rsa_old");
+    #[cfg(feature = "deprecated-dss-sha1")]
+    env_getter!(passwd, "password");
 
     #[cfg(feature = "deprecated-rsa-sha1")]
     #[test]
@@ -33,15 +35,15 @@ mod test {
         session.close();
     }
 
-    #[cfg(feature = "deprecated-algorithms")]
+    #[cfg(feature = "deprecated-dss-sha1")]
     #[test]
     fn test_ssh_dss() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
-            .private_key_path(get_pem_rsa())
-            .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup1Sha1)
+            .password(&get_passwd())
+            .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup14Sha1)
             .add_pubkey_algorithms(algorithm::PubKey::SshDss)
-            .add_enc_algorithms(algorithm::Enc::Aes256Cbc)
+            .add_enc_algorithms(algorithm::Enc::Aes128Ctr)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha1)
             .connect(get_server())
@@ -50,14 +52,14 @@ mod test {
         session.close();
     }
 
-    #[cfg(feature = "deprecated-algorithms")]
+    #[cfg(feature = "deprecated-dh-group1-sha1")]
     #[test]
     fn test_dh_group1() {
         let session = ssh::create_session_without_default()
             .username(&get_username())
             .private_key_path(get_pem_rsa())
             .add_kex_algorithms(algorithm::Kex::DiffieHellmanGroup1Sha1)
-            .add_pubkey_algorithms(algorithm::PubKey::SshRsa)
+            .add_pubkey_algorithms(algorithm::PubKey::RsaSha2_256)
             .add_enc_algorithms(algorithm::Enc::Aes128Ctr)
             .add_compress_algorithms(algorithm::Compress::None)
             .add_mac_algortihms(algorithm::Mac::HmacSha1)

@@ -1,3 +1,7 @@
+v0.4.3 (2023-10-18)
+    1. Bump ring to 0.17
+    2. Add ssh-dss support (behind feature deprecated-dss-sha1)
+
 v0.4.2 (2023-10-13)
     1. Bump trace version, see #75 for more details
     2. Bugfix: Do not panic at non-ssh server connections, see #77 for more

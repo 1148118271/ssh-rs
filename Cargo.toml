@@ -1,6 +1,6 @@
 [package]
 name = "ssh-rs"
-version = "0.4.2"
+version = "0.4.3"
 edition = "2021"
 authors = [
     "Gao Xiang Kang <1148118271@qq.com>",
@@ -59,7 +59,7 @@ cbc = { version = "0.1", optional = true }
 cipher = { version = "0.4", optional = true }
 ssh-key = { version = "0.6", features = ["rsa", "ed25519", "alloc"]}
 signature = "2.1"
-ring = "0.16"
+ring = "0.17"
 
 ## compression
 flate2 = "^1.0"
@@ -68,7 +68,7 @@ flate2 = "^1.0"
 filetime = { version = "0.2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
+ring = { version = "0.17", features = ["wasm32_unknown_unknown_js"] }
 
 
 [dev-dependencies]

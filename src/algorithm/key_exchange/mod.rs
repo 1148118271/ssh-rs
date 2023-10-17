@@ -30,13 +30,10 @@ pub(crate) fn agree_ephemeral<B: AsRef<[u8]>>(
     private_key: EphemeralPrivateKey,
     peer_public_key: &UnparsedPublicKey<B>,
 ) -> SshResult<Vec<u8>> {
-    match agreement::agree_ephemeral(
-        private_key,
-        peer_public_key,
-        ring::error::Unspecified,
-        |key_material| Ok(key_material.to_vec()),
-    ) {
-        Ok(o) => Ok(o),
+    match agreement::agree_ephemeral(private_key, peer_public_key, |key_material| {
+        Ok(key_material.to_vec())
+    }) {
+        Ok(o) => o,
         Err(e) => Err(SshError::KexError(e.to_string())),
     }
 }
