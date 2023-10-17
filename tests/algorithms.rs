@@ -15,6 +15,7 @@ mod test {
     env_getter!(username, "ubuntu");
     env_getter!(server, "127.0.0.1:22");
     env_getter!(pem_rsa, "./rsa_old");
+    #[cfg(feature = "deprecated-dss-sha1")]
     env_getter!(passwd, "password");
 
     #[cfg(feature = "deprecated-rsa-sha1")]
