@@ -68,7 +68,7 @@ flate2 = "^1.0"
 filetime = { version = "0.2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
+ring = { version = "0.17", features = ["wasm32_unknown_unknown_js"] }
 
 
 [dev-dependencies]
