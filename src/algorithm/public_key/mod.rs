@@ -1,6 +1,6 @@
 use crate::SshError;
 
-#[cfg(feature = "deprecated-rsa-sha1")]
+#[cfg(feature = "deprecated-dss-sha1")]
 mod dss;
 mod ed25519;
 mod rsa;
