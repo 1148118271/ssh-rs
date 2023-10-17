@@ -96,6 +96,7 @@ ssh::create_session().timeout(Some(std::time::Duration::from_secs(5)));
 * `rsa-sha2-512`
 * `rsa-sha2-256`
 * `rsa-sha` (features = ["deprecated-rsa-sha1"])
+* `ssh-dss` (features = ["deprecated-dss-sha1"])
 
 #### 3. 加密算法
 

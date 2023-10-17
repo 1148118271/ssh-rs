@@ -1,8 +1,12 @@
 use crate::SshError;
 
+#[cfg(feature = "deprecated-rsa-sha1")]
+mod dss;
 mod ed25519;
 mod rsa;
 
+#[cfg(feature = "deprecated-dss-sha1")]
+use self::dss::DssSha1;
 #[cfg(feature = "deprecated-rsa-sha1")]
 use self::rsa::RsaSha1;
 use self::rsa::RsaSha256;
@@ -28,5 +32,7 @@ pub(crate) fn from(s: &PubKey) -> Box<dyn PublicKey> {
         PubKey::SshRsa => Box::new(RsaSha1::new()),
         PubKey::RsaSha2_256 => Box::new(RsaSha256::new()),
         PubKey::RsaSha2_512 => Box::new(RsaSha512::new()),
+        #[cfg(feature = "deprecated-dss-sha1")]
+        PubKey::SshDss => Box::new(DssSha1::new()),
     }
 }

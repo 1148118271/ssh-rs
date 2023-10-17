@@ -176,6 +176,7 @@ match ssh::create_session()
 * `rsa-sha2-256`
 * `rsa-sha2-512`
 * `rsa-sha` (behind feature "deprecated-rsa-sha1")
+* `ssh-dss` (behind feature "deprecated-dss-sha1")
 
 
 ### 3. Encryption algorithms
