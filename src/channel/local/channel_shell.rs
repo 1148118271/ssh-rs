@@ -23,7 +23,6 @@ where
 
     fn request_pty(&mut self, tv: TerminalSize) -> SshResult<()> {
         let tvs = tv.fetch();
-        println!("tvs {:?}", tvs);
         let mut data = Data::new();
         data.put_u8(ssh_connection_code::CHANNEL_REQUEST)
             .put_u32(self.server_channel_no)
