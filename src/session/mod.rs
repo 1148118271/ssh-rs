@@ -50,14 +50,15 @@ where
             .connect(),
             SessionState::Version(mut config, mut stream) => {
                 info!("start for version negotiation.");
+                // Send Client version
+                config.ver.send_our_version(&mut stream)?;
+
                 // Receive the server version
                 config
                     .ver
                     .read_server_version(&mut stream, config.timeout)?;
                 // Version validate
                 config.ver.validate()?;
-                // Send Client version
-                config.ver.send_our_version(&mut stream)?;
 
                 // from now on
                 // each step of the interaction is subject to the ssh constraints on the packet
