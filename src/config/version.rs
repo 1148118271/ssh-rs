@@ -58,7 +58,7 @@ impl SshVersion {
         S: Read,
     {
         let buf = read_version(stream, timeout)?;
-        if &buf[0..4] != SSH_MAGIC {
+        if buf.len() < 4 || &buf[0..4] != SSH_MAGIC {
             error!("SSH version magic doesn't match");
             error!("Probably not an ssh server");
         }
