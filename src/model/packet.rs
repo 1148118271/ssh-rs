@@ -70,7 +70,7 @@ where
             }
             Err(e) => {
                 if let std::io::ErrorKind::WouldBlock = e.kind() {
-                    timeout.test()?;
+                    timeout.till_next_tick()?;
                     continue;
                 } else {
                     return Err(e.into());
@@ -117,7 +117,7 @@ where
             }
             Err(e) => {
                 if let std::io::ErrorKind::WouldBlock = e.kind() {
-                    timeout.test()?;
+                    timeout.till_next_tick()?;
                     continue;
                 } else {
                     return Err(e.into());

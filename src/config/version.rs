@@ -28,7 +28,7 @@ where
     S: Read,
 {
     let mut buf = vec![0; 128];
-    let timeout = Timeout::new(tm);
+    let mut timeout = Timeout::new(tm);
     loop {
         match stream.read(&mut buf) {
             Ok(i) => {
@@ -38,7 +38,7 @@ where
             }
             Err(e) => {
                 if let std::io::ErrorKind::WouldBlock = e.kind() {
-                    timeout.test()?;
+                    timeout.till_next_tick()?;
                     continue;
                 } else {
                     return Err(e.into());
