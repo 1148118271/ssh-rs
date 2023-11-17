@@ -23,22 +23,58 @@ impl Default for SshVersion {
     }
 }
 
+/// <https://www.rfc-editor.org/rfc/rfc4253#section-4.2>
+
+// When the connection has been established, both sides MUST send an
+// identification string.  This identification string MUST be
+
+//    SSH-protoversion-softwareversion SP comments CR LF
+
+// Since the protocol being defined in this set of documents is version
+// 2.0, the 'protoversion' MUST be "2.0".  The 'comments' string is
+// OPTIONAL.  If the 'comments' string is included, a 'space' character
+// (denoted above as SP, ASCII 32) MUST separate the 'softwareversion'
+// and 'comments' strings.  The identification MUST be terminated by a
+// single Carriage Return (CR) and a single Line Feed (LF) character
+// (ASCII 13 and 10, respectively).
 fn read_version<S>(stream: &mut S, tm: Option<Duration>) -> SshResult<Vec<u8>>
 where
     S: Read,
 {
-    let mut buf = vec![0; 128];
-    let timeout = Timeout::new(tm);
+    let mut ch = vec![0; 1];
+    const LF: u8 = 0xa;
+    let crlf = vec![0xd, 0xa];
+    let mut outbuf = vec![];
+    let mut timeout = Timeout::new(tm);
     loop {
-        match stream.read(&mut buf) {
+        match stream.read(&mut ch) {
             Ok(i) => {
-                // MY TO DO: To Skip the other lines
-                buf.truncate(i);
-                return Ok(buf);
+                if 0 == i {
+                    // eof got, return
+                    return Ok(outbuf);
+                }
+
+                outbuf.extend_from_slice(&ch);
+
+                if LF == ch[0] && outbuf.len() > 1 && outbuf.ends_with(&crlf) {
+                    // The server MAY send other lines of data before sending the version
+                    // string.  Each line SHOULD be terminated by a Carriage Return and Line
+                    // Feed.  Such lines MUST NOT begin with "SSH-", and SHOULD be encoded
+                    // in ISO-10646 UTF-8 [RFC3629] (language is not specified).  Clients
+                    // MUST be able to process such lines.  Such lines MAY be silently
+                    // ignored, or MAY be displayed to the client user.
+                    if outbuf.len() < 4 || &outbuf[0..4] != SSH_MAGIC {
+                        // skip other lines
+                        // and start read for another line
+                        outbuf.clear();
+                        continue;
+                    }
+                    return Ok(outbuf);
+                }
             }
             Err(e) => {
                 if let std::io::ErrorKind::WouldBlock = e.kind() {
-                    timeout.test()?;
+                    timeout.till_next_tick()?;
                     continue;
                 } else {
                     return Err(e.into());
