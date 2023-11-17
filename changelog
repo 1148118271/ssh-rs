@@ -1,3 +1,7 @@
+v0.4.5 (2023-11-17)
+    1. Fix the high cpu usage caused by non_block tcp
+    2. Fix the failuer of version agreement if the server sends more than one lines
+
 v0.4.4 (2023-11-15)
     1. Remove some debug print
     2. Fix the panic when connect to non-ssh servers
