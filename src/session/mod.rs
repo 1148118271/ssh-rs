@@ -257,6 +257,26 @@ impl SessionBuilder {
         self.connect_bio(tcp)
     }
 
+    pub fn connect_with_timeout<A>(
+        self,
+        addr: A,
+        timeout: Option<Duration>,
+    ) -> SshResult<SessionConnector<TcpStream>>
+    where
+        A: ToSocketAddrs,
+    {
+        // connect tcp with custom connection timeout
+        let tcp = if let Some(ref to) = timeout {
+            TcpStream::connect_timeout(&addr.to_socket_addrs()?.next().unwrap(), *to)?
+        } else {
+            TcpStream::connect(addr)?
+        };
+
+        // default nonblocking
+        tcp.set_nonblocking(true).unwrap();
+        self.connect_bio(tcp)
+    }
+
     /// connect to target server w/ a bio object
     ///
     /// which requires to implement `std::io::{Read, Write}`
