@@ -28,8 +28,8 @@ fn main() {
     exec.exec_command("no_command").unwrap();
     let vec = exec.get_output().unwrap();
     println!("output: {}", String::from_utf8(vec).unwrap());
-    println!("exit status: {}", exec.exit_status());
-    println!("terminated msg: {}", exec.terminate_msg());
+    println!("exit status: {}", exec.exit_status().unwrap());
+    println!("terminated msg: {}", exec.terminate_msg().unwrap());
     let _ = exec.close();
 
     // Close session.

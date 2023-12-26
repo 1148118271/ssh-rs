@@ -83,7 +83,7 @@ where
         ChannelShell::open(self, tv)
     }
 
-    /// close the channel gracefully, but donnot consume it
+    /// close the channel gracefully, but do not consume it
     ///
     pub fn close(&mut self) -> SshResult<()> {
         info!("channel close.");
@@ -95,16 +95,16 @@ where
     ///
     /// Return the command execute status
     ///
-    pub fn exit_status(&self) -> u32 {
-        self.exit_status
+    pub fn exit_status(&self) -> SshResult<u32> {
+        Ok(self.exit_status)
     }
 
     /// <https://datatracker.ietf.org/doc/html/rfc4254#section-6.10>
     ///
     /// Return the terminate message if the command excution was 'killed' by a signal
     ///
-    pub fn terminate_msg(&self) -> &str {
-        &self.terminate_msg
+    pub fn terminate_msg(&self) -> SshResult<String> {
+        Ok(self.terminate_msg.clone())
     }
 
     fn send_close(&mut self) -> SshResult<()> {
@@ -329,8 +329,7 @@ where
         let maybe_false = data.get_u8();
         if maybe_false == 0 {
             let sig_name = String::from_utf8(data.get_u8s())?;
-            self.terminate_msg +=
-                &format!("Current request is terminated by signal: {}\n", sig_name);
+            self.terminate_msg += &format!("Current request is terminated by signal: {sig_name}\n");
             let coredumped = data.get_u8();
             self.terminate_msg += &format!("Coredumped: {}\n", {
                 if coredumped == 0 {
@@ -340,7 +339,7 @@ where
                 }
             });
             let err_msg = String::from_utf8(data.get_u8s())?;
-            self.terminate_msg += &format!("Error message:\n{}\n", err_msg);
+            self.terminate_msg += &format!("Error message:\n{err_msg}\n");
         }
         Ok(())
     }

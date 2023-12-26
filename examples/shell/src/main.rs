@@ -53,6 +53,6 @@ fn run_shell(shell: &mut LocalShell<std::net::TcpStream>) {
     }
 
     let _ = shell.close();
-    println!("exit status: {}", shell.exit_status());
-    println!("terminated msg: {}", shell.terminate_msg());
+    println!("exit status: {}", shell.exit_status().unwrap());
+    println!("terminated msg: {}", shell.terminate_msg().unwrap());
 }
