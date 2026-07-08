@@ -52,8 +52,8 @@ sha1  = { version = "0.10.5", default-features = false, features = ["oid"], opti
 sha2  = { version = "0.10.6", default-features = false, features = ["oid"]}
 dsa = { version = "0.6.1", optional = true }
 rsa = "0.9"
-aes = "0.8"
-ctr = "0.9"
+aes = "0.9.1"
+ctr = "0.10.1"
 des = { version = "0.8", optional = true }
 cbc = { version = "0.1", optional = true }
 cipher = { version = "0.4", optional = true }
